@@ -347,17 +347,128 @@ export class RendererService {
                             );
                         };
 
-                        const resolveVariableListValue = (rawValue: any): string => {
-                            if (typeof rawValue === 'string') return rawValue;
+                        const normalizeLinkUrl = (value: any): string => {
+                            const raw = String(value || '').trim();
+                            if (!raw) return '#';
+                            if (/^(https?:|mailto:|tel:|#)/i.test(raw)) return raw;
+                            if (raw.startsWith('/')) return raw;
+                            if (raw.startsWith('//')) return raw;
+                            return `/${raw.replace(/^\/+/, '')}`;
+                        };
+
+                        const getSourcePool = (sourceKey: string): any[] => {
+                            const source = String(sourceKey || '').toLowerCase();
+                            if (source === 'products') return (context as any).products || [];
+                            if (source === 'categories') return (context as any).categories || [];
+                            if (source === 'brands') return (context as any).brands || [];
+                            if (source === 'pages') return (context as any).pages || [];
+                            if (source === 'blog_articles') return (context as any).blog_articles || [];
+                            if (source === 'blog_categories') return (context as any).blog_categories || [];
+                            return [];
+                        };
+
+                        const resolveSourceEntityUrl = (sourceKey: string, rawId: any) => {
+                            const source = String(sourceKey || '').toLowerCase();
+                            const id = String(rawId || '').trim();
+                            if (!id) return '';
+
+                            const staticMap: Record<string, string> = {
+                                offers_link: '/offers',
+                                brands_link: '/brands',
+                                blog_link: '/blog'
+                            };
+                            if (staticMap[source]) return staticMap[source];
+
+                            const pool = getSourcePool(source);
+                            const entry = pool.find((item: any) => String(item?.id || item?.slug || '') === id);
+
+                            if (source === 'products') return entry?.url || `/products/${id}`;
+                            if (source === 'categories') return entry?.url || `/categories/${id}`;
+                            if (source === 'brands') return entry?.url || `/brands/${id}`;
+                            if (source === 'pages') return entry?.url || `/pages/${id}`;
+                            if (source === 'blog_articles') return entry?.url || `/blog/${id}`;
+                            if (source === 'blog_categories') return entry?.url || `/blog/categories/${id}`;
+                            return entry?.url || '';
+                        };
+
+                        const resolveVariableListValue = (
+                            rawValue: any,
+                            fallbackSource = '',
+                            fallbackValue = ''
+                        ): string => {
+                            const sourceHint = String(fallbackSource || '').trim().toLowerCase();
+                            const valueHint = String(fallbackValue || '').trim();
+
+                            const staticSourceMap: Record<string, string> = {
+                                offers_link: '/offers',
+                                brands_link: '/brands',
+                                blog_link: '/blog'
+                            };
+
+                            if (typeof rawValue === 'string') {
+                                if (sourceHint === 'custom') return normalizeLinkUrl(rawValue);
+                                if (staticSourceMap[sourceHint]) return staticSourceMap[sourceHint];
+                                if (sourceHint && valueHint) {
+                                    const fromSource = resolveSourceEntityUrl(sourceHint, valueHint);
+                                    if (fromSource) return normalizeLinkUrl(fromSource);
+                                }
+                                return normalizeLinkUrl(rawValue);
+                            }
                             if (Array.isArray(rawValue)) {
                                 const first = rawValue.find((entry) => entry != null);
-                                return resolveVariableListValue(first);
+                                return resolveVariableListValue(first, sourceHint, valueHint);
                             }
                             if (rawValue && typeof rawValue === 'object') {
-                                const candidate = rawValue.url ?? rawValue.value ?? rawValue.path ?? rawValue.link ?? '';
-                                return typeof candidate === 'string' ? candidate : String(candidate || '');
+                                const source =
+                                    String(rawValue.type ?? rawValue.source ?? rawValue.__type ?? sourceHint ?? '')
+                                        .trim()
+                                        .toLowerCase();
+                                const typedValue =
+                                    String(
+                                        rawValue.value ??
+                                        rawValue.id ??
+                                        rawValue.key ??
+                                        rawValue.__value ??
+                                        valueHint ??
+                                        ''
+                                    ).trim();
+
+                                const candidate = rawValue.url ?? rawValue.path ?? rawValue.link ?? '';
+                                if (typeof candidate === 'string' && candidate.trim()) {
+                                    return normalizeLinkUrl(candidate);
+                                }
+                                if (source === 'custom') {
+                                    return normalizeLinkUrl(typedValue);
+                                }
+                                if (staticSourceMap[source]) {
+                                    return staticSourceMap[source];
+                                }
+                                if (source && typedValue) {
+                                    const resolved = resolveSourceEntityUrl(source, typedValue);
+                                    if (resolved) return normalizeLinkUrl(resolved);
+                                }
+                                if (typedValue) {
+                                    return normalizeLinkUrl(typedValue);
+                                }
+                                if (sourceHint && valueHint) {
+                                    const resolved = resolveSourceEntityUrl(sourceHint, valueHint);
+                                    if (resolved) return normalizeLinkUrl(resolved);
+                                }
+                                if (staticSourceMap[sourceHint]) {
+                                    return staticSourceMap[sourceHint];
+                                }
                             }
-                            return '';
+                            if (sourceHint === 'custom' && valueHint) {
+                                return normalizeLinkUrl(valueHint);
+                            }
+                            if (staticSourceMap[sourceHint]) {
+                                return staticSourceMap[sourceHint];
+                            }
+                            if (sourceHint && valueHint) {
+                                const resolved = resolveSourceEntityUrl(sourceHint, valueHint);
+                                if (resolved) return normalizeLinkUrl(resolved);
+                            }
+                            return '#';
                         };
 
                         const resolveItemsBySource = (
@@ -433,7 +544,45 @@ export class RendererService {
                                 if (!f?.id) return;
 
                                 if (f.type === 'collection') {
-                                    mergedData[f.id] = flattenCollectionItems(mergedData[f.id]);
+                                    const flattenedCollection = flattenCollectionItems(mergedData[f.id]);
+                                    if (!Array.isArray(flattenedCollection)) {
+                                        mergedData[f.id] = [];
+                                        return;
+                                    }
+
+                                    const variableSubFields = (f.fields || []).filter((subField: any) =>
+                                        subField?.type === 'items' && String(subField?.format || '') === 'variable-list'
+                                    );
+
+                                    if (variableSubFields.length === 0) {
+                                        mergedData[f.id] = flattenedCollection;
+                                        return;
+                                    }
+
+                                    mergedData[f.id] = flattenedCollection.map((item: any) => {
+                                        if (!item || typeof item !== 'object') return item;
+                                        const nextItem = { ...item };
+
+                                        variableSubFields.forEach((subField: any) => {
+                                            const subId = String(subField?.id || '');
+                                            if (!subId) return;
+                                            const tail = subId.includes('.') ? subId.split('.').pop() || subId : subId;
+
+                                            const rawFieldValue = nextItem[tail] ?? nextItem[subId];
+                                            const typedSource =
+                                                nextItem[`${tail}__type`] ??
+                                                nextItem[`${subId}__type`] ??
+                                                '';
+                                            const typedValue =
+                                                nextItem[`${tail}__value`] ??
+                                                nextItem[`${subId}__value`] ??
+                                                '';
+
+                                            nextItem[tail] = resolveVariableListValue(rawFieldValue, typedSource, typedValue);
+                                        });
+
+                                        return nextItem;
+                                    });
                                     return;
                                 }
 

@@ -98,3 +98,4 @@ Each slice is closed only when all are done:
 - Page components editor supports multi-select for `items` fields and saves IDs into `page_compositions`.
 - Renderer resolves selected IDs to full entities before Twig render (brands/categories/products), with visual fallback content when no explicit selection exists.
 - Collection fields in page components now use a structured visual editor (rows + subfields) for `main-links / enhanced-slider / square-banners / testimonials`, replacing raw JSON editing in the primary flow.
+- `variable-list` now has a source-aware editor in UI (source + value) and a unified runtime resolver in preview, including collection subfields such as `links.url` and `banners.url`.

@@ -53,6 +53,15 @@ export class CompositionEngine {
         const products = await this.simulationLogic.getDataEntities(storeId, 'product');
         const categories = await this.simulationLogic.getDataEntities(storeId, 'category');
         const brands = await this.simulationLogic.getDataEntities(storeId, 'brand');
+        const pages = await this.simulationLogic.getDataEntities(storeId, 'page');
+        const blogArticles = [
+            ...(await this.simulationLogic.getDataEntities(storeId, 'blog_article')),
+            ...(await this.simulationLogic.getDataEntities(storeId, 'blog_articles'))
+        ];
+        const blogCategories = [
+            ...(await this.simulationLogic.getDataEntities(storeId, 'blog_category')),
+            ...(await this.simulationLogic.getDataEntities(storeId, 'blog_categories'))
+        ];
         const storeEntities = await this.simulationLogic.getDataEntities(storeId, 'store');
         const orders = await this.simulationLogic.getDataEntities(storeId, 'order');
         const exportEntities = await this.simulationLogic.getDataEntities(storeId, 'export');
@@ -121,6 +130,9 @@ export class CompositionEngine {
             products: products,
             categories: categories,
             brands: brands,
+            pages: pages,
+            blog_articles: blogArticles,
+            blog_categories: blogCategories,
             orders: orders,
             exports: exportEntities,
             optionTemplates: optionTemplates,

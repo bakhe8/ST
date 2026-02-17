@@ -133,6 +133,9 @@ describe('VTDR API integration (Store-First)', () => {
         const productsJson: any = await productsRes.json();
         expect(productsJson.success).toBe(true);
         expect(Array.isArray(productsJson.data)).toBe(true);
+        const selectedProductId = String(productsJson.data[0]?.id || '');
+        const selectedProductHref = String(productsJson.data[0]?.url || `/products/${selectedProductId}`);
+        expect(selectedProductId).toBeTruthy();
 
         const themeComponentsRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
             headers: contextHeaders
@@ -143,6 +146,7 @@ describe('VTDR API integration (Store-First)', () => {
         expect(Array.isArray(themeComponentsJson.data.components)).toBe(true);
         const homeBrands = themeComponentsJson.data.components.find((c: any) => c.path === 'home.brands');
         const homeMainLinks = themeComponentsJson.data.components.find((c: any) => c.path === 'home.main-links');
+        const homeSquareBanners = themeComponentsJson.data.components.find((c: any) => c.path === 'home.enhanced-square-banners');
         const homeSliderProducts = themeComponentsJson.data.components.find((c: any) => c.path === 'home.slider-products-with-header');
         const brandsField = homeBrands?.fields?.find((f: any) => f.id === 'brands');
         const categoriesField = homeMainLinks?.fields?.find((f: any) => f.id === 'categories');
@@ -154,6 +158,7 @@ describe('VTDR API integration (Store-First)', () => {
         expect(Array.isArray(productsField?.options)).toBe(true);
         expect(productsField.options.length).toBeGreaterThan(0);
         expect(homeMainLinks).toBeTruthy();
+        expect(homeSquareBanners).toBeTruthy();
 
         const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`, {
             headers: contextHeaders
@@ -199,7 +204,9 @@ describe('VTDR API integration (Store-First)', () => {
         );
         expect(homeComponent).toBeTruthy();
         const mainLinksComponentId = String(homeMainLinks?.key || homeMainLinks?.path || '');
+        const squareBannersComponentId = String(homeSquareBanners?.key || homeSquareBanners?.path || '');
         expect(mainLinksComponentId).toBeTruthy();
+        expect(squareBannersComponentId).toBeTruthy();
 
         const visualCategoryId = `vtdr-visual-cat-${Date.now()}`;
         const visualCategoryName = `VTDR Visual Category ${Date.now()}`;
@@ -239,6 +246,45 @@ describe('VTDR API integration (Store-First)', () => {
                             }
                         },
                         {
+                            id: 'home-main-links-links',
+                            componentId: mainLinksComponentId,
+                            props: {
+                                title: 'VTDR Visual Links',
+                                show_cats: false,
+                                links: [
+                                    {
+                                        'links.icon': 'sicon-store2',
+                                        'links.title': 'VTDR Product Link',
+                                        'links.url': {
+                                            type: 'products',
+                                            value: selectedProductId
+                                        },
+                                        'links.url__type': 'products',
+                                        'links.url__value': selectedProductId
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: 'home-square-banners',
+                            componentId: squareBannersComponentId,
+                            props: {
+                                banners: [
+                                    {
+                                        'banners.image': 'https://cdn.salla.network/vtdr/banner.jpg',
+                                        'banners.title': 'VTDR Banner Link',
+                                        'banners.description': 'VTDR Banner Link Description',
+                                        'banners.url': {
+                                            type: 'products',
+                                            value: selectedProductId
+                                        },
+                                        'banners.url__type': 'products',
+                                        'banners.url__value': selectedProductId
+                                    }
+                                ]
+                            }
+                        },
+                        {
                             id: 'home-1',
                             componentId: String(homeComponent.key),
                             props: { title: 'VTDR Visual Marker' }
@@ -272,6 +318,9 @@ describe('VTDR API integration (Store-First)', () => {
         expect(previewAfterCompositionHtml).toContain('VTDR Visual Marker');
         expect(previewAfterCompositionHtml).toContain('VTDR Visual Main Links');
         expect(previewAfterCompositionHtml).toContain(visualCategoryName);
+        expect(previewAfterCompositionHtml).toContain('VTDR Product Link');
+        expect(previewAfterCompositionHtml).toContain('VTDR Banner Link');
+        expect(previewAfterCompositionHtml).toContain(selectedProductHref);
     }, 120000);
 
     it('returns unified error when store context is missing', async () => {

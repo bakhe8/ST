@@ -289,6 +289,89 @@ export class SimulatorService {
         );
     }
 
+    private normalizeSourceKey(sourceKey: any) {
+        return String(sourceKey || '').trim().toLowerCase();
+    }
+
+    private getSourceEntityKey(item: any, fallbackPrefix: string) {
+        const candidate = item?.id ?? item?.slug ?? item?.key ?? item?.code ?? item?.name;
+        const normalized = String(candidate || '').trim();
+        return normalized || this.generateEntityId(fallbackPrefix);
+    }
+
+    private getSourceEntityUrl(sourceKey: string, item: any) {
+        const source = this.normalizeSourceKey(sourceKey);
+        const idOrSlug = String(item?.slug || item?.id || '').trim();
+
+        if (source === 'products') return this.pickLocalizedText(item?.url || `/products/${idOrSlug || ''}`);
+        if (source === 'categories') return this.pickLocalizedText(item?.url || `/categories/${idOrSlug || ''}`);
+        if (source === 'brands') return this.pickLocalizedText(item?.url || `/brands/${idOrSlug || ''}`);
+        if (source === 'pages') return this.pickLocalizedText(item?.url || `/pages/${idOrSlug || ''}`);
+        if (source === 'blog_articles') return this.pickLocalizedText(item?.url || `/blog/${idOrSlug || ''}`);
+        if (source === 'blog_categories') return this.pickLocalizedText(item?.url || `/blog/categories/${idOrSlug || ''}`);
+        if (source === 'offers_link') return '/offers';
+        if (source === 'brands_link') return '/brands';
+        if (source === 'blog_link') return '/blog';
+        return this.pickLocalizedText(item?.url || '');
+    }
+
+    private toVariableListOptions(sourceKey: string, items: any[]) {
+        const source = this.normalizeSourceKey(sourceKey);
+        const localItems = Array.isArray(items) ? items : [];
+
+        if (source === 'offers_link') {
+            return [{ value: 'offers_link', label: 'التخفيضات', url: '/offers' }];
+        }
+        if (source === 'brands_link') {
+            return [{ value: 'brands_link', label: 'الماركات التجارية', url: '/brands' }];
+        }
+        if (source === 'blog_link') {
+            return [{ value: 'blog_link', label: 'المدونة', url: '/blog' }];
+        }
+        if (source === 'custom') {
+            return [];
+        }
+
+        return localItems
+            .map((item: any) => {
+                const id = this.getSourceEntityKey(item, source || 'entity');
+                const url = this.getSourceEntityUrl(source, item);
+                return {
+                    value: id,
+                    label: this.pickLocalizedText(item?.name || item?.title || item?.slug || id),
+                    url: String(url || '')
+                };
+            })
+            .filter((entry: any) => entry.value);
+    }
+
+    private normalizeVariableListField(field: any, sources: Record<string, any[]>) {
+        const normalized = { ...(field || {}) };
+        const entries = Array.isArray(normalized.sources)
+            ? normalized.sources
+                .map((entry: any) => {
+                    const value = this.normalizeSourceKey(entry?.value ?? entry?.key);
+                    if (!value) return null;
+                    return {
+                        ...entry,
+                        key: String(entry?.key || value),
+                        value
+                    };
+                })
+                .filter(Boolean)
+            : [];
+
+        const optionsBySource: Record<string, Array<{ value: string; label: string; url: string }>> = {};
+        (entries as any[]).forEach((entry: any) => {
+            const value = this.normalizeSourceKey(entry?.value);
+            optionsBySource[value] = this.toVariableListOptions(value, sources[value] || []);
+        });
+
+        normalized.variableSources = entries;
+        normalized.variableOptions = optionsBySource;
+        return normalized;
+    }
+
     private toSelectableOptions(items: any[]) {
         return (items || [])
             .map((item: any) => {
@@ -304,6 +387,22 @@ export class SimulatorService {
 
     private normalizeThemeComponentField(field: any, sources: Record<string, any[]>) {
         const normalized = { ...(field || {}) };
+
+        if (normalized?.type === 'collection' && Array.isArray(normalized?.fields)) {
+            normalized.fields = normalized.fields.map((subField: any) =>
+                this.normalizeThemeComponentField(subField, sources)
+            );
+            return normalized;
+        }
+
+        const isVariableListField =
+            String(normalized?.format || '') === 'variable-list' &&
+            normalized?.type === 'items';
+
+        if (isVariableListField) {
+            return this.normalizeVariableListField(normalized, sources);
+        }
+
         const isSourceItemsField =
             normalized?.type === 'items' && String(normalized?.format || '') === 'dropdown-list';
 
@@ -654,10 +753,24 @@ export class SimulatorService {
             if (store.themeId) {
                 const schema = await this.themeFileProvider.getThemeSettings(store.themeId);
                 if (schema) {
-                    const [productsRaw, categoriesRaw, brandsRaw] = await Promise.all([
+                    const [
+                        productsRaw,
+                        categoriesRaw,
+                        brandsRaw,
+                        pagesRaw,
+                        blogArticlesRaw,
+                        blogArticlesAltRaw,
+                        blogCategoriesRaw,
+                        blogCategoriesAltRaw
+                    ] = await Promise.all([
                         this.storeLogic.getDataEntities(storeId, 'product'),
                         this.storeLogic.getDataEntities(storeId, 'category'),
-                        this.storeLogic.getDataEntities(storeId, 'brand')
+                        this.storeLogic.getDataEntities(storeId, 'brand'),
+                        this.storeLogic.getDataEntities(storeId, 'page'),
+                        this.storeLogic.getDataEntities(storeId, 'blog_article'),
+                        this.storeLogic.getDataEntities(storeId, 'blog_articles'),
+                        this.storeLogic.getDataEntities(storeId, 'blog_category'),
+                        this.storeLogic.getDataEntities(storeId, 'blog_categories')
                     ]);
 
                     const products = await Promise.all(
@@ -681,11 +794,56 @@ export class SimulatorService {
                         name: this.pickLocalizedText(brand?.name || brand?.title || brand?.id || 'Brand'),
                         logo: this.sanitizeImageUrl(brand?.logo) || this.defaultProductPlaceholder
                     }));
+                    const pages = (pagesRaw || []).map((page: any) => {
+                        const id = this.getSourceEntityKey(page, 'page');
+                        const slug = String(page?.slug || id);
+                        return {
+                            ...(page || {}),
+                            id,
+                            slug,
+                            name: this.pickLocalizedText(page?.name || page?.title || slug),
+                            title: this.pickLocalizedText(page?.title || page?.name || slug),
+                            url: this.pickLocalizedText(page?.url || `/pages/${slug}`)
+                        };
+                    });
+
+                    const blogArticles = [...(blogArticlesRaw || []), ...(blogArticlesAltRaw || [])].map((article: any) => {
+                        const id = this.getSourceEntityKey(article, 'blog_article');
+                        const slug = String(article?.slug || id);
+                        return {
+                            ...(article || {}),
+                            id,
+                            slug,
+                            name: this.pickLocalizedText(article?.name || article?.title || slug),
+                            title: this.pickLocalizedText(article?.title || article?.name || slug),
+                            url: this.pickLocalizedText(article?.url || `/blog/${slug}`)
+                        };
+                    });
+
+                    const blogCategories = [...(blogCategoriesRaw || []), ...(blogCategoriesAltRaw || [])].map((category: any) => {
+                        const id = this.getSourceEntityKey(category, 'blog_category');
+                        const slug = String(category?.slug || id);
+                        return {
+                            ...(category || {}),
+                            id,
+                            slug,
+                            name: this.pickLocalizedText(category?.name || category?.title || slug),
+                            title: this.pickLocalizedText(category?.title || category?.name || slug),
+                            url: this.pickLocalizedText(category?.url || `/blog/categories/${slug}`)
+                        };
+                    });
 
                     const sources = {
                         products,
                         categories,
-                        brands
+                        brands,
+                        pages,
+                        blog_articles: blogArticles,
+                        blog_categories: blogCategories,
+                        offers_link: [{ id: 'offers_link', name: 'التخفيضات', url: '/offers' }],
+                        brands_link: [{ id: 'brands_link', name: 'الماركات التجارية', url: '/brands' }],
+                        blog_link: [{ id: 'blog_link', name: 'المدونة', url: '/blog' }],
+                        custom: []
                     };
 
                     components = (schema.components || []).map((component: any) => ({

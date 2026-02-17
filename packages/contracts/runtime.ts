@@ -142,6 +142,9 @@ export interface RuntimeContext {
     products?: SallaProduct[];
     categories?: Salla.components['schemas']['Category'][];
     brands?: Salla.components['schemas']['Brand'][];
+    pages?: Record<string, any>[];
+    blog_articles?: Record<string, any>[];
+    blog_categories?: Record<string, any>[];
     orders?: SallaOrder[];
     exports?: SallaExport[];
     optionTemplates?: SallaProductOptionTemplate[];

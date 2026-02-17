@@ -124,6 +124,163 @@ function createCollectionItemTemplate(field: any): Record<string, any> {
   return template;
 }
 
+type VariableListSourceEntry = {
+  key: string;
+  value: string;
+  label: string;
+};
+
+type VariableListOption = {
+  value: string;
+  label: string;
+  url?: string;
+};
+
+type VariableListSelection = {
+  source: string;
+  value: string;
+  url: string;
+};
+
+function getStaticVariableSourceUrl(source: string): string {
+  const normalized = String(source || '').trim().toLowerCase();
+  if (normalized === 'offers_link') return '/offers';
+  if (normalized === 'brands_link') return '/brands';
+  if (normalized === 'blog_link') return '/blog';
+  return '';
+}
+
+function getVariableListSources(field: any): VariableListSourceEntry[] {
+  const raw = Array.isArray(field?.variableSources)
+    ? field.variableSources
+    : Array.isArray(field?.sources)
+      ? field.sources
+      : [];
+
+  return raw
+    .map((entry: any) => {
+      const value = String(entry?.value ?? entry?.key ?? '').trim().toLowerCase();
+      if (!value) return null;
+      return {
+        key: String(entry?.key || value),
+        value,
+        label: pickLocalizedText(entry?.label || value)
+      };
+    })
+    .filter(Boolean) as VariableListSourceEntry[];
+}
+
+function getVariableListOptionsBySource(field: any): Record<string, VariableListOption[]> {
+  const raw = field?.variableOptions;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  const result: Record<string, VariableListOption[]> = {};
+  Object.entries(raw).forEach(([sourceKey, options]) => {
+    const key = String(sourceKey || '').trim().toLowerCase();
+    if (!key || !Array.isArray(options)) return;
+    result[key] = options
+      .map((option: any) => ({
+        value: String(option?.value ?? option?.id ?? '').trim(),
+        label: pickLocalizedText(option?.label || option?.name || option?.value || option?.id || ''),
+        url: typeof option?.url === 'string' ? option.url : ''
+      }))
+      .filter((option: VariableListOption) => Boolean(option.value));
+  });
+
+  return result;
+}
+
+function parseVariableListSelection(rawValue: any, fallbackSource?: any, fallbackValue?: any): VariableListSelection {
+  const hintSource = String(fallbackSource || '').trim().toLowerCase();
+  const hintValue = String(fallbackValue || '').trim();
+
+  if (typeof rawValue === 'string') {
+    return {
+      source: hintSource || 'custom',
+      value: hintValue || rawValue,
+      url: rawValue
+    };
+  }
+
+  if (Array.isArray(rawValue)) {
+    const first = rawValue.find((entry) => entry != null);
+    return parseVariableListSelection(first, hintSource, hintValue);
+  }
+
+  if (rawValue && typeof rawValue === 'object') {
+    const source = String((rawValue as any).type ?? (rawValue as any).source ?? (rawValue as any).__type ?? hintSource ?? '')
+      .trim()
+      .toLowerCase();
+    const value = String((rawValue as any).value ?? (rawValue as any).id ?? (rawValue as any).__value ?? hintValue ?? '').trim();
+    const url = normalizeVariableListValue(rawValue);
+    return {
+      source: source || 'custom',
+      value,
+      url
+    };
+  }
+
+  return {
+    source: hintSource || '',
+    value: hintValue || '',
+    url: ''
+  };
+}
+
+function buildVariableListStoreValue(selection: VariableListSelection) {
+  const source = String(selection.source || '').trim().toLowerCase();
+  const value = String(selection.value || '').trim();
+  const url = String(selection.url || '').trim();
+  const staticUrl = getStaticVariableSourceUrl(source);
+
+  if (!source) return url || '';
+  if (source === 'custom') {
+    return {
+      type: 'custom',
+      value: url || value,
+      url: url || value
+    };
+  }
+  if (staticUrl) {
+    return {
+      type: source,
+      value: value || source,
+      url: staticUrl
+    };
+  }
+  return {
+    type: source,
+    value,
+    url
+  };
+}
+
+function getCollectionItemMetaValue(item: any, fieldId: string, suffix: 'type' | 'value') {
+  if (!item || typeof item !== 'object') return '';
+  const fullKey = `${fieldId}__${suffix}`;
+  if (item[fullKey] != null) return item[fullKey];
+  const shortKey = `${getCollectionFieldPathTail(fieldId)}__${suffix}`;
+  return item[shortKey];
+}
+
+function setCollectionItemMetaValue(item: any, fieldId: string, suffix: 'type' | 'value', value: any) {
+  const next = { ...(item || {}) };
+  const fullKey = `${fieldId}__${suffix}`;
+  next[fullKey] = value;
+  const shortKey = `${getCollectionFieldPathTail(fieldId)}__${suffix}`;
+  if (shortKey !== fullKey && Object.prototype.hasOwnProperty.call(next, shortKey)) {
+    delete next[shortKey];
+  }
+  return next;
+}
+
+function applyVariableSelectionToCollectionItem(item: any, fieldId: string, selection: VariableListSelection) {
+  let next = setCollectionItemValue(item, fieldId, buildVariableListStoreValue(selection));
+  next = setCollectionItemMetaValue(next, fieldId, 'type', selection.source);
+  next = setCollectionItemMetaValue(next, fieldId, 'value', selection.value || selection.url || '');
+  return next;
+}
+
 function getFieldDefaultValue(field: any) {
   if (field.type === 'boolean') return Boolean(field.value);
   if (field.type === 'collection' || field.format === 'collection') {
@@ -133,6 +290,9 @@ function getFieldDefaultValue(field: any) {
     const selected = Array.isArray(field.selected) ? field.selected : [];
     if (selected.length > 0) return normalizeItemsFieldValue(selected);
     return normalizeItemsFieldValue(field.value);
+  }
+  if (field.type === 'items' && field.format === 'variable-list') {
+    return field.value ?? '';
   }
   if (typeof field.value !== 'undefined') {
     return pickLocalizedText(field.value);
@@ -617,19 +777,100 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                             }
 
                             if (subField.type === 'items' && subField.format === 'variable-list') {
+                              const sourceEntries = getVariableListSources(subField);
+                              const optionsBySource = getVariableListOptionsBySource(subField);
+                              const metaSource = getCollectionItemMetaValue(item, subField.id, 'type');
+                              const metaValue = getCollectionItemMetaValue(item, subField.id, 'value');
+                              const parsedSelection = parseVariableListSelection(currentValue, metaSource, metaValue);
+                              const selectedSource = parsedSelection.source || sourceEntries[0]?.value || 'custom';
+                              const activeOptions = optionsBySource[selectedSource] || [];
+                              const staticUrl = getStaticVariableSourceUrl(selectedSource);
+                              const isStaticSource = Boolean(staticUrl);
+                              const isCustomSource = selectedSource === 'custom';
+                              const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
+
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
                                   <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
-                                  <input
-                                    type="text"
-                                    value={normalizeVariableListValue(currentValue)}
-                                    onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
-                                      currentItems.map((entry, idx) => (
-                                        idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
-                                      ))
-                                    ))}
-                                    style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
-                                  />
+                                  {sourceEntries.length > 0 && (
+                                    <select
+                                      value={selectedSource}
+                                      onChange={(e) => {
+                                        const nextSource = e.target.value;
+                                        const nextOptions = optionsBySource[nextSource] || [];
+                                        const nextStaticUrl = getStaticVariableSourceUrl(nextSource);
+                                        const nextSelection: VariableListSelection = nextStaticUrl
+                                          ? { source: nextSource, value: nextSource, url: nextStaticUrl }
+                                          : nextSource === 'custom'
+                                            ? { source: 'custom', value: '', url: '' }
+                                            : nextOptions.length > 0
+                                              ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
+                                              : { source: nextSource, value: '', url: '' };
+
+                                        updateEditingCollection(field.id, (currentItems) => (
+                                          currentItems.map((entry, idx) => (
+                                            idx === rowIndex
+                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
+                                              : entry
+                                          ))
+                                        ));
+                                      }}
+                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
+                                    >
+                                      {sourceEntries.map((entry) => (
+                                        <option key={entry.value} value={entry.value}>{entry.label}</option>
+                                      ))}
+                                    </select>
+                                  )}
+
+                                  {shouldUseSelect ? (
+                                    <select
+                                      value={parsedSelection.value}
+                                      onChange={(e) => {
+                                        const nextValue = e.target.value;
+                                        const selectedOption = activeOptions.find((option) => option.value === nextValue);
+                                        const nextSelection: VariableListSelection = {
+                                          source: selectedSource,
+                                          value: nextValue,
+                                          url: selectedOption?.url || ''
+                                        };
+                                        updateEditingCollection(field.id, (currentItems) => (
+                                          currentItems.map((entry, idx) => (
+                                            idx === rowIndex
+                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
+                                              : entry
+                                          ))
+                                        ));
+                                      }}
+                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
+                                    >
+                                      {activeOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      value={isStaticSource ? staticUrl : (parsedSelection.url || parsedSelection.value)}
+                                      onChange={(e) => {
+                                        const nextText = e.target.value;
+                                        const nextSelection: VariableListSelection = {
+                                          source: selectedSource || 'custom',
+                                          value: nextText,
+                                          url: nextText
+                                        };
+                                        updateEditingCollection(field.id, (currentItems) => (
+                                          currentItems.map((entry, idx) => (
+                                            idx === rowIndex
+                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
+                                              : entry
+                                          ))
+                                        ));
+                                      }}
+                                      disabled={isStaticSource}
+                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr', background: isStaticSource ? '#f8fafc' : '#fff' }}
+                                    />
+                                  )}
                                 </div>
                               );
                             }
@@ -728,15 +969,77 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               }
 
               if (field.format === 'variable-list') {
+                const sourceEntries = getVariableListSources(field);
+                const optionsBySource = getVariableListOptionsBySource(field);
+                const parsedSelection = parseVariableListSelection(editingElement.props[field.id]);
+                const selectedSource = parsedSelection.source || sourceEntries[0]?.value || 'custom';
+                const activeOptions = optionsBySource[selectedSource] || [];
+                const staticUrl = getStaticVariableSourceUrl(selectedSource);
+                const isStaticSource = Boolean(staticUrl);
+                const isCustomSource = selectedSource === 'custom';
+                const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
+
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
                     <label>{field.label}</label>
-                    <input
-                      type="text"
-                      value={normalizeVariableListValue(editingElement.props[field.id])}
-                      onChange={e => setEditingProp(field.id, e.target.value)}
-                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
-                    />
+                    {sourceEntries.length > 0 && (
+                      <select
+                        value={selectedSource}
+                        onChange={e => {
+                          const nextSource = e.target.value;
+                          const nextOptions = optionsBySource[nextSource] || [];
+                          const nextStaticUrl = getStaticVariableSourceUrl(nextSource);
+                          const nextSelection: VariableListSelection = nextStaticUrl
+                            ? { source: nextSource, value: nextSource, url: nextStaticUrl }
+                            : nextSource === 'custom'
+                              ? { source: 'custom', value: '', url: '' }
+                              : nextOptions.length > 0
+                                ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
+                                : { source: nextSource, value: '', url: '' };
+                          setEditingProp(field.id, buildVariableListStoreValue(nextSelection));
+                        }}
+                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
+                      >
+                        {sourceEntries.map((entry) => (
+                          <option key={entry.value} value={entry.value}>{entry.label}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {shouldUseSelect ? (
+                      <select
+                        value={parsedSelection.value}
+                        onChange={e => {
+                          const nextValue = e.target.value;
+                          const selectedOption = activeOptions.find((option) => option.value === nextValue);
+                          setEditingProp(field.id, buildVariableListStoreValue({
+                            source: selectedSource,
+                            value: nextValue,
+                            url: selectedOption?.url || ''
+                          }));
+                        }}
+                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
+                      >
+                        {activeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={isStaticSource ? staticUrl : (parsedSelection.url || parsedSelection.value)}
+                        onChange={e => {
+                          const nextText = e.target.value;
+                          setEditingProp(field.id, buildVariableListStoreValue({
+                            source: selectedSource || 'custom',
+                            value: nextText,
+                            url: nextText
+                          }));
+                        }}
+                        disabled={isStaticSource}
+                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr', background: isStaticSource ? '#f8fafc' : '#fff' }}
+                      />
+                    )}
                   </div>
                 );
               }
