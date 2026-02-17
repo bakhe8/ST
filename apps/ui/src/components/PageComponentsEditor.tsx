@@ -255,6 +255,21 @@ function buildVariableListStoreValue(selection: VariableListSelection) {
   };
 }
 
+function filterVariableOptions(
+  options: VariableListOption[],
+  query: string,
+  selectedValue?: string
+): VariableListOption[] {
+  const normalizedQuery = String(query || '').trim().toLowerCase();
+  if (!normalizedQuery) return options;
+
+  return options.filter((option) => {
+    if (selectedValue && option.value === selectedValue) return true;
+    const haystack = `${option.label} ${option.value} ${option.url || ''}`.toLowerCase();
+    return haystack.includes(normalizedQuery);
+  });
+}
+
 function getCollectionItemMetaValue(item: any, fieldId: string, suffix: 'type' | 'value') {
   if (!item || typeof item !== 'object') return '';
   const fullKey = `${fieldId}__${suffix}`;
@@ -353,6 +368,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [jsonDraftErrors, setJsonDraftErrors] = useState<Record<string, string>>({});
+  const [variableOptionSearches, setVariableOptionSearches] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [availableComponents, setAvailableComponents] = useState<PageComponent[]>([]);
 
@@ -427,6 +443,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!editingElement) {
       setJsonDrafts({});
       setJsonDraftErrors({});
+      setVariableOptionSearches({});
       return;
     }
 
@@ -434,6 +451,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!component) {
       setJsonDrafts({});
       setJsonDraftErrors({});
+      setVariableOptionSearches({});
       return;
     }
 
@@ -447,6 +465,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     });
     setJsonDrafts(nextDrafts);
     setJsonDraftErrors({});
+    setVariableOptionSearches({});
   }, [editingElement, availableComponents]);
 
   // Filter components for the selected page only
@@ -501,6 +520,19 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
         ...current,
         props: { ...current.props, [fieldId]: nextItems }
       };
+    });
+  };
+
+  const getVariableSearch = (key: string) => variableOptionSearches[key] || '';
+  const setVariableSearch = (key: string, value: string) => {
+    setVariableOptionSearches((current) => ({ ...current, [key]: value }));
+  };
+  const clearVariableSearch = (key: string) => {
+    setVariableOptionSearches((current) => {
+      if (!Object.prototype.hasOwnProperty.call(current, key)) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
     });
   };
 
@@ -788,6 +820,11 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                               const isStaticSource = Boolean(staticUrl);
                               const isCustomSource = selectedSource === 'custom';
                               const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
+                              const optionSearchKey = `${field.id}:${rowIndex}:${subField.id}`;
+                              const optionSearchQuery = getVariableSearch(optionSearchKey);
+                              const filteredOptions = shouldUseSelect
+                                ? filterVariableOptions(activeOptions, optionSearchQuery, parsedSelection.value)
+                                : [];
 
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
@@ -814,6 +851,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                               : entry
                                           ))
                                         ));
+                                        clearVariableSearch(optionSearchKey);
                                       }}
                                       style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
                                     >
@@ -824,30 +862,46 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                   )}
 
                                   {shouldUseSelect ? (
-                                    <select
-                                      value={parsedSelection.value}
-                                      onChange={(e) => {
-                                        const nextValue = e.target.value;
-                                        const selectedOption = activeOptions.find((option) => option.value === nextValue);
-                                        const nextSelection: VariableListSelection = {
-                                          source: selectedSource,
-                                          value: nextValue,
-                                          url: selectedOption?.url || ''
-                                        };
-                                        updateEditingCollection(field.id, (currentItems) => (
-                                          currentItems.map((entry, idx) => (
-                                            idx === rowIndex
-                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
-                                              : entry
+                                    <>
+                                      <input
+                                        type="text"
+                                        placeholder="ابحث عن خيار..."
+                                        value={optionSearchQuery}
+                                        onChange={(e) => setVariableSearch(optionSearchKey, e.target.value)}
+                                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 6 }}
+                                      />
+                                      <div style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>
+                                        النتائج: {filteredOptions.length} / {activeOptions.length}
+                                      </div>
+                                      <select
+                                        value={parsedSelection.value}
+                                        onChange={(e) => {
+                                          const nextValue = e.target.value;
+                                          const selectedOption = activeOptions.find((option) => option.value === nextValue);
+                                          const nextSelection: VariableListSelection = {
+                                            source: selectedSource,
+                                            value: nextValue,
+                                            url: selectedOption?.url || ''
+                                          };
+                                          updateEditingCollection(field.id, (currentItems) => (
+                                            currentItems.map((entry, idx) => (
+                                              idx === rowIndex
+                                                ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
+                                                : entry
+                                            ))
+                                          ));
+                                        }}
+                                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
+                                      >
+                                        {filteredOptions.length > 0 ? (
+                                          filteredOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
                                           ))
-                                        ));
-                                      }}
-                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
-                                    >
-                                      {activeOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>{option.label}</option>
-                                      ))}
-                                    </select>
+                                        ) : (
+                                          <option value={parsedSelection.value || ''}>لا توجد نتائج</option>
+                                        )}
+                                      </select>
+                                    </>
                                   ) : (
                                     <input
                                       type="text"
@@ -978,6 +1032,11 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 const isStaticSource = Boolean(staticUrl);
                 const isCustomSource = selectedSource === 'custom';
                 const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
+                const optionSearchKey = `${field.id}:top`;
+                const optionSearchQuery = getVariableSearch(optionSearchKey);
+                const filteredOptions = shouldUseSelect
+                  ? filterVariableOptions(activeOptions, optionSearchQuery, parsedSelection.value)
+                  : [];
 
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
@@ -997,6 +1056,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                 ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
                                 : { source: nextSource, value: '', url: '' };
                           setEditingProp(field.id, buildVariableListStoreValue(nextSelection));
+                          clearVariableSearch(optionSearchKey);
                         }}
                         style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
                       >
@@ -1007,23 +1067,39 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                     )}
 
                     {shouldUseSelect ? (
-                      <select
-                        value={parsedSelection.value}
-                        onChange={e => {
-                          const nextValue = e.target.value;
-                          const selectedOption = activeOptions.find((option) => option.value === nextValue);
-                          setEditingProp(field.id, buildVariableListStoreValue({
-                            source: selectedSource,
-                            value: nextValue,
-                            url: selectedOption?.url || ''
-                          }));
-                        }}
-                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
-                      >
-                        {activeOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
+                      <>
+                        <input
+                          type="text"
+                          placeholder="ابحث عن خيار..."
+                          value={optionSearchQuery}
+                          onChange={e => setVariableSearch(optionSearchKey, e.target.value)}
+                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 6 }}
+                        />
+                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>
+                          النتائج: {filteredOptions.length} / {activeOptions.length}
+                        </div>
+                        <select
+                          value={parsedSelection.value}
+                          onChange={e => {
+                            const nextValue = e.target.value;
+                            const selectedOption = activeOptions.find((option) => option.value === nextValue);
+                            setEditingProp(field.id, buildVariableListStoreValue({
+                              source: selectedSource,
+                              value: nextValue,
+                              url: selectedOption?.url || ''
+                            }));
+                          }}
+                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
+                        >
+                          {filteredOptions.length > 0 ? (
+                            filteredOptions.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))
+                          ) : (
+                            <option value={parsedSelection.value || ''}>لا توجد نتائج</option>
+                          )}
+                        </select>
+                      </>
                     ) : (
                       <input
                         type="text"
