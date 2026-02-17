@@ -2,6 +2,8 @@ import { StoreLogic } from '../core/store-logic.js';
 import { Salla } from '@vtdr/contracts';
 
 export class SeederService {
+    private static readonly DEFAULT_LOCAL_IMAGE = '/themes/theme-raed-master/public/images/placeholder.png';
+
     constructor(private simulationLogic: StoreLogic) { }
 
     private randomString(length: number = 10): string {
@@ -97,7 +99,7 @@ export class SeederService {
             name: 'Brand ' + this.randomString(5),
             url: 'https://demo.sa/brand',
             description: 'Brand description',
-            logo: 'https://via.placeholder.com/150'
+            logo: SeederService.DEFAULT_LOCAL_IMAGE
         };
     }
 
@@ -106,7 +108,7 @@ export class SeederService {
             id: this.randomString(),
             name: 'Category ' + this.randomString(5),
             url: 'https://demo.sa/cat',
-            image: 'https://via.placeholder.com/150',
+            image: SeederService.DEFAULT_LOCAL_IMAGE,
             description: 'Category description',
             parent_id: null
         };
@@ -133,9 +135,9 @@ export class SeederService {
                 count: this.randomNumber(0, 100)
             },
             images: [
-                { id: this.randomString(), url: 'https://via.placeholder.com/300', alt: 'Main', is_default: true },
-                { id: this.randomString(), url: 'https://via.placeholder.com/300', alt: 'Side', is_default: false },
-                { id: this.randomString(), url: 'https://via.placeholder.com/300', alt: 'Back', is_default: false }
+                { id: this.randomString(), url: SeederService.DEFAULT_LOCAL_IMAGE, alt: 'Main', is_default: true },
+                { id: this.randomString(), url: SeederService.DEFAULT_LOCAL_IMAGE, alt: 'Side', is_default: false },
+                { id: this.randomString(), url: SeederService.DEFAULT_LOCAL_IMAGE, alt: 'Back', is_default: false }
             ],
             brand: this.randomElement(brands),
             categories: [this.randomElement(categories)],
@@ -167,7 +169,7 @@ export class SeederService {
                 created_at: new Date().toISOString(),
                 customer: {
                     name: 'Customer ' + this.randomString(5),
-                    avatar: 'https://via.placeholder.com/50'
+                    avatar: SeederService.DEFAULT_LOCAL_IMAGE
                 }
             }))
         };

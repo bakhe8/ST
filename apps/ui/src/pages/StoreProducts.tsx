@@ -69,6 +69,11 @@ const StoreProducts = () => {
 
     // صورة افتراضية في حال فشل تحميل الصورة المحلية
     const placeholderImg = '/images/products/placeholder.png';
+    const isExternalPlaceholder = (url?: string) => !!url && /via\.placeholder\.com/i.test(url);
+    const resolveImageSrc = (url?: string) => {
+        if (!url || isExternalPlaceholder(url)) return placeholderImg;
+        return url;
+    };
     const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
         const target = e.target as HTMLImageElement;
         if (target.src !== window.location.origin + placeholderImg) {
@@ -136,12 +141,12 @@ const StoreProducts = () => {
                                     <td style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <div style={{ width: 40, height: 40, background: '#334155', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                             {(
-                                                product.main_image && product.main_image !== placeholderImg ? (
-                                                    <img src={product.main_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
-                                                ) : product.image?.url && product.image.url !== placeholderImg ? (
-                                                    <img src={product.image.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
-                                                ) : product.images?.[0] && product.images[0].url !== placeholderImg ? (
-                                                    <img src={product.images[0].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
+                                                product.main_image ? (
+                                                    <img src={resolveImageSrc(product.main_image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
+                                                ) : product.image?.url ? (
+                                                    <img src={resolveImageSrc(product.image.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
+                                                ) : product.images?.[0] ? (
+                                                    <img src={resolveImageSrc(product.images[0].url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={handleImgError} />
                                                 ) : (
                                                     <img src={placeholderImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 )
@@ -152,7 +157,7 @@ const StoreProducts = () => {
                                     <td style={{ padding: 16 }}>
                                         <div style={{ display: 'flex', gap: 4 }}>
                                             {(product.images || []).slice(0, 3).map((img, idx) => (
-                                                <img key={idx} src={img.url} alt="img" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 6, border: '1px solid #334155', background: '#0f172a' }} />
+                                                <img key={idx} src={resolveImageSrc(img.url)} alt="img" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 6, border: '1px solid #334155', background: '#0f172a' }} onError={handleImgError} />
                                             ))}
                                         </div>
                                     </td>
