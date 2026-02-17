@@ -104,3 +104,4 @@ Each slice is closed only when all are done:
 - `page_compositions` now supports per-component visual visibility rules (`visibility.enabled`, `visibility.viewport`) with runtime filtering in preview.
 - Preview flow now supports explicit device mode (`viewport=desktop|mobile`) and dashboard preview provides a direct desktop/mobile switch for visual validation.
 - Page Components editor now applies field-level `conditions` from theme schema at runtime, so conditional fields appear/disappear immediately based on current form values (including `collection` sub-fields).
+- Conditional `static` blocks are now visible in the editor flow, and save-time hidden-field policy is explicit (`preserve` vs `clear`) to control payload shape stability.

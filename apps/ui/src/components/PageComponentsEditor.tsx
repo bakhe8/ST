@@ -26,6 +26,8 @@ interface PageElementVisibility {
   viewport: PageElementViewport;
 }
 
+type HiddenFieldSavePolicy = 'preserve' | 'clear';
+
 // Utility to parse fields from twilight.json component schema
 function parsePropsSchema(fields: any[]): { [key: string]: any } {
   const schema: any = {};
@@ -257,6 +259,71 @@ function evaluateFieldConditions(
     // Unknown operator: do not hide field silently.
     return true;
   });
+}
+
+function removeFieldValueFromObject(source: Record<string, any>, fieldId: string): Record<string, any> {
+  const next = { ...(source || {}) };
+  const id = String(fieldId || '').trim();
+  if (!id) return next;
+
+  delete next[id];
+  delete next[`${id}__type`];
+  delete next[`${id}__value`];
+
+  const shortKey = getCollectionFieldPathTail(id);
+  if (shortKey !== id) {
+    delete next[shortKey];
+    delete next[`${shortKey}__type`];
+    delete next[`${shortKey}__value`];
+  }
+
+  return next;
+}
+
+function applyHiddenFieldSavePolicy(
+  fields: any[],
+  props: Record<string, any>,
+  policy: HiddenFieldSavePolicy
+): Record<string, any> {
+  const source = props && typeof props === 'object' ? { ...props } : {};
+  if (policy !== 'clear') return source;
+
+  let nextProps: Record<string, any> = { ...source };
+  const fieldList = Array.isArray(fields) ? fields : [];
+
+  fieldList.forEach((field: any) => {
+    const fieldId = String(field?.id || '').trim();
+    const isVisible = evaluateFieldConditions(field, nextProps);
+
+    if (!isVisible && fieldId) {
+      nextProps = removeFieldValueFromObject(nextProps, fieldId);
+      return;
+    }
+
+    const isCollectionField = field?.type === 'collection' || field?.format === 'collection';
+    if (!isCollectionField || !fieldId || !Array.isArray(nextProps[fieldId])) return;
+
+    const subFields = Array.isArray(field?.fields) ? field.fields : [];
+    if (subFields.length === 0) return;
+
+    nextProps[fieldId] = (nextProps[fieldId] || []).map((item: any) => {
+      if (!item || typeof item !== 'object') return item;
+      let nextItem = { ...item };
+
+      subFields.forEach((subField: any) => {
+        const subFieldId = String(subField?.id || '').trim();
+        if (!subFieldId) return;
+        const subVisible = evaluateFieldConditions(subField, nextProps, nextItem);
+        if (!subVisible) {
+          nextItem = removeFieldValueFromObject(nextItem, subFieldId);
+        }
+      });
+
+      return nextItem;
+    });
+  });
+
+  return nextProps;
 }
 
 type VariableListSourceEntry = {
@@ -552,6 +619,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [jsonDraftErrors, setJsonDraftErrors] = useState<Record<string, string>>({});
+  const [hiddenFieldSavePolicy, setHiddenFieldSavePolicy] = useState<HiddenFieldSavePolicy>('preserve');
   const [variablePicker, setVariablePicker] = useState<VariablePickerState | null>(null);
   const [variablePickerSearch, setVariablePickerSearch] = useState('');
   const [variablePickerSort, setVariablePickerSort] = useState<VariablePickerSort>('label_asc');
@@ -635,6 +703,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!editingElement) {
       setJsonDrafts({});
       setJsonDraftErrors({});
+      setHiddenFieldSavePolicy('preserve');
       setVariablePicker(null);
       setVariablePickerSearch('');
       setVariablePickerSort('label_asc');
@@ -645,6 +714,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!component) {
       setJsonDrafts({});
       setJsonDraftErrors({});
+      setHiddenFieldSavePolicy('preserve');
       setVariablePicker(null);
       setVariablePickerSearch('');
       setVariablePickerSort('label_asc');
@@ -661,6 +731,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     });
     setJsonDrafts(nextDrafts);
     setJsonDraftErrors({});
+    setHiddenFieldSavePolicy('preserve');
     setVariablePicker(null);
     setVariablePickerSearch('');
     setVariablePickerSort('label_asc');
@@ -958,6 +1029,22 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               </select>
             </div>
           </div>
+          <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #e5e7eb' }}>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>سياسة حفظ القيم المخفية</label>
+            <select
+              value={hiddenFieldSavePolicy}
+              onChange={(e) => setHiddenFieldSavePolicy(e.target.value as HiddenFieldSavePolicy)}
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 6 }}
+            >
+              <option value="preserve">الاحتفاظ بالقيم المخفية</option>
+              <option value="clear">تنظيف القيم المخفية عند الحفظ</option>
+            </select>
+            <div style={{ color: '#64748b', fontSize: 12 }}>
+              {hiddenFieldSavePolicy === 'preserve'
+                ? 'يحفظ القيم الحالية حتى لو أصبح الحقل غير ظاهر.'
+                : 'يحذف قيم الحقول غير الظاهرة من الخصائص قبل الحفظ.'}
+            </div>
+          </div>
           {(() => {
             const comp = availableComponents.find(c => c.id === editingElement.componentId);
             if (!comp) return null;
@@ -965,9 +1052,28 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               editingElement.props && typeof editingElement.props === 'object'
                 ? editingElement.props
                 : {};
-            return (comp.fields ?? []).map((field: any) => {
+            return (comp.fields ?? []).map((field: any, fieldIndex: number) => {
               if (!evaluateFieldConditions(field, editorProps)) return null;
-              if (field.type === 'static') return null;
+              if (field.type === 'static') {
+                if (String(field.format || '') === 'line') {
+                  return <hr key={field.id || `static-line-${fieldIndex}`} style={{ margin: '12px 0', border: 0, borderTop: '1px solid #e5e7eb' }} />;
+                }
+
+                const staticHtml = pickLocalizedText(field.value);
+                return (
+                  <div key={field.id || `static-${fieldIndex}`} style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
+                    {field.label && (
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+                        {field.label}
+                      </div>
+                    )}
+                    <div
+                      style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}
+                      dangerouslySetInnerHTML={{ __html: staticHtml }}
+                    />
+                  </div>
+                );
+              }
               if (field.format === 'dropdown-list' && Array.isArray(field.options)) {
                 if (field.type === 'items') {
                   const selectedValues = normalizeItemsFieldValue(editingElement.props[field.id]);
@@ -1082,8 +1188,27 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                             </div>
                           </div>
 
-                          {subFields.map((subField: any) => {
+                          {subFields.map((subField: any, subFieldIndex: number) => {
                             if (!evaluateFieldConditions(subField, editorProps, item)) return null;
+                            if (subField.type === 'static') {
+                              if (String(subField.format || '') === 'line') {
+                                return <hr key={subField.id || `${field.id}-${rowIndex}-line-${subFieldIndex}`} style={{ margin: '10px 0', border: 0, borderTop: '1px solid #e5e7eb' }} />;
+                              }
+                              const staticHtml = pickLocalizedText(subField.value);
+                              return (
+                                <div key={subField.id || `${field.id}-${rowIndex}-static-${subFieldIndex}`} style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
+                                  {subField.label && (
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                                      {subField.label}
+                                    </div>
+                                  )}
+                                  <div
+                                    style={{ fontSize: 12, color: '#334155', lineHeight: 1.6 }}
+                                    dangerouslySetInnerHTML={{ __html: staticHtml }}
+                                  />
+                                </div>
+                              );
+                            }
                             const currentValue = getCollectionItemValue(item, subField.id);
                             const currentText = currentValue == null ? '' : pickLocalizedText(currentValue);
 
@@ -1448,9 +1573,18 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 return;
               }
               if (editingElement) {
+                const comp = availableComponents.find(c => c.id === editingElement.componentId);
+                const nextProps =
+                  comp
+                    ? applyHiddenFieldSavePolicy(
+                        comp.fields || [],
+                        editingElement.props || {},
+                        hiddenFieldSavePolicy
+                      )
+                    : (editingElement.props || {});
                 handleEditProps(
                   editingElement,
-                  editingElement.props,
+                  nextProps,
                   normalizePageElementVisibility(editingElement.visibility)
                 );
               }
