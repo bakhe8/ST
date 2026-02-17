@@ -28,6 +28,15 @@ interface PageElementVisibility {
 
 type HiddenFieldSavePolicy = 'preserve' | 'clear';
 
+interface BooleanFieldControlProps {
+  label: string;
+  checked: boolean;
+  format?: string;
+  description?: string;
+  compact?: boolean;
+  onChange: (next: boolean) => void;
+}
+
 // Utility to parse fields from twilight.json component schema
 function parsePropsSchema(fields: any[]): { [key: string]: any } {
   const schema: any = {};
@@ -325,6 +334,112 @@ function applyHiddenFieldSavePolicy(
 
   return nextProps;
 }
+
+const BooleanFieldControl: React.FC<BooleanFieldControlProps> = ({
+  label,
+  checked,
+  format,
+  description,
+  compact = false,
+  onChange
+}) => {
+  const normalizedFormat = String(format || 'switch').toLowerCase();
+  const isCheckbox = normalizedFormat === 'checkbox';
+
+  return (
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: compact ? 8 : 10,
+        background: checked ? '#f0fdf4' : '#fff'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, color: '#0f172a' }}>{label}</div>
+          {description && (
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              {description}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          role={isCheckbox ? 'checkbox' : 'switch'}
+          aria-checked={checked}
+          onClick={() => onChange(!checked)}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            padding: 0,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          {isCheckbox ? (
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                border: checked ? '1px solid #10b981' : '1px solid #cbd5e1',
+                background: checked ? '#10b981' : '#fff',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 13,
+                fontWeight: 700
+              }}
+            >
+              {checked ? '✓' : ''}
+            </span>
+          ) : (
+            <span
+              style={{
+                width: 44,
+                height: 24,
+                borderRadius: 999,
+                border: checked ? '1px solid #10b981' : '1px solid #cbd5e1',
+                background: checked ? '#10b981' : '#e2e8f0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  marginInlineStart: checked ? 22 : 2,
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.25)',
+                  transition: 'all 0.15s ease'
+                }}
+              />
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: 12,
+              color: checked ? '#047857' : '#64748b',
+              fontWeight: 700,
+              minWidth: 44,
+              textAlign: 'center'
+            }}
+          >
+            {checked ? 'مفعل' : 'معطل'}
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 type VariableListSourceEntry = {
   key: string;
@@ -1215,18 +1330,18 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                             if (subField.type === 'boolean') {
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
-                                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(currentValue)}
-                                      onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
-                                        currentItems.map((entry, idx) => (
-                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.checked) : entry
-                                        ))
-                                      ))}
-                                    />
-                                    <span>{subField.label || getCollectionFieldPathTail(subField.id)}</span>
-                                  </label>
+                                  <BooleanFieldControl
+                                    label={subField.label || getCollectionFieldPathTail(subField.id)}
+                                    description={subField.description}
+                                    format={subField.format}
+                                    checked={Boolean(currentValue)}
+                                    compact
+                                    onChange={(nextValue) => updateEditingCollection(field.id, (currentItems) => (
+                                      currentItems.map((entry, idx) => (
+                                        idx === rowIndex ? setCollectionItemValue(entry, subField.id, nextValue) : entry
+                                      ))
+                                    ))}
+                                  />
                                 </div>
                               );
                             }
@@ -1542,11 +1657,12 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               if (field.type === 'boolean') {
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
-                    <label>{field.label}</label>
-                    <input
-                      type="checkbox"
-                      checked={!!editingElement.props[field.id]}
-                      onChange={e => setEditingProp(field.id, e.target.checked)}
+                    <BooleanFieldControl
+                      label={field.label || field.id}
+                      description={field.description}
+                      format={field.format}
+                      checked={Boolean(editingElement.props[field.id])}
+                      onChange={(nextValue) => setEditingProp(field.id, nextValue)}
                     />
                   </div>
                 );
