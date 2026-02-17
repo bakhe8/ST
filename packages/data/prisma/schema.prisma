@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Theme {
+  id            String         @id
+  nameAr        String?
+  nameEn        String?
+  repository    String?
+  authorEmail   String?
+  supportUrl    String?
+  descriptionAr String?
+  descriptionEn String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  storeStates   StoreState[]
+  versions      ThemeVersion[]
+  stores        Store[]
+}
+
+model ThemeVersion {
+  id               String       @id @default(uuid())
+  themeId          String
+  version          String
+  fsPath           String
+  contractJson     String
+  capabilitiesJson String?
+  schemaHash       String?
+  createdAt        DateTime     @default(now())
+  storeStates      StoreState[]
+  theme            Theme        @relation(fields: [themeId], references: [id])
+  stores           Store[]
+
+  @@unique([themeId, version])
+}
+
+model Store {
+  id              String     @id @default(uuid())
+  title           String
+  defaultLocale   String     @default("ar-SA")
+  defaultCurrency String     @default("SAR")
+  themeId         String
+  themeVersionId  String
+  activePage      String     @default("home")
+  viewport        String     @default("desktop")
+  settingsJson    String     @default("{}")
+  themeSettingsJson String   @default("{}")
+  brandingJson    String?    @default("{}")
+  isMaster        Boolean    @default(false)
+  parentStoreId   String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  theme           Theme      @relation(fields: [themeId], references: [id])
+  themeVersion    ThemeVersion @relation(fields: [themeVersionId], references: [id])
+  
+  // Directly linked content
+  collections      Collection[]
+  componentStates  ComponentState[]
+  dataBindings     DataBinding[]
+  dataEntities     DataEntity[]
+  pageCompositions PageComposition[]
+  snapshots        Snapshot[]
+  storeStates      StoreState[]
+}
+
+model StoreState {
+  storeId        String       @id
+  themeId        String
+  themeVersionId String
+  activePage     String       @default("home")
+  viewport       String       @default("desktop")
+  settingsJson   String
+  updatedAt      DateTime     @updatedAt
+  themeVersion   ThemeVersion @relation(fields: [themeVersionId], references: [id])
+  theme          Theme        @relation(fields: [themeId], references: [id])
+  store          Store        @relation(fields: [storeId], references: [id])
+}
+
+model ComponentState {
+  id             String   @id @default(uuid())
+  storeId        String
+  componentPath  String
+  componentKey   String?
+  instanceOrder  Int
+  settingsJson   String
+  visibilityJson String?
+  updatedAt      DateTime @updatedAt
+  store          Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, componentPath, instanceOrder])
+}
+
+model PageComposition {
+  id              String   @id @default(uuid())
+  storeId         String
+  page            String
+  compositionJson String
+  updatedAt       DateTime @updatedAt
+  store           Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, page])
+}
+
+model DataEntity {
+  id          String   @id @default(uuid())
+  storeId     String
+  entityType  String
+  entityKey   String?
+  payloadJson String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  store       Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, entityType, entityKey])
+}
+
+model Collection {
+  id         String           @id @default(uuid())
+  storeId    String
+  name       String
+  source     String
+  rulesJson  String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  store      Store            @relation(fields: [storeId], references: [id])
+  items      CollectionItem[]
+}
+
+model CollectionItem {
+  collectionId String
+  entityId     String
+  sortOrder    Int
+  collection   Collection @relation(fields: [collectionId], references: [id])
+
+  @@id([collectionId, entityId])
+}
+
+model DataBinding {
+  id            String   @id @default(uuid())
+  storeId       String
+  componentPath String
+  bindingKey    String
+  sourceType    String
+  sourceRef     String
+  bindingJson   String?
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id])
+}
+
+model Snapshot {
+  id           String   @id @default(uuid())
+  storeId      String
+  label        String
+  snapshotJson String
+  createdAt    DateTime @default(now())
+  store        Store    @relation(fields: [storeId], references: [id])
+}

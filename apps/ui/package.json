@@ -1,0 +1,30 @@
+{
+    "name": "vtdr-ui",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "lint": "tsc --noEmit",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@jridgewell/sourcemap-codec": "^1.5.5",
+        "@vitejs/plugin-react": "^4.7.0",
+        "@vtdr/contracts": "*",
+        "axios": "^1.13.5",
+        "framer-motion": "^10.18.0",
+        "lucide-react": "^0.284.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-router-dom": "^6.22.3"
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.15",
+        "@types/react-dom": "^18.2.7",
+        "@types/react-router-dom": "^5.3.3",
+        "typescript": "^5.0.2",
+        "vite": "^4.5.14"
+    }
+}

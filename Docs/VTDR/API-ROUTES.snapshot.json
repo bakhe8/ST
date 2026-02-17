@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "generatedFrom": {
+    "apiIndex": "apps/api/src/index.ts"
+  },
+  "totalEndpoints": 52,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/debug/test",
+      "source": "apps/api/src/index.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "source": "apps/api/src/index.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stores",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores/:id/clone",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/stores/:id/data",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores/:id/inherit",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores/:id/promote",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores/:id/seed",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/stores/:id/settings",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stores/:id/sync",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/info",
+      "source": "apps/api/src/routes/system.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/system/status",
+      "source": "apps/api/src/routes/system.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/themes",
+      "source": "apps/api/src/routes/theme.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/themes/discover",
+      "source": "apps/api/src/routes/theme.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/themes/register",
+      "source": "apps/api/src/routes/theme.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/themes/sync",
+      "source": "apps/api/src/routes/theme.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/categories",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/categories",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/categories/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/categories/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/categories/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/menus/:type",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/products",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/products/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/products/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/static-pages",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/static-pages",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/static-pages/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/static-pages/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/stores",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/stores/:id",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores/:id/clone",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/stores/:id/data",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores/:id/inherit",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores/:id/promote",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores/:id/seed",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/stores/:id/settings",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stores/:id/sync",
+      "source": "apps/api/src/routes/store.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/theme/settings",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/theme/settings",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/preview/:storeId/:themeId/:version",
+      "source": "apps/api/src/routes/runtime.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/render",
+      "source": "apps/api/src/routes/runtime.routes.ts"
+    }
+  ]
+}

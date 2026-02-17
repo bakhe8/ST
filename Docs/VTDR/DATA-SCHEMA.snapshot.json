@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "generatedFrom": "packages/data/prisma/schema.prisma",
+  "sha256": "13603a93c65e4ecc941baff68c14511dba0dab758c7f0e0f78698bb4c6de67d2",
+  "modelCount": 11,
+  "models": [
+    "Collection",
+    "CollectionItem",
+    "ComponentState",
+    "DataBinding",
+    "DataEntity",
+    "PageComposition",
+    "Snapshot",
+    "Store",
+    "StoreState",
+    "Theme",
+    "ThemeVersion"
+  ]
+}

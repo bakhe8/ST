@@ -1,0 +1,14 @@
+{
+  "total_files_without_node_modules_and_turbo": 632,
+  "source_graph_files": 111,
+  "reachable_source_files": 78,
+  "script_targets": 3,
+  "theme_webpack_entries": 19,
+  "entrypoints_count": 23,
+  "dist_files": 250,
+  "docs_files": 47,
+  "archive_files": 40,
+  "matrix_yes": 150,
+  "matrix_no": 42,
+  "matrix_uncertain": 442
+}
