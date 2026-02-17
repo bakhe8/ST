@@ -7,11 +7,13 @@
 تحقيق استقرار تشغيلي أولًا (P0)، ثم إغلاق فجوات التوافق UI/API/Engine/Data، ثم إعادة بناء الوثائق من الكود الفعلي فقط.
 
 ## مرجع التنفيذ (Source of Truth)
-- `Docs/VTDR/VTDR-Cognitive-System-Audit-2026-02-17.md`
-- `Docs/VTDR/Code-Reality-Executive-Report.md`
-- `Docs/VTDR/COVERAGE-MATRIX-ALL-FILES.csv`
-- `Docs/VTDR/COVERAGE-STATS.json`
-- `Docs/VTDR/INVENTORY-ALL-FILES-INCL-TURBO.csv`
+- `Docs/Specifications/SYSTEM_SPEC.md`
+- `Docs/Specifications/Master Specification.md`
+- `Docs/Specifications/API_SPEC.md`
+- `Docs/Specifications/DATA_SCHEMA_SPEC.md`
+- `Docs/VTDR/API-ROUTES.snapshot.json`
+- `Docs/VTDR/DATA-SCHEMA.snapshot.json`
+- Historical archive: `archive/docs-pruned-20260217-233737/Docs`
 
 ## تسلسل الأولوية
 1. تثبيت التشغيل الحرج P0.
@@ -161,4 +163,29 @@ npm run dev
   - اليوم 10: مكتمل (تحديث `ARCHITECTURE.md` و`Docs/DEV.md` و`API_SPEC.md` و`DATA_SCHEMA_SPEC.md` + إضافة `docs:sync`/`docs:drift` وربطها مع `validate`).
   - اليوم 11: مكتمل (إعادة بناء `SYSTEM_SPEC.md` و`Master Specification.md` و`Database Design Document.md` و`Unified-Answers-Execution-Blueprint.md` كوثائق تشغيلية code-first).
   - اليوم 12: مكتمل (توسيع helper `ok/fail` ليشمل `context/runtime/simulator`، وتوحيد status الفعلي في simulator، وإضافة اختبارات فشل/حواف للتكامل).
-- الإجراء التالي: بدء دورة تحسينات المنتج التالية على مستوى السلوك (تحسينات المنتج والقدرات) فوق خط أساس عقود مستقر.
+  - اليوم 13: مكتمل (تقليص `Docs` إلى وثائق نشطة فقط، وأرشفة بقية الملفات في `archive/docs-pruned-20260217-233737/Docs`).
+
+## موجة التنفيذ الحالية (الخمس نقاط)
+- تاريخ التنفيذ: 2026-02-18.
+- الحالة: مكتملة بالكامل مع تحقق أخير ناجح (`npm run validate`).
+
+1. إغلاق فجوة cart على مستوى API/Engine:
+   - تمت إضافة endpoints: `GET /api/v1/cart`, `POST /api/v1/cart/items`, `PATCH /api/v1/cart/items/:itemId`, `DELETE /api/v1/cart/items/:itemId`.
+   - التنفيذ: `apps/api/src/routes/simulator.routes.ts`, `packages/engine/src/providers/simulator.service.ts`.
+2. إزالة hardcode من preview:
+   - أصبحت المعاينة تعتمد `themeId/themeVersion` من المتجر بدل قيم ثابتة.
+   - التنفيذ: `apps/ui/src/pages/StorePreview.tsx`.
+3. إزالة hardcode من Page Components Editor:
+   - تحميل المكونات من API store-scoped بدل مسار ملف ثابت.
+   - تمت إضافة endpoint `GET /api/v1/theme/components`.
+   - التنفيذ: `apps/ui/src/components/PageComponentsEditor.tsx`, `apps/api/src/routes/simulator.routes.ts`, `packages/engine/src/providers/simulator.service.ts`.
+4. توسيع اختبارات التكامل:
+   - إضافة تغطية lifecycle موسعة (promote/inherit/clone/seed/sync) + cart lifecycle + theme components.
+   - التنفيذ: `apps/api/src/integration/api.integration.test.ts`.
+5. تنظيف artifacts والوثائق التابعة لها:
+   - تحديث `.gitignore` لمنع رجوع ملفات قواعد البيانات/المخرجات المولدة.
+   - إزالة artifacts المتتبعة غير المرغوبة من الشجرة.
+   - مزامنة docs snapshots (`docs:sync`) مع التحقق (`docs:drift`).
+   - تحديث `Docs/README.md` وأرشفة الأصول غير النشطة في `archive/docs-assets-pruned-20260218-000241/`.
+
+- الإجراء التالي: بدء دورة تحسينات المنتج التالية على مستوى السلوك (تحسينات المنتج والقدرات) فوق خط أساس عقود ووثائق مستقر.

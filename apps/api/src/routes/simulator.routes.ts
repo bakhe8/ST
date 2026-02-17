@@ -11,6 +11,28 @@ export function createSimulatorRoutes(
 ) {
     const router = Router();
 
+    router.get('/cart', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getCart(req.storeId!);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/cart/items', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.addCartItem(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.patch('/cart/items/:itemId', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateCartItem(req.storeId!, req.params.itemId as string, req.body);
+        if (!response) return fail(res, 404, 'Cart item not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/cart/items/:itemId', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteCartItem(req.storeId!, req.params.itemId as string);
+        if (!response) return fail(res, 404, 'Cart item not found');
+        return res.status(response.status || 200).json(response);
+    });
+
     router.get('/products', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.getProducts(req.storeId!);
         return res.status(response.status || 200).json(response);
@@ -91,6 +113,12 @@ export function createSimulatorRoutes(
     router.get('/theme/settings', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.getThemeSettings(req.storeId!);
         if (!response) return fail(res, 404, 'Theme settings not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/theme/components', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getThemeComponents(req.storeId!);
+        if (!response) return fail(res, 404, 'Theme components not found');
         return res.status(response.status || 200).json(response);
     });
 

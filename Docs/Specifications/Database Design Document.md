@@ -1,6 +1,7 @@
 # VTDR Database Design Document (As-Is)
 
 Last updated: 2026-02-18  
+Cleanup pass: 2026-02-17 (Docs scope reduction)  
 Schema source: `packages/data/prisma/schema.prisma`
 
 ## 1) Database Engine

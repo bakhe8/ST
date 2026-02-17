@@ -1,0 +1,42 @@
+Docs\Architecture\Canonical-Foundation.md
+Docs\Architecture\Formal Ratification.md
+Docs\Architecture\New.md
+Docs\Architecture\Preview Layer.md
+Docs\Architecture\Theme-Directory-Structure-Compliance-Spec.md
+Docs\Architecture\Virtual Store–Driven Theme Runtime Architecture.md
+Docs\Assets\12.png
+Docs\Assets\14.png
+Docs\Assets\2.webp
+Docs\Assets\5 (1).webp
+Docs\Assets\5.webp
+Docs\Assets\6.webp
+Docs\Assets\9.png
+Docs\Assets\9.webp
+Docs\Assets\image-36.webp
+Docs\Assets\readme.md
+Docs\Assets\set-up-theme-16new.png
+Docs\Assets\unnamed.png
+Docs\Guidelines\Documentation-Alignment-Map.md
+Docs\Guidelines\Important.md
+Docs\Guidelines\Naming-Conventions.md
+Docs\Guidelines\Theme-Compatibility-Checklist.md
+Docs\Guidelines\Theme-Raed-Implementation-Reference.md
+Docs\Guidelines\Watcher-Integration.md
+Docs\Integration\Salla-Official-Alignment.md
+Docs\Integration\Salla-Theme-Blog-Practices.md
+Docs\Integration\Store-Events-Tracking-Contract.md
+Docs\Integration\Twilight-Global-Variables-Contract.md
+Docs\Integration\Twilight-Json-Compliance-Spec.md
+Docs\Integration\Twilight-SDK-Integration-Contract.md
+Docs\Integration\Twilight-Twig-Helpers-Filters-Contract.md
+Docs\Specifications\Image-Spec-Comparison-Matrix.md
+Docs\Vision\Executive Summary.md
+Docs\Vision\Project-Charter.md
+Docs\Vision\TheIdea.md
+Docs\Vision\Vision.md
+Docs\Vision\Why-and-Product-Statement.md
+Docs\VTDR\Code-Reality-Executive-Report.md
+Docs\VTDR\COVERAGE-MATRIX-ALL-FILES.csv
+Docs\VTDR\COVERAGE-STATS.json
+Docs\VTDR\INVENTORY-ALL-FILES-INCL-TURBO.csv
+Docs\VTDR\VTDR-Cognitive-System-Audit-2026-02-17.md

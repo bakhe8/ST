@@ -1,6 +1,7 @@
 # VTDR System Specification (As-Is)
 
 Last updated: 2026-02-18  
+Cleanup pass: 2026-02-17 (Docs scope reduction)  
 Normative source: runtime code in `apps/*` and `packages/*`.
 
 ## 1) Purpose

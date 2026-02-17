@@ -17,10 +17,10 @@ Effective documentation must:
 
 ## Primary Map
 - `ARCHITECTURE.md`: system layers and boundaries
+- `Docs/README.md`: active docs index + archive location
 - `Docs/DEV.md`: contributor workflow
 - `Docs/Specifications/`: normative requirements
-- `Docs/Integration/`: external contracts
-- `Docs/Vision/`: product intent and success metrics
+- `Docs/VTDR/`: generated route/schema snapshots used by drift gate
 
 ## Operating Rules
 1. Update docs in the same change as code.
@@ -29,4 +29,4 @@ Effective documentation must:
 
 ## Status
 - Last full rewrite: 2026-02-17
-- Documentation baseline: roadmap-first
+- Documentation baseline: code-first active set + archived legacy docs

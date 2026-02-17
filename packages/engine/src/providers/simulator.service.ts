@@ -55,6 +55,145 @@ export class SimulatorService {
         };
     }
 
+    private normalizeQuantity(value: any, fallback = 1) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return fallback;
+        return Math.max(0, Math.floor(parsed));
+    }
+
+    private toNumber(value: any, fallback = 0) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    private computeCartSummary(items: any[]) {
+        const normalized = (items || []).map((item) => {
+            const quantity = this.normalizeQuantity(item.quantity, 1);
+            const unitPrice =
+                this.toNumber(item.price) ||
+                this.toNumber(item.unit_price) ||
+                this.toNumber(item.sale_price?.amount) ||
+                this.toNumber(item.regular_price?.amount);
+            const total = unitPrice * quantity;
+            return {
+                ...item,
+                quantity,
+                unit_price: unitPrice,
+                total
+            };
+        });
+
+        const itemsCount = normalized.reduce((acc, item) => acc + item.quantity, 0);
+        const subtotal = normalized.reduce((acc, item) => acc + item.total, 0);
+
+        return {
+            items: normalized,
+            totals: {
+                items_count: itemsCount,
+                subtotal
+            }
+        };
+    }
+
+    private async getOrCreateCart(storeId: string) {
+        const current = await this.storeLogic.getDataEntity(storeId, 'cart', 'default');
+        if (current && typeof current === 'object') {
+            const items = Array.isArray(current.items) ? current.items : [];
+            return this.computeCartSummary(items);
+        }
+
+        const emptyCart = this.computeCartSummary([]);
+        await this.storeLogic.upsertDataEntity(storeId, 'cart', 'default', {
+            id: 'default',
+            ...emptyCart
+        });
+        return emptyCart;
+    }
+
+    public async getCart(storeId: string) {
+        const cart = await this.getOrCreateCart(storeId);
+        return this.wrapResponse({
+            id: 'default',
+            ...cart
+        });
+    }
+
+    public async addCartItem(storeId: string, data: any) {
+        const cart = await this.getOrCreateCart(storeId);
+        const candidateId =
+            data?.id ||
+            data?.item_id ||
+            data?.product_id ||
+            data?.product?.id ||
+            this.generateEntityId('cart_item');
+        const itemId = String(candidateId);
+        const quantityToAdd = this.normalizeQuantity(data?.quantity, 1) || 1;
+
+        const existingIndex = cart.items.findIndex((item: any) => String(item.id) === itemId);
+        let updatedItems = [...cart.items];
+
+        if (existingIndex >= 0) {
+            const existing = updatedItems[existingIndex];
+            updatedItems[existingIndex] = {
+                ...existing,
+                ...data,
+                id: itemId,
+                quantity: this.normalizeQuantity(existing.quantity, 0) + quantityToAdd
+            };
+        } else {
+            updatedItems.push({
+                ...(data || {}),
+                id: itemId,
+                quantity: quantityToAdd
+            });
+        }
+
+        const updated = this.computeCartSummary(updatedItems);
+        const payload = { id: 'default', ...updated };
+        await this.storeLogic.upsertDataEntity(storeId, 'cart', 'default', payload);
+
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateCartItem(storeId: string, itemId: string, data: any) {
+        const cart = await this.getOrCreateCart(storeId);
+        const index = cart.items.findIndex((item: any) => String(item.id) === String(itemId));
+        if (index < 0) return null;
+
+        const requestedQuantity = this.normalizeQuantity(data?.quantity, 1);
+        let updatedItems = [...cart.items];
+
+        if (requestedQuantity <= 0) {
+            updatedItems = updatedItems.filter((item: any) => String(item.id) !== String(itemId));
+        } else {
+            updatedItems[index] = {
+                ...updatedItems[index],
+                ...(data || {}),
+                id: itemId,
+                quantity: requestedQuantity
+            };
+        }
+
+        const updated = this.computeCartSummary(updatedItems);
+        const payload = { id: 'default', ...updated };
+        await this.storeLogic.upsertDataEntity(storeId, 'cart', 'default', payload);
+
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteCartItem(storeId: string, itemId: string) {
+        const cart = await this.getOrCreateCart(storeId);
+        const index = cart.items.findIndex((item: any) => String(item.id) === String(itemId));
+        if (index < 0) return null;
+
+        const updatedItems = cart.items.filter((item: any) => String(item.id) !== String(itemId));
+        const updated = this.computeCartSummary(updatedItems);
+        const payload = { id: 'default', ...updated };
+        await this.storeLogic.upsertDataEntity(storeId, 'cart', 'default', payload);
+
+        return this.wrapResponse(payload);
+    }
+
     public async getProducts(storeId: string) {
         const products = await this.storeLogic.getDataEntities(storeId, 'product');
         return this.wrapResponse(this.mapToSchema(products, 'product'));
@@ -180,6 +319,27 @@ export class SimulatorService {
         return this.wrapResponse({
             settings,
             values: savedValues
+        });
+    }
+
+    public async getThemeComponents(storeId: string) {
+        const store = await this.storeLogic.getStore(storeId);
+        if (!store) return null;
+
+        let components = [];
+        try {
+            if (store.themeId) {
+                const schema = await this.themeFileProvider.getThemeSettings(store.themeId);
+                if (schema) {
+                    components = schema.components || [];
+                }
+            }
+        } catch (e) {
+            console.error('[SIMULATOR] Failed to load theme components via provider:', e);
+        }
+
+        return this.wrapResponse({
+            components
         });
     }
 

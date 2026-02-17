@@ -1,6 +1,7 @@
 # VTDR Data Schema Specification (As-Is)
 
 Last updated: 2026-02-18  
+Cleanup pass: 2026-02-17 (Docs scope reduction)  
 Primary source: `packages/data/prisma/schema.prisma`
 
 ## 1) Canonical Schema Snapshot

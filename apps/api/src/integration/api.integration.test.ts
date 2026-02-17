@@ -134,6 +134,14 @@ describe('VTDR API integration (Store-First)', () => {
         expect(productsJson.success).toBe(true);
         expect(Array.isArray(productsJson.data)).toBe(true);
 
+        const themeComponentsRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
+            headers: contextHeaders
+        });
+        expect(themeComponentsRes.status).toBe(200);
+        const themeComponentsJson: any = await themeComponentsRes.json();
+        expect(themeComponentsJson.success).toBe(true);
+        expect(Array.isArray(themeComponentsJson.data.components)).toBe(true);
+
         const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`, {
             headers: contextHeaders
         });
@@ -225,5 +233,137 @@ describe('VTDR API integration (Store-First)', () => {
         expect(json.success).toBe(false);
         expect(json.status).toBe(404);
         expect(json.error).toContain('Product not found');
+    });
+
+    it('covers store lifecycle operations clone/promote/inherit/seed/sync validations', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const parentStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Lifecycle Parent Store', autoSeed: false })
+        });
+        expect(parentStoreRes.status).toBe(200);
+        const parentStoreJson: any = await parentStoreRes.json();
+        const parentStoreId = parentStoreJson.data.id as string;
+
+        const childStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Lifecycle Child Store', autoSeed: false })
+        });
+        expect(childStoreRes.status).toBe(200);
+        const childStoreJson: any = await childStoreRes.json();
+        const childStoreId = childStoreJson.data.id as string;
+
+        const promoteRes = await fetch(`${baseUrl}/api/stores/${parentStoreId}/promote`, {
+            method: 'POST'
+        });
+        expect(promoteRes.status).toBe(200);
+        const promoteJson: any = await promoteRes.json();
+        expect(promoteJson.success).toBe(true);
+        expect(promoteJson.data.isMaster).toBe(true);
+
+        const inheritRes = await fetch(`${baseUrl}/api/stores/${childStoreId}/inherit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ parentStoreId })
+        });
+        expect(inheritRes.status).toBe(200);
+        const inheritJson: any = await inheritRes.json();
+        expect(inheritJson.success).toBe(true);
+        expect(inheritJson.data.parentStoreId).toBe(parentStoreId);
+
+        const cloneRes = await fetch(`${baseUrl}/api/stores/${parentStoreId}/clone`, {
+            method: 'POST'
+        });
+        expect(cloneRes.status).toBe(200);
+        const cloneJson: any = await cloneRes.json();
+        expect(cloneJson.success).toBe(true);
+        expect(cloneJson.data.id).toBeTruthy();
+        expect(cloneJson.data.id).not.toBe(parentStoreId);
+
+        const seedRes = await fetch(`${baseUrl}/api/stores/${childStoreId}/seed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productCount: 4 })
+        });
+        expect(seedRes.status).toBe(200);
+        const seedJson: any = await seedRes.json();
+        expect(seedJson.success).toBe(true);
+        expect(seedJson.data.stats.products).toBe(4);
+
+        const syncMissingUrlRes = await fetch(`${baseUrl}/api/stores/${childStoreId}/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        expect(syncMissingUrlRes.status).toBe(400);
+        const syncMissingUrlJson: any = await syncMissingUrlRes.json();
+        expect(syncMissingUrlJson.success).toBe(false);
+        expect(syncMissingUrlJson.error).toContain('storeUrl is required');
+
+        const syncInvalidUrlRes = await fetch(`${baseUrl}/api/stores/${childStoreId}/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storeUrl: 'not-a-url' })
+        });
+        expect(syncInvalidUrlRes.status).toBe(500);
+        const syncInvalidUrlJson: any = await syncInvalidUrlRes.json();
+        expect(syncInvalidUrlJson.success).toBe(false);
+        expect(syncInvalidUrlJson.error).toContain('Invalid Salla store URL');
+    }, 120000);
+
+    it('supports cart lifecycle endpoints used by sdk bridge', async () => {
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Cart Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId
+        };
+
+        const addRes = await fetch(`${baseUrl}/api/v1/cart/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({ product_id: 'prod_1', quantity: 2, price: 15 })
+        });
+        expect(addRes.status).toBe(201);
+        const addJson: any = await addRes.json();
+        expect(addJson.success).toBe(true);
+        expect(addJson.data.totals.items_count).toBe(2);
+
+        const detailsRes = await fetch(`${baseUrl}/api/v1/cart`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(detailsRes.status).toBe(200);
+        const detailsJson: any = await detailsRes.json();
+        expect(detailsJson.success).toBe(true);
+        expect(detailsJson.data.items.length).toBe(1);
+        expect(detailsJson.data.totals.subtotal).toBe(30);
+
+        const updateRes = await fetch(`${baseUrl}/api/v1/cart/items/prod_1`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({ quantity: 3 })
+        });
+        expect(updateRes.status).toBe(200);
+        const updateJson: any = await updateRes.json();
+        expect(updateJson.data.totals.items_count).toBe(3);
+
+        const deleteRes = await fetch(`${baseUrl}/api/v1/cart/items/prod_1`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteRes.status).toBe(200);
+        const deleteJson: any = await deleteRes.json();
+        expect(deleteJson.data.items.length).toBe(0);
     });
 });

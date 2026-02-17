@@ -1,21 +1,64 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PreviewPane from '../components/PreviewPane';
 import { ExternalLink, RefreshCw } from 'lucide-react';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL, apiUrl } from '../services/api';
+
+interface StoreSummary {
+    id: string;
+    themeId: string;
+    themeVersion?: {
+        version?: string;
+    };
+}
 
 const StorePreview = () => {
     const { storeId } = useParams();
     const [refreshKey, setRefreshKey] = useState(0);
+    const [store, setStore] = useState<StoreSummary | null>(null);
+    const [loadingStore, setLoadingStore] = useState(true);
 
-    // رابط المعاينة الحقيقي لمحرك الثيمات
-    // مثال: http://localhost:3001/preview/{storeId}/theme-raed-master/1.0.0?page=index
-    const themeId = 'theme-raed-master';
-    const version = '1.0.0';
+    useEffect(() => {
+        const loadStore = async () => {
+            if (!storeId) {
+                setStore(null);
+                setLoadingStore(false);
+                return;
+            }
+
+            setLoadingStore(true);
+            try {
+                const res = await fetch(apiUrl(`stores/${storeId}`), {
+                    headers: {
+                        'X-VTDR-Store-Id': storeId,
+                        'Context-Store-Id': storeId
+                    }
+                });
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setStore(json.data as StoreSummary);
+                } else {
+                    setStore(null);
+                }
+            } catch (error) {
+                console.error('Failed to load store for preview', error);
+                setStore(null);
+            } finally {
+                setLoadingStore(false);
+            }
+        };
+        void loadStore();
+    }, [storeId]);
+
+    const themeId = store?.themeId;
+    const version = store?.themeVersion?.version || '1.0.0';
 
     // Use API_BASE_URL and remove /api if it's already there to avoid duplication if apiUrl does it differently
     const apiRoot = API_BASE_URL.replace(/\/api$/, '');
-    const previewUrl = storeId ? `${apiRoot}/preview/${storeId}/${themeId}/${version}?page=index&refresh=${refreshKey}` : '';
+    const previewUrl = useMemo(() => {
+        if (!storeId || !themeId) return '';
+        return `${apiRoot}/preview/${storeId}/${themeId}/${version}?page=index&refresh=${refreshKey}`;
+    }, [apiRoot, refreshKey, storeId, themeId, version]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -50,15 +93,15 @@ const StorePreview = () => {
                                 alert('يجب اختيار متجر صالح أولاً لفتح المعاينة');
                             }
                         }}
-                        disabled={!storeId}
+                        disabled={!storeId || !themeId}
                         style={{
-                            background: storeId ? '#3b82f6' : '#334155',
+                            background: storeId && themeId ? '#3b82f6' : '#334155',
                             border: 'none',
                             color: 'white',
                             padding: '8px 16px',
                             borderRadius: 6,
-                            cursor: storeId ? 'pointer' : 'not-allowed',
-                            opacity: storeId ? 1 : 0.6,
+                            cursor: storeId && themeId ? 'pointer' : 'not-allowed',
+                            opacity: storeId && themeId ? 1 : 0.6,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 8
@@ -71,7 +114,11 @@ const StorePreview = () => {
             </div>
 
             <div style={{ flex: 1, background: '#0f172a', borderRadius: 12, overflow: 'hidden', border: '1px solid #334155' }}>
-                <PreviewPane url={previewUrl} style={{ width: '100%', height: '100%' }} />
+                {loadingStore ? (
+                    <div style={{ color: '#94a3b8', padding: 16 }}>Loading store preview context...</div>
+                ) : (
+                    <PreviewPane url={previewUrl} style={{ width: '100%', height: '100%' }} />
+                )}
             </div>
         </div>
     );

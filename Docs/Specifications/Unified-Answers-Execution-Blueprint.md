@@ -1,6 +1,7 @@
 # VTDR Unified Execution Blueprint (Code-First)
 
 Last updated: 2026-02-18
+Cleanup pass: 2026-02-17 (Docs scope reduction)
 
 ## 1) Objective
 Provide one executable workflow for moving VTDR safely from current state to the next delivery cycles without reintroducing doc/code drift.

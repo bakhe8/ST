@@ -33,3 +33,8 @@ coverage/
 *.db-journal
 *.db-wal
 *.db-shm
+*.db.old
+*.db.bak
+packages/data/prisma/packages/
+packages/data/prisma/prisma/
+packages/engine/vtdr.db

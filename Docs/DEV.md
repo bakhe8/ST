@@ -1,6 +1,7 @@
 # VTDR Development Guide (Code-First)
 
 Last updated: 2026-02-18
+Cleanup pass: 2026-02-17 (Docs scope reduction)
 
 ## 1) Prerequisites
 - Node.js 20+ (npm 10+ recommended)

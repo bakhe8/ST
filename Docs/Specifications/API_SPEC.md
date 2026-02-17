@@ -1,6 +1,7 @@
 # VTDR API Specification (As-Is)
 
 Last updated: 2026-02-18  
+Cleanup pass: 2026-02-17 (Docs scope reduction)  
 Primary source: `apps/api/src/index.ts` + route files under `apps/api/src/routes/`.
 
 ## 1) Canonical Route Inventory
@@ -50,6 +51,11 @@ Main operations:
 - clear store data
 
 ### 4.4 Simulator Resources (Context Required)
+- Cart:
+  - `GET /api/v1/cart`
+  - `POST /api/v1/cart/items`
+  - `PATCH /api/v1/cart/items/:itemId`
+  - `DELETE /api/v1/cart/items/:itemId`
 - Products: `/api/v1/products*`
 - Categories: `/api/v1/categories*`
 - Static pages: `/api/v1/static-pages*`
@@ -57,6 +63,8 @@ Main operations:
 - Theme settings:
   - `GET /api/v1/theme/settings`
   - `PUT /api/v1/theme/settings`
+ - Theme components:
+  - `GET /api/v1/theme/components`
 - Mock auth:
   - `POST /api/v1/auth/login`
 
@@ -75,6 +83,7 @@ Main operations:
 { "status": 200, "success": true, "data": {} }
 ```
 - Simulator responses include pagination/metadata and preserve matching HTTP status for create/read/update/delete.
+- Cart endpoints are store-scoped simulator endpoints and return the same envelope contract.
 - Operational endpoints that return a message keep the same envelope and include `data: null`, for example:
 ```json
 { "status": 200, "success": true, "data": null, "message": "..." }

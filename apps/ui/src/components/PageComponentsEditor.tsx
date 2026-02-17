@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../services/api';
 
 interface PageComponent {
   id: string;
@@ -39,8 +40,6 @@ function getDefaultProps(fields: any[]): { [key: string]: any } {
   return defaults;
 }
 
-const THEME_COMPONENTS_PATH = '/packages/themes/theme-raed-master/twilight.json';
-
 function randomId() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -80,12 +79,23 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const [search, setSearch] = useState('');
   const [availableComponents, setAvailableComponents] = useState<PageComponent[]>([]);
 
-  // Load components from twilight.json
+  // Load theme components from API (store scoped)
   useEffect(() => {
-    fetch(THEME_COMPONENTS_PATH)
+    if (!selectedStoreId) {
+      setAvailableComponents([]);
+      return;
+    }
+
+    fetch(apiUrl('v1/theme/components'), {
+      headers: {
+        'X-VTDR-Store-Id': selectedStoreId,
+        'Context-Store-Id': selectedStoreId
+      }
+    })
       .then(res => res.json())
-      .then(data => {
-        const comps = (data.components || []).map((comp: any) => ({
+      .then((response) => {
+        const components = response?.data?.components || [];
+        const comps = components.map((comp: any) => ({
           id: comp.key,
           name: comp.title?.ar || comp.title?.en || comp.key,
           icon: comp.icon || '🧩',
@@ -96,8 +106,11 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           fields: comp.fields || [],
         }));
         setAvailableComponents(comps);
+      })
+      .catch(() => {
+        setAvailableComponents([]);
       });
-  }, []);
+  }, [selectedStoreId]);
 
   // Filter components for the selected page only
   const selectedPageObj = PAGES.find(p => p.id === selectedPage);
@@ -137,7 +150,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     const storeId = selectedStoreId;
     const pageState = elementsMap[selectedPage];
     try {
-      await fetch(`http://localhost:3001/api/v1/theme/settings`, {
+      await fetch(apiUrl('v1/theme/settings'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
