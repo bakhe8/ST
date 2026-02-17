@@ -288,6 +288,106 @@ export class RendererService {
                         const homeComponents = twilight.components
                             .filter((c: any) => c.path && c.path.startsWith('home.'));
 
+                        const pickLocalizedText = (value: any) => {
+                            if (value == null) return '';
+                            if (typeof value === 'string') return value;
+                            if (typeof value === 'object' && !Array.isArray(value)) {
+                                const preferredLocale = context.store?.locale?.startsWith('ar') ? 'ar' : 'en';
+                                if (typeof value[preferredLocale] === 'string' && value[preferredLocale].trim()) {
+                                    return value[preferredLocale];
+                                }
+                                if (typeof value.ar === 'string' && value.ar.trim()) return value.ar;
+                                if (typeof value.en === 'string' && value.en.trim()) return value.en;
+                                const firstString = Object.values(value).find((entry: any) =>
+                                    typeof entry === 'string' && entry.trim()
+                                );
+                                if (typeof firstString === 'string') return firstString;
+                            }
+                            return String(value);
+                        };
+
+                        const flattenCollectionItems = (value: any) => {
+                            if (!Array.isArray(value)) return [];
+                            return value.map((item: any) => {
+                                if (!item || typeof item !== 'object') return item;
+                                const normalized: Record<string, any> = {};
+                                for (const key in item) {
+                                    const cleanKey = key.includes('.') ? key.split('.').pop() : key;
+                                    normalized[cleanKey!] = item[key];
+                                }
+                                return normalized;
+                            });
+                        };
+
+                        const ensureProductMockList = (items: any[]) => {
+                            const normalized = Array.isArray(items) ? [...items] : [];
+                            (normalized as any).product_ids_mock_str = normalized
+                                .map((item: any) => item?.id)
+                                .filter(Boolean)
+                                .join(',');
+                            return normalized;
+                        };
+
+                        const extractSelectionIds = (rawValue: any): string[] => {
+                            const source = Array.isArray(rawValue) ? rawValue : [rawValue];
+                            return Array.from(
+                                new Set(
+                                    source
+                                        .map((entry: any) => {
+                                            if (typeof entry === 'string' || typeof entry === 'number') return String(entry);
+                                            if (entry && typeof entry === 'object') {
+                                                if (entry.id != null) return String(entry.id);
+                                                if (entry.value != null) return String(entry.value);
+                                            }
+                                            return '';
+                                        })
+                                        .map((id) => id.trim())
+                                        .filter(Boolean)
+                                )
+                            );
+                        };
+
+                        const resolveItemsBySource = (
+                            sourceKey: string,
+                            rawValue: any,
+                            explicitOverride: boolean
+                        ) => {
+                            const source = String(sourceKey || '').toLowerCase();
+                            const pool =
+                                source === 'products'
+                                    ? ((context as any).products || [])
+                                    : source === 'categories'
+                                        ? ((context as any).categories || [])
+                                        : source === 'brands'
+                                            ? ((context as any).brands || [])
+                                            : [];
+
+                            if (!Array.isArray(pool) || pool.length === 0) {
+                                return source === 'products' ? ensureProductMockList([]) : [];
+                            }
+
+                            const ids = extractSelectionIds(rawValue);
+                            const byId = new Map(
+                                pool
+                                    .filter((item: any) => item?.id != null)
+                                    .map((item: any) => [String(item.id), item])
+                            );
+
+                            let resolved: any[] = [];
+                            if (ids.length > 0) {
+                                resolved = ids
+                                    .map((id) => byId.get(id))
+                                    .filter(Boolean);
+                            } else if (!explicitOverride) {
+                                const fallbackCount = source === 'products' ? 12 : 8;
+                                resolved = pool.slice(0, fallbackCount);
+                            }
+
+                            return source === 'products'
+                                ? ensureProductMockList(resolved)
+                                : resolved;
+                        };
+
                         const mapHomeComponent = (
                             component: any,
                             position: number,
@@ -298,33 +398,68 @@ export class RendererService {
                                 if (!f.id) return;
                                 let val = f.value;
                                 if (f.type === 'collection' && Array.isArray(val)) {
-                                    val = val.map((item: any) => {
-                                        const newItem: any = {};
-                                        for (const key in item) {
-                                            const cleanKey = key.includes('.') ? key.split('.').pop() : key;
-                                            newItem[cleanKey!] = item[key];
-                                        }
-                                        return newItem;
-                                    });
+                                    val = flattenCollectionItems(val);
+                                } else if (
+                                    val &&
+                                    typeof val === 'object' &&
+                                    !Array.isArray(val) &&
+                                    f.type !== 'items' &&
+                                    f.type !== 'boolean'
+                                ) {
+                                    val = pickLocalizedText(val);
                                 }
                                 data[f.id] = val;
                             });
 
-                            const products = (component.path.includes('product') || component.path.includes('slider') || component.path.includes('banner'))
+                            const mergedData: any = {
+                                ...data,
+                                ...(overrideProps && typeof overrideProps === 'object' ? overrideProps : {})
+                            };
+
+                            component.fields?.forEach((f: any) => {
+                                if (!f?.id) return;
+
+                                if (f.type === 'collection') {
+                                    mergedData[f.id] = flattenCollectionItems(mergedData[f.id]);
+                                    return;
+                                }
+
+                                if (f.type === 'items' && String(f.format || '') === 'dropdown-list') {
+                                    const explicitOverride = Boolean(
+                                        overrideProps &&
+                                        Object.prototype.hasOwnProperty.call(overrideProps, f.id)
+                                    );
+                                    mergedData[f.id] = resolveItemsBySource(f.source, mergedData[f.id], explicitOverride);
+                                    return;
+                                }
+
+                                if (
+                                    mergedData[f.id] &&
+                                    typeof mergedData[f.id] === 'object' &&
+                                    !Array.isArray(mergedData[f.id]) &&
+                                    f.type !== 'boolean'
+                                ) {
+                                    mergedData[f.id] = pickLocalizedText(mergedData[f.id]);
+                                }
+                            });
+
+                            const fallbackProducts = (component.path.includes('product') || component.path.includes('slider') || component.path.includes('banner'))
                                 ? (context as any).products
                                 : [];
+                            const componentProducts = Array.isArray(mergedData.products)
+                                ? ensureProductMockList(mergedData.products)
+                                : ensureProductMockList(fallbackProducts);
 
                             return {
                                 path: component.path,
                                 name: component.path,
                                 data: {
                                     ...component,
-                                    ...data,
-                                    ...(overrideProps && typeof overrideProps === 'object' ? overrideProps : {}),
+                                    ...mergedData,
                                     position,
-                                    products: products,
-                                    product_ids_mock: products.map((p: any) => p.id),
-                                    product_ids_mock_str: products.map((p: any) => p.id).join(',')
+                                    products: componentProducts,
+                                    product_ids_mock: componentProducts.map((p: any) => p.id),
+                                    product_ids_mock_str: (componentProducts as any).product_ids_mock_str
                                 }
                             };
                         };

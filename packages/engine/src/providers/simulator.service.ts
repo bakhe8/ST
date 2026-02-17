@@ -254,6 +254,78 @@ export class SimulatorService {
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    private pickLocalizedText(value: any) {
+        if (value == null) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            if (typeof value.ar === 'string' && value.ar.trim()) return value.ar;
+            if (typeof value.en === 'string' && value.en.trim()) return value.en;
+            const firstString = Object.values(value).find((entry) => typeof entry === 'string' && entry.trim());
+            if (typeof firstString === 'string') return firstString;
+        }
+        return String(value);
+    }
+
+    private extractItemSelectionIds(field: any): string[] {
+        const source = field?.value ?? field?.selected ?? [];
+        const raw = Array.isArray(source) ? source : [source];
+
+        return Array.from(
+            new Set(
+                raw
+                    .map((entry: any) => {
+                        if (typeof entry === 'string' || typeof entry === 'number') {
+                            return String(entry);
+                        }
+                        if (entry && typeof entry === 'object') {
+                            if (entry.id != null) return String(entry.id);
+                            if (entry.value != null) return String(entry.value);
+                        }
+                        return '';
+                    })
+                    .map((id) => id.trim())
+                    .filter(Boolean)
+            )
+        );
+    }
+
+    private toSelectableOptions(items: any[]) {
+        return (items || [])
+            .map((item: any) => {
+                const id = item?.id != null ? String(item.id) : '';
+                if (!id) return null;
+                return {
+                    value: id,
+                    label: this.pickLocalizedText(item?.name || item?.title || id)
+                };
+            })
+            .filter(Boolean) as Array<{ value: string; label: string }>;
+    }
+
+    private normalizeThemeComponentField(field: any, sources: Record<string, any[]>) {
+        const normalized = { ...(field || {}) };
+        const isSourceItemsField =
+            normalized?.type === 'items' && String(normalized?.format || '') === 'dropdown-list';
+
+        if (!isSourceItemsField) {
+            return normalized;
+        }
+
+        const sourceKey = String(normalized?.source || '').toLowerCase();
+        const sourceItems = sources[sourceKey] || [];
+        const options = this.toSelectableOptions(sourceItems);
+        const selectedIds = this.extractItemSelectionIds(normalized);
+        const labelByValue = new Map(options.map((opt) => [opt.value, opt.label]));
+
+        normalized.options = options;
+        normalized.selected = selectedIds.map((id) => ({
+            value: id,
+            label: labelByValue.get(id) || id
+        }));
+
+        return normalized;
+    }
+
     private computeCartSummary(items: any[]) {
         const normalized = (items || []).map((item) => {
             const quantity = this.normalizeQuantity(item.quantity, 1);
@@ -582,7 +654,46 @@ export class SimulatorService {
             if (store.themeId) {
                 const schema = await this.themeFileProvider.getThemeSettings(store.themeId);
                 if (schema) {
-                    components = schema.components || [];
+                    const [productsRaw, categoriesRaw, brandsRaw] = await Promise.all([
+                        this.storeLogic.getDataEntities(storeId, 'product'),
+                        this.storeLogic.getDataEntities(storeId, 'category'),
+                        this.storeLogic.getDataEntities(storeId, 'brand')
+                    ]);
+
+                    const products = await Promise.all(
+                        (productsRaw || []).map((product: any) =>
+                            this.normalizeProductPayload(
+                                storeId,
+                                product,
+                                String(product?.id || this.generateEntityId('product'))
+                            )
+                        )
+                    );
+                    const categories = (categoriesRaw || []).map((category: any) =>
+                        this.normalizeCategoryPayload(
+                            category,
+                            String(category?.id || this.generateEntityId('category'))
+                        )
+                    );
+                    const brands = (brandsRaw || []).map((brand: any) => ({
+                        ...(brand || {}),
+                        id: String(brand?.id || this.generateEntityId('brand')),
+                        name: this.pickLocalizedText(brand?.name || brand?.title || brand?.id || 'Brand'),
+                        logo: this.sanitizeImageUrl(brand?.logo) || this.defaultProductPlaceholder
+                    }));
+
+                    const sources = {
+                        products,
+                        categories,
+                        brands
+                    };
+
+                    components = (schema.components || []).map((component: any) => ({
+                        ...(component || {}),
+                        fields: (component?.fields || []).map((field: any) =>
+                            this.normalizeThemeComponentField(field, sources)
+                        )
+                    }));
                 }
             }
         } catch (e) {

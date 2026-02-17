@@ -91,4 +91,9 @@ Each slice is closed only when all are done:
 - Store UI should expose page components editing flow as a first-class screen.
 
 ### Slice-02 Status
-- In progress: implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+- In progress: visual data sources and page composition rendering implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+
+### Slice-02 Progress Notes
+- `theme/components` now returns real selectable options for `products/categories/brands` based on store data.
+- Page components editor supports multi-select for `items` fields and saves IDs into `page_compositions`.
+- Renderer resolves selected IDs to full entities before Twig render (brands/categories/products), with visual fallback content when no explicit selection exists.

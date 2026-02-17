@@ -28,14 +28,58 @@ function parsePropsSchema(fields: any[]): { [key: string]: any } {
   return schema;
 }
 
+function pickLocalizedText(value: any): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    if (typeof value.ar === 'string' && value.ar.trim()) return value.ar;
+    if (typeof value.en === 'string' && value.en.trim()) return value.en;
+    const firstString = Object.values(value).find((entry: any) => typeof entry === 'string' && entry.trim());
+    if (typeof firstString === 'string') return firstString;
+  }
+  return String(value);
+}
+
+function normalizeItemsFieldValue(value: any): string[] {
+  const source = Array.isArray(value) ? value : [value];
+  return Array.from(
+    new Set(
+      source
+        .map((entry: any) => {
+          if (typeof entry === 'string' || typeof entry === 'number') return String(entry);
+          if (entry && typeof entry === 'object') {
+            if (entry.id != null) return String(entry.id);
+            if (entry.value != null) return String(entry.value);
+          }
+          return '';
+        })
+        .map((id: string) => id.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function getFieldDefaultValue(field: any) {
+  if (field.type === 'boolean') return Boolean(field.value);
+  if (field.type === 'collection' || field.format === 'collection') {
+    return Array.isArray(field.value) ? field.value : [];
+  }
+  if (field.type === 'items' && field.format === 'dropdown-list') {
+    const selected = Array.isArray(field.selected) ? field.selected : [];
+    if (selected.length > 0) return normalizeItemsFieldValue(selected);
+    return normalizeItemsFieldValue(field.value);
+  }
+  if (typeof field.value !== 'undefined') {
+    return pickLocalizedText(field.value);
+  }
+  return '';
+}
+
 function getDefaultProps(fields: any[]): { [key: string]: any } {
   const defaults: any = {};
   fields?.forEach(field => {
     if (field.type === 'static') return;
-    if (typeof field.value !== 'undefined') defaults[field.id] = field.value;
-    else if (field.format === 'collection') defaults[field.id] = [];
-    else if (field.type === 'boolean') defaults[field.id] = !!field.value;
-    else defaults[field.id] = '';
+    defaults[field.id] = getFieldDefaultValue(field);
   });
   return defaults;
 }
@@ -294,12 +338,40 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
             if (!comp) return null;
             return (comp.fields ?? []).map((field: any) => {
               if (field.type === 'static') return null;
-              if (field.format === 'dropdown-list' && field.options) {
+              if (field.format === 'dropdown-list' && Array.isArray(field.options)) {
+                if (field.type === 'items') {
+                  const selectedValues = normalizeItemsFieldValue(editingElement.props[field.id]);
+                  return (
+                    <div key={field.id} style={{ marginBottom: 12 }}>
+                      <label>{field.label}</label>
+                      <select
+                        multiple
+                        value={selectedValues}
+                        onChange={e => {
+                          const selected = Array.from(e.target.selectedOptions).map(option => option.value);
+                          setEditingElement({
+                            ...editingElement,
+                            props: { ...editingElement.props, [field.id]: selected }
+                          });
+                        }}
+                        style={{ width: '100%', minHeight: 120, padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                      >
+                        {field.options.map((opt: any) => (
+                          <option key={String(opt.value)} value={String(opt.value)}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div style={{ marginTop: 4, color: '#64748b', fontSize: 12 }}>اختيار متعدد</div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
                     <label>{field.label}</label>
                     <select
-                      value={editingElement.props[field.id] || ''}
+                      value={String(editingElement.props[field.id] || '')}
                       onChange={e => setEditingElement({ ...editingElement, props: { ...editingElement.props, [field.id]: e.target.value } })}
                       style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                     >
@@ -323,12 +395,13 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 );
               }
               // Default: text input
+              const currentValue = editingElement.props[field.id];
               return (
                 <div key={field.id} style={{ marginBottom: 12 }}>
                   <label>{field.label}</label>
                   <input
                     type="text"
-                    value={editingElement.props[field.id] || ''}
+                    value={currentValue == null ? '' : pickLocalizedText(currentValue)}
                     onChange={e => setEditingElement({ ...editingElement, props: { ...editingElement.props, [field.id]: e.target.value } })}
                     style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                   />

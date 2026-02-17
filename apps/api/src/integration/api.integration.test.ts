@@ -141,6 +141,18 @@ describe('VTDR API integration (Store-First)', () => {
         const themeComponentsJson: any = await themeComponentsRes.json();
         expect(themeComponentsJson.success).toBe(true);
         expect(Array.isArray(themeComponentsJson.data.components)).toBe(true);
+        const homeBrands = themeComponentsJson.data.components.find((c: any) => c.path === 'home.brands');
+        const homeMainLinks = themeComponentsJson.data.components.find((c: any) => c.path === 'home.main-links');
+        const homeSliderProducts = themeComponentsJson.data.components.find((c: any) => c.path === 'home.slider-products-with-header');
+        const brandsField = homeBrands?.fields?.find((f: any) => f.id === 'brands');
+        const categoriesField = homeMainLinks?.fields?.find((f: any) => f.id === 'categories');
+        const productsField = homeSliderProducts?.fields?.find((f: any) => f.id === 'products');
+        expect(Array.isArray(brandsField?.options)).toBe(true);
+        expect(brandsField.options.length).toBeGreaterThan(0);
+        expect(Array.isArray(categoriesField?.options)).toBe(true);
+        expect(categoriesField.options.length).toBeGreaterThan(0);
+        expect(Array.isArray(productsField?.options)).toBe(true);
+        expect(productsField.options.length).toBeGreaterThan(0);
 
         const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`, {
             headers: contextHeaders
@@ -180,7 +192,9 @@ describe('VTDR API integration (Store-First)', () => {
         expect(componentsRes.status).toBe(200);
         const componentsJson: any = await componentsRes.json();
         const homeComponent = (componentsJson.data.components || []).find((c: any) =>
-            String(c.path || '').startsWith('home.')
+            String(c.path || '').startsWith('home.') &&
+            Array.isArray(c.fields) &&
+            c.fields.some((f: any) => f.id === 'title')
         );
         expect(homeComponent).toBeTruthy();
 
@@ -216,6 +230,13 @@ describe('VTDR API integration (Store-First)', () => {
         expect(getThemeSettingsJson.data.values.sticky_add_to_cart).toBe(true);
         expect(Array.isArray(getThemeSettingsJson.data.values.page_compositions.home)).toBe(true);
         expect(getThemeSettingsJson.data.values.page_compositions.home[0].componentId).toBe(String(homeComponent.key));
+
+        const previewAfterCompositionRes = await fetch(
+            `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}?page=index`
+        );
+        expect(previewAfterCompositionRes.status).toBe(200);
+        const previewAfterCompositionHtml = await previewAfterCompositionRes.text();
+        expect(previewAfterCompositionHtml).toContain('VTDR Visual Marker');
     }, 120000);
 
     it('returns unified error when store context is missing', async () => {
