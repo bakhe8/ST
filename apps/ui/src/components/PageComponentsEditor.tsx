@@ -132,6 +132,133 @@ function createCollectionItemTemplate(field: any): Record<string, any> {
   return template;
 }
 
+function normalizeConditionOperator(operator: any): string {
+  return String(operator || '=').trim().toLowerCase();
+}
+
+function normalizeComparableScalar(value: any): any {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const lowered = trimmed.toLowerCase();
+    if (lowered === 'true') return true;
+    if (lowered === 'false') return false;
+    const asNumber = Number(trimmed);
+    if (trimmed !== '' && Number.isFinite(asNumber)) return asNumber;
+    return trimmed;
+  }
+  return value;
+}
+
+function valueEquals(actual: any, expected: any): boolean {
+  const normalizedActual = normalizeComparableScalar(actual);
+  const normalizedExpected = normalizeComparableScalar(expected);
+  return normalizedActual === normalizedExpected;
+}
+
+function resolveConditionValue(
+  conditionId: string,
+  props: Record<string, any>,
+  collectionItem?: Record<string, any>
+): any {
+  const id = String(conditionId || '').trim();
+  if (!id) return undefined;
+
+  if (collectionItem && typeof collectionItem === 'object') {
+    const fromCollection = getCollectionItemValue(collectionItem, id);
+    if (typeof fromCollection !== 'undefined') return fromCollection;
+    const shortKey = getCollectionFieldPathTail(id);
+    if (typeof collectionItem[shortKey] !== 'undefined') return collectionItem[shortKey];
+  }
+
+  if (props && typeof props === 'object') {
+    if (typeof props[id] !== 'undefined') return props[id];
+    const shortKey = getCollectionFieldPathTail(id);
+    if (typeof props[shortKey] !== 'undefined') return props[shortKey];
+  }
+
+  return undefined;
+}
+
+function evaluateFieldConditions(
+  field: any,
+  props: Record<string, any>,
+  collectionItem?: Record<string, any>
+): boolean {
+  if (field?.hide === true) return false;
+
+  const conditions = Array.isArray(field?.conditions) ? field.conditions : [];
+  if (conditions.length === 0) return true;
+
+  return conditions.every((condition: any) => {
+    const op = normalizeConditionOperator(condition?.operation);
+    const expected = condition?.value;
+    const actual = resolveConditionValue(condition?.id, props, collectionItem);
+
+    if (op === '=' || op === '==' || op === 'eq') {
+      if (Array.isArray(actual)) {
+        return actual.some((entry) => valueEquals(entry, expected));
+      }
+      return valueEquals(actual, expected);
+    }
+
+    if (op === '!=' || op === '!==' || op === 'ne' || op === '<>') {
+      if (Array.isArray(actual)) {
+        return !actual.some((entry) => valueEquals(entry, expected));
+      }
+      return !valueEquals(actual, expected);
+    }
+
+    if (op === 'in') {
+      const expectedList = Array.isArray(expected) ? expected : [expected];
+      if (Array.isArray(actual)) {
+        return actual.some((entry) => expectedList.some((target) => valueEquals(entry, target)));
+      }
+      return expectedList.some((target) => valueEquals(actual, target));
+    }
+
+    if (op === 'not in' || op === 'nin') {
+      const expectedList = Array.isArray(expected) ? expected : [expected];
+      if (Array.isArray(actual)) {
+        return !actual.some((entry) => expectedList.some((target) => valueEquals(entry, target)));
+      }
+      return !expectedList.some((target) => valueEquals(actual, target));
+    }
+
+    if (op === 'contains') {
+      if (Array.isArray(actual)) {
+        return actual.some((entry) => valueEquals(entry, expected));
+      }
+      if (typeof actual === 'string') {
+        return actual.includes(String(expected ?? ''));
+      }
+      return false;
+    }
+
+    if (op === 'not contains') {
+      if (Array.isArray(actual)) {
+        return !actual.some((entry) => valueEquals(entry, expected));
+      }
+      if (typeof actual === 'string') {
+        return !actual.includes(String(expected ?? ''));
+      }
+      return true;
+    }
+
+    if (op === '>' || op === '>=' || op === '<' || op === '<=') {
+      const actualNumber = Number(actual);
+      const expectedNumber = Number(expected);
+      if (!Number.isFinite(actualNumber) || !Number.isFinite(expectedNumber)) return false;
+      if (op === '>') return actualNumber > expectedNumber;
+      if (op === '>=') return actualNumber >= expectedNumber;
+      if (op === '<') return actualNumber < expectedNumber;
+      return actualNumber <= expectedNumber;
+    }
+
+    // Unknown operator: do not hide field silently.
+    return true;
+  });
+}
+
 type VariableListSourceEntry = {
   key: string;
   value: string;
@@ -834,7 +961,12 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           {(() => {
             const comp = availableComponents.find(c => c.id === editingElement.componentId);
             if (!comp) return null;
+            const editorProps =
+              editingElement.props && typeof editingElement.props === 'object'
+                ? editingElement.props
+                : {};
             return (comp.fields ?? []).map((field: any) => {
+              if (!evaluateFieldConditions(field, editorProps)) return null;
               if (field.type === 'static') return null;
               if (field.format === 'dropdown-list' && Array.isArray(field.options)) {
                 if (field.type === 'items') {
@@ -951,6 +1083,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                           </div>
 
                           {subFields.map((subField: any) => {
+                            if (!evaluateFieldConditions(subField, editorProps, item)) return null;
                             const currentValue = getCollectionItemValue(item, subField.id);
                             const currentText = currentValue == null ? '' : pickLocalizedText(currentValue);
 
