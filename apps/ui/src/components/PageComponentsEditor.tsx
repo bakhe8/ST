@@ -142,6 +142,19 @@ type VariableListSelection = {
   url: string;
 };
 
+type VariablePickerSort = 'label_asc' | 'label_desc' | 'value_asc' | 'value_desc';
+
+type VariablePickerState = {
+  scope: 'top' | 'collection';
+  source: string;
+  fieldId: string;
+  selectedValue: string;
+  options: VariableListOption[];
+  title: string;
+  parentFieldId?: string;
+  rowIndex?: number;
+};
+
 function getStaticVariableSourceUrl(source: string): string {
   const normalized = String(source || '').trim().toLowerCase();
   if (normalized === 'offers_link') return '/offers';
@@ -270,6 +283,21 @@ function filterVariableOptions(
   });
 }
 
+function sortVariableOptions(options: VariableListOption[], mode: VariablePickerSort): VariableListOption[] {
+  const ranked = [...options];
+  ranked.sort((a, b) => {
+    const aLabel = String(a.label || '').toLowerCase();
+    const bLabel = String(b.label || '').toLowerCase();
+    const aValue = String(a.value || '').toLowerCase();
+    const bValue = String(b.value || '').toLowerCase();
+    if (mode === 'label_desc') return bLabel.localeCompare(aLabel);
+    if (mode === 'value_asc') return aValue.localeCompare(bValue);
+    if (mode === 'value_desc') return bValue.localeCompare(aValue);
+    return aLabel.localeCompare(bLabel);
+  });
+  return ranked;
+}
+
 function getCollectionItemMetaValue(item: any, fieldId: string, suffix: 'type' | 'value') {
   if (!item || typeof item !== 'object') return '';
   const fullKey = `${fieldId}__${suffix}`;
@@ -368,7 +396,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [jsonDraftErrors, setJsonDraftErrors] = useState<Record<string, string>>({});
-  const [variableOptionSearches, setVariableOptionSearches] = useState<Record<string, string>>({});
+  const [variablePicker, setVariablePicker] = useState<VariablePickerState | null>(null);
+  const [variablePickerSearch, setVariablePickerSearch] = useState('');
+  const [variablePickerSort, setVariablePickerSort] = useState<VariablePickerSort>('label_asc');
   const [search, setSearch] = useState('');
   const [availableComponents, setAvailableComponents] = useState<PageComponent[]>([]);
 
@@ -443,7 +473,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!editingElement) {
       setJsonDrafts({});
       setJsonDraftErrors({});
-      setVariableOptionSearches({});
+      setVariablePicker(null);
+      setVariablePickerSearch('');
+      setVariablePickerSort('label_asc');
       return;
     }
 
@@ -451,7 +483,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     if (!component) {
       setJsonDrafts({});
       setJsonDraftErrors({});
-      setVariableOptionSearches({});
+      setVariablePicker(null);
+      setVariablePickerSearch('');
+      setVariablePickerSort('label_asc');
       return;
     }
 
@@ -465,7 +499,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     });
     setJsonDrafts(nextDrafts);
     setJsonDraftErrors({});
-    setVariableOptionSearches({});
+    setVariablePicker(null);
+    setVariablePickerSearch('');
+    setVariablePickerSort('label_asc');
   }, [editingElement, availableComponents]);
 
   // Filter components for the selected page only
@@ -523,18 +559,55 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     });
   };
 
-  const getVariableSearch = (key: string) => variableOptionSearches[key] || '';
-  const setVariableSearch = (key: string, value: string) => {
-    setVariableOptionSearches((current) => ({ ...current, [key]: value }));
+  const openVariablePicker = (payload: VariablePickerState) => {
+    setVariablePicker(payload);
+    setVariablePickerSearch('');
+    setVariablePickerSort('label_asc');
   };
-  const clearVariableSearch = (key: string) => {
-    setVariableOptionSearches((current) => {
-      if (!Object.prototype.hasOwnProperty.call(current, key)) return current;
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
+
+  const closeVariablePicker = () => {
+    setVariablePicker(null);
+    setVariablePickerSearch('');
   };
+
+  const applyVariablePickerSelection = (option: VariableListOption) => {
+    if (!variablePicker) return;
+
+    const nextSelection: VariableListSelection = {
+      source: variablePicker.source,
+      value: option.value,
+      url: option.url || ''
+    };
+
+    if (variablePicker.scope === 'top') {
+      setEditingProp(variablePicker.fieldId, buildVariableListStoreValue(nextSelection));
+      closeVariablePicker();
+      return;
+    }
+
+    if (
+      variablePicker.scope === 'collection' &&
+      variablePicker.parentFieldId &&
+      typeof variablePicker.rowIndex === 'number'
+    ) {
+      updateEditingCollection(variablePicker.parentFieldId, (currentItems) => (
+        currentItems.map((entry, idx) => (
+          idx === variablePicker.rowIndex
+            ? applyVariableSelectionToCollectionItem(entry, variablePicker.fieldId, nextSelection)
+            : entry
+        ))
+      ));
+    }
+
+    closeVariablePicker();
+  };
+
+  const variablePickerOptions = variablePicker
+    ? sortVariableOptions(
+      filterVariableOptions(variablePicker.options, variablePickerSearch, variablePicker.selectedValue),
+      variablePickerSort
+    )
+    : [];
 
   const handleSavePageState = async () => {
     if (!selectedStoreId) {
@@ -820,11 +893,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                               const isStaticSource = Boolean(staticUrl);
                               const isCustomSource = selectedSource === 'custom';
                               const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
-                              const optionSearchKey = `${field.id}:${rowIndex}:${subField.id}`;
-                              const optionSearchQuery = getVariableSearch(optionSearchKey);
-                              const filteredOptions = shouldUseSelect
-                                ? filterVariableOptions(activeOptions, optionSearchQuery, parsedSelection.value)
-                                : [];
+                              const selectedOption = activeOptions.find((option) => option.value === parsedSelection.value);
+                              const selectedLabel = selectedOption?.label || parsedSelection.value || 'غير محدد';
+                              const selectedUrl = selectedOption?.url || parsedSelection.url || '';
 
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
@@ -851,7 +922,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                               : entry
                                           ))
                                         ));
-                                        clearVariableSearch(optionSearchKey);
                                       }}
                                       style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
                                     >
@@ -862,46 +932,33 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                   )}
 
                                   {shouldUseSelect ? (
-                                    <>
-                                      <input
-                                        type="text"
-                                        placeholder="ابحث عن خيار..."
-                                        value={optionSearchQuery}
-                                        onChange={(e) => setVariableSearch(optionSearchKey, e.target.value)}
-                                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 6 }}
-                                      />
-                                      <div style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>
-                                        النتائج: {filteredOptions.length} / {activeOptions.length}
-                                      </div>
-                                      <select
-                                        value={parsedSelection.value}
-                                        onChange={(e) => {
-                                          const nextValue = e.target.value;
-                                          const selectedOption = activeOptions.find((option) => option.value === nextValue);
-                                          const nextSelection: VariableListSelection = {
+                                    <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, background: '#fff' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                        <strong style={{ fontSize: 12 }}>{selectedLabel}</strong>
+                                        <button
+                                          type="button"
+                                          onClick={() => openVariablePicker({
+                                            scope: 'collection',
                                             source: selectedSource,
-                                            value: nextValue,
-                                            url: selectedOption?.url || ''
-                                          };
-                                          updateEditingCollection(field.id, (currentItems) => (
-                                            currentItems.map((entry, idx) => (
-                                              idx === rowIndex
-                                                ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
-                                                : entry
-                                            ))
-                                          ));
-                                        }}
-                                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
-                                      >
-                                        {filteredOptions.length > 0 ? (
-                                          filteredOptions.map((option) => (
-                                            <option key={option.value} value={option.value}>{option.label}</option>
-                                          ))
-                                        ) : (
-                                          <option value={parsedSelection.value || ''}>لا توجد نتائج</option>
-                                        )}
-                                      </select>
-                                    </>
+                                            fieldId: subField.id,
+                                            parentFieldId: field.id,
+                                            rowIndex,
+                                            selectedValue: parsedSelection.value,
+                                            options: activeOptions,
+                                            title: subField.label || getCollectionFieldPathTail(subField.id)
+                                          })}
+                                          style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+                                        >
+                                          فتح المحدد
+                                        </button>
+                                      </div>
+                                      <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>
+                                        الخيارات المتاحة: {activeOptions.length}
+                                      </div>
+                                      <div style={{ color: '#334155', fontSize: 11, direction: 'ltr', wordBreak: 'break-all' }}>
+                                        {selectedUrl || '-'}
+                                      </div>
+                                    </div>
                                   ) : (
                                     <input
                                       type="text"
@@ -1032,11 +1089,9 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 const isStaticSource = Boolean(staticUrl);
                 const isCustomSource = selectedSource === 'custom';
                 const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
-                const optionSearchKey = `${field.id}:top`;
-                const optionSearchQuery = getVariableSearch(optionSearchKey);
-                const filteredOptions = shouldUseSelect
-                  ? filterVariableOptions(activeOptions, optionSearchQuery, parsedSelection.value)
-                  : [];
+                const selectedOption = activeOptions.find((option) => option.value === parsedSelection.value);
+                const selectedLabel = selectedOption?.label || parsedSelection.value || 'غير محدد';
+                const selectedUrl = selectedOption?.url || parsedSelection.url || '';
 
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
@@ -1056,7 +1111,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                                 ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
                                 : { source: nextSource, value: '', url: '' };
                           setEditingProp(field.id, buildVariableListStoreValue(nextSelection));
-                          clearVariableSearch(optionSearchKey);
                         }}
                         style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
                       >
@@ -1067,39 +1121,31 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                     )}
 
                     {shouldUseSelect ? (
-                      <>
-                        <input
-                          type="text"
-                          placeholder="ابحث عن خيار..."
-                          value={optionSearchQuery}
-                          onChange={e => setVariableSearch(optionSearchKey, e.target.value)}
-                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 6 }}
-                        />
-                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>
-                          النتائج: {filteredOptions.length} / {activeOptions.length}
-                        </div>
-                        <select
-                          value={parsedSelection.value}
-                          onChange={e => {
-                            const nextValue = e.target.value;
-                            const selectedOption = activeOptions.find((option) => option.value === nextValue);
-                            setEditingProp(field.id, buildVariableListStoreValue({
+                      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, background: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <strong style={{ fontSize: 12 }}>{selectedLabel}</strong>
+                          <button
+                            type="button"
+                            onClick={() => openVariablePicker({
+                              scope: 'top',
                               source: selectedSource,
-                              value: nextValue,
-                              url: selectedOption?.url || ''
-                            }));
-                          }}
-                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
-                        >
-                          {filteredOptions.length > 0 ? (
-                            filteredOptions.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))
-                          ) : (
-                            <option value={parsedSelection.value || ''}>لا توجد نتائج</option>
-                          )}
-                        </select>
-                      </>
+                              fieldId: field.id,
+                              selectedValue: parsedSelection.value,
+                              options: activeOptions,
+                              title: field.label || field.id
+                            })}
+                            style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+                          >
+                            فتح المحدد
+                          </button>
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>
+                          الخيارات المتاحة: {activeOptions.length}
+                        </div>
+                        <div style={{ color: '#334155', fontSize: 11, direction: 'ltr', wordBreak: 'break-all' }}>
+                          {selectedUrl || '-'}
+                        </div>
+                      </div>
                     ) : (
                       <input
                         type="text"
@@ -1162,6 +1208,108 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
             حفظ
           </button>
           <button onClick={() => setEditingElement(null)} style={{ marginTop: 16, marginRight: 8 }}>إلغاء</button>
+        </div>
+      )}
+
+      {variablePicker && (
+        <div
+          onClick={closeVariablePicker}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(760px, 96vw)',
+              maxHeight: '88vh',
+              overflow: 'hidden',
+              background: '#fff',
+              borderRadius: 12,
+              boxShadow: '0 12px 48px rgba(2, 6, 23, 0.25)',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 16 }}>{variablePicker.title}</h4>
+                <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>اختر عنصر الرابط من القائمة</div>
+              </div>
+              <button
+                type="button"
+                onClick={closeVariablePicker}
+                style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
+              >
+                إغلاق
+              </button>
+            </div>
+
+            <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="ابحث بالاسم أو المعرف أو الرابط..."
+                value={variablePickerSearch}
+                onChange={(e) => setVariablePickerSearch(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }}
+              />
+              <select
+                value={variablePickerSort}
+                onChange={(e) => setVariablePickerSort(e.target.value as VariablePickerSort)}
+                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }}
+              >
+                <option value="label_asc">الاسم: من أ إلى ي</option>
+                <option value="label_desc">الاسم: من ي إلى أ</option>
+                <option value="value_asc">المعرف: تصاعدي</option>
+                <option value="value_desc">المعرف: تنازلي</option>
+              </select>
+            </div>
+
+            <div style={{ padding: '8px 12px', color: '#64748b', fontSize: 12, borderBottom: '1px solid #f1f5f9' }}>
+              النتائج: {variablePickerOptions.length} / {variablePicker.options.length}
+            </div>
+
+            <div style={{ padding: 12, overflow: 'auto' }}>
+              {variablePickerOptions.length === 0 && (
+                <div style={{ padding: 16, border: '1px dashed #cbd5e1', borderRadius: 8, color: '#64748b', textAlign: 'center' }}>
+                  لا توجد نتائج مطابقة.
+                </div>
+              )}
+
+              {variablePickerOptions.map((option) => {
+                const isSelected = option.value === variablePicker.selectedValue;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => applyVariablePickerSelection(option)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'right',
+                      marginBottom: 8,
+                      borderRadius: 10,
+                      border: isSelected ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                      background: isSelected ? '#eff6ff' : '#fff',
+                      padding: 10,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{option.label}</div>
+                    <div style={{ color: '#64748b', fontSize: 12, direction: 'ltr', marginBottom: 4 }}>{option.value}</div>
+                    <div style={{ color: '#334155', fontSize: 12, direction: 'ltr', wordBreak: 'break-all' }}>{option.url || '-'}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

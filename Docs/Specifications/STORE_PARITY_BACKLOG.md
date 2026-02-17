@@ -100,3 +100,4 @@ Each slice is closed only when all are done:
 - Collection fields in page components now use a structured visual editor (rows + subfields) for `main-links / enhanced-slider / square-banners / testimonials`, replacing raw JSON editing in the primary flow.
 - `variable-list` now has a source-aware editor in UI (source + value) and a unified runtime resolver in preview, including collection subfields such as `links.url` and `banners.url`.
 - `variable-list` option pickers now support in-editor search/filter to handle large store datasets without degrading authoring speed.
+- `variable-list` selection now supports a dedicated modal picker (search + sort + URL preview) to improve usability for high-volume options.
