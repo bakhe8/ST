@@ -43,6 +43,15 @@ Open Prisma Studio:
 npx prisma studio --schema packages/data/prisma/schema.prisma --port 5555
 ```
 
+Harden existing store data (legacy payload normalization):
+```powershell
+# Dry run (report only)
+npm run data:harden:check
+
+# Apply changes to DB
+npm run data:harden
+```
+
 ## 6) Validation and Quality Gates
 - Full validation:
 ```powershell

@@ -11,6 +11,8 @@
         "build": "turbo build",
         "test": "turbo test",
         "lint": "turbo lint",
+        "data:harden:check": "npm exec tsx tools/data-hardening/harden-store-data.mts",
+        "data:harden": "npm exec tsx tools/data-hardening/harden-store-data.mts -- --write",
         "docs:sync": "node tools/doc-drift/doc-drift.mjs sync",
         "docs:drift": "node tools/doc-drift/doc-drift.mjs check",
         "validate": "npm run docs:drift && npm run build && npm run lint && npm run test",

@@ -165,6 +165,7 @@ npm run dev
   - اليوم 11: مكتمل (إعادة بناء `SYSTEM_SPEC.md` و`Master Specification.md` و`Database Design Document.md` و`Unified-Answers-Execution-Blueprint.md` كوثائق تشغيلية code-first).
   - اليوم 12: مكتمل (توسيع helper `ok/fail` ليشمل `context/runtime/simulator`، وتوحيد status الفعلي في simulator، وإضافة اختبارات فشل/حواف للتكامل).
   - اليوم 13: مكتمل (تقليص `Docs` إلى وثائق نشطة فقط، وأرشفة بقية الملفات في `archive/docs-pruned-20260217-233737/Docs`).
+  - اليوم 14: مكتمل (إضافة أداة `data:harden` لتنظيف payloads القديمة في `DataEntity` وتطبيع صور/فئات المنتجات والهيكل الهرمي للأقسام).
 
 ## موجة التنفيذ الحالية (الخمس نقاط)
 - تاريخ التنفيذ: 2026-02-18.
