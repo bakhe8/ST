@@ -3,6 +3,8 @@ import { SchemaService } from '../core/schema-service.js';
 import { IThemeFileProvider } from '../infra/theme-file-provider.interface.js';
 
 export class SimulatorService {
+    private readonly defaultProductPlaceholder = '/themes/theme-raed-master/public/images/placeholder.png';
+
     constructor(
         private storeLogic: StoreLogic,
         private schemaService: SchemaService,
@@ -67,22 +69,36 @@ export class SimulatorService {
         return { amount: 0, currency: fallbackCurrency };
     }
 
+    private sanitizeImageUrl(url: any) {
+        if (typeof url !== 'string') return '';
+        const normalized = url.trim();
+        if (!normalized) return '';
+
+        if (/^(https?:)?\/\/via\.placeholder\.com/i.test(normalized)) {
+            return this.defaultProductPlaceholder;
+        }
+
+        return normalized;
+    }
+
     private normalizeProductImages(data: any) {
         const directImages = Array.isArray(data?.images) ? data.images : [];
         const normalizedFromArray = directImages
             .filter((img: any) => img && (typeof img === 'string' || img.url))
             .map((img: any, index: number) => {
                 if (typeof img === 'string') {
+                    const url = this.sanitizeImageUrl(img);
                     return {
                         id: this.generateEntityId('img'),
-                        url: img,
+                        url,
                         alt: `Image ${index + 1}`,
                         is_default: index === 0
                     };
                 }
+                const url = this.sanitizeImageUrl(img.url);
                 return {
                     id: String(img.id || this.generateEntityId('img')),
-                    url: String(img.url || ''),
+                    url,
                     alt: String(img.alt || `Image ${index + 1}`),
                     is_default: Boolean(img.is_default ?? index === 0)
                 };
@@ -98,7 +114,7 @@ export class SimulatorService {
             };
         }
 
-        const candidate = data?.main_image || data?.image?.url || data?.thumbnail;
+        const candidate = this.sanitizeImageUrl(data?.main_image || data?.image?.url || data?.thumbnail);
         if (!candidate) {
             return {
                 images: [],
@@ -434,8 +450,61 @@ export class SimulatorService {
     }
 
     public async deleteCategory(storeId: string, categoryId: string) {
+        const deletedCategoryId = String(categoryId);
+
+        const categories = await this.storeLogic.getDataEntities(storeId, 'category');
+        const childCategories = (categories || []).filter((category: any) => {
+            const parentValue = String(category?.parent_id ?? category?.parentId ?? '').trim();
+            return parentValue === deletedCategoryId;
+        });
+
+        let reparentedCategories = 0;
+        for (const childCategory of childCategories) {
+            const childId = String(childCategory.id);
+            const payload = this.normalizeCategoryPayload(
+                { ...childCategory, parent_id: null, parentId: '' },
+                childId
+            );
+            await this.storeLogic.upsertDataEntity(storeId, 'category', childId, payload);
+            reparentedCategories++;
+        }
+
+        const products = await this.storeLogic.getDataEntities(storeId, 'product');
+        let updatedProducts = 0;
+        for (const product of products || []) {
+            const productId = String(product?.id || this.generateEntityId('product'));
+            const normalized = await this.normalizeProductPayload(storeId, product, productId);
+            const filteredCategoryIds = (normalized.category_ids || []).filter(
+                (id: string) => String(id) !== deletedCategoryId
+            );
+            if (filteredCategoryIds.length === (normalized.category_ids || []).length) {
+                continue;
+            }
+
+            const payload = await this.normalizeProductPayload(
+                storeId,
+                {
+                    ...normalized,
+                    category_ids: filteredCategoryIds,
+                    categories: filteredCategoryIds.map((id: string) => ({ id }))
+                },
+                productId
+            );
+            await this.storeLogic.upsertDataEntity(storeId, 'product', productId, payload);
+            updatedProducts++;
+        }
+
         await this.storeLogic.deleteDataEntity(storeId, 'category', categoryId);
-        return { status: 200, success: true, data: { id: categoryId, deleted: true } };
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id: categoryId,
+                deleted: true,
+                updatedProducts,
+                reparentedCategories
+            }
+        };
     }
 
     public async getMenus(storeId: string, type: string) {

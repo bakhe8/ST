@@ -70,7 +70,12 @@ Each slice is closed only when all are done:
   - remove dependency on external placeholder host.
 
 ### Slice-01 Status
-- In progress: implemented in code and under validation in runtime usage.
+- Closed: implemented and validated by integration tests (`apps/api/src/integration/api.integration.test.ts`) on 2026-02-18.
+
+### Slice-01 Closure Notes
+- Product payload now normalizes legacy/external placeholder URLs (`via.placeholder.com`) to local runtime placeholder.
+- Category delete now cleans product category references and reparents child categories to root.
+- Integration test covers category/product round-trip, category deletion side-effects, and preview continuity.
 
 ### Slice-01 Exit Criteria
 1. Product edit/save round-trip preserves categories/options/variants correctly.

@@ -366,4 +366,179 @@ describe('VTDR API integration (Store-First)', () => {
         const deleteJson: any = await deleteRes.json();
         expect(deleteJson.data.items.length).toBe(0);
     });
+
+    it('normalizes product/category parity contracts and keeps preview functional', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Parity Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const rootCategoryRes = await fetch(`${baseUrl}/api/v1/categories`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'cat-root',
+                name: 'Root Category',
+                parentId: 'root',
+                order: 1
+            })
+        });
+        expect(rootCategoryRes.status).toBe(201);
+
+        const childCategoryRes = await fetch(`${baseUrl}/api/v1/categories`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'cat-child',
+                name: 'Child Category',
+                parent_id: 'cat-root',
+                order: 2
+            })
+        });
+        expect(childCategoryRes.status).toBe(201);
+
+        const categoriesRes = await fetch(`${baseUrl}/api/v1/categories`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(categoriesRes.status).toBe(200);
+        const categoriesJson: any = await categoriesRes.json();
+        const rootCategory = categoriesJson.data.find((c: any) => c.id === 'cat-root');
+        const childCategory = categoriesJson.data.find((c: any) => c.id === 'cat-child');
+        expect(rootCategory).toBeTruthy();
+        expect(rootCategory.parent_id).toBeNull();
+        expect(rootCategory.parentId).toBe('');
+        expect(childCategory).toBeTruthy();
+        expect(childCategory.parent_id).toBe('cat-root');
+        expect(childCategory.parentId).toBe('cat-root');
+
+        const createProductRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'prod-parity-1',
+                name: 'Parity Product',
+                price: { amount: 120, currency: 'SAR' },
+                images: [
+                    {
+                        url: 'https://via.placeholder.com/300',
+                        alt: 'Main',
+                        is_default: true
+                    }
+                ],
+                categories: [{ id: 'cat-child', name: 'Child Category' }],
+                options: [
+                    {
+                        name: 'Size',
+                        type: 'select',
+                        values: [{ name: 'S', price: 0 }, { name: 'M', price: 10 }]
+                    }
+                ],
+                variants: [
+                    {
+                        sku: 'SKU-M',
+                        quantity: 7,
+                        price: { amount: 130, currency: 'SAR' }
+                    }
+                ]
+            })
+        });
+        expect(createProductRes.status).toBe(201);
+
+        const getProductRes = await fetch(`${baseUrl}/api/v1/products/prod-parity-1`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getProductRes.status).toBe(200);
+        const getProductJson: any = await getProductRes.json();
+        const product = getProductJson.data;
+        expect(Array.isArray(product.category_ids)).toBe(true);
+        expect(product.category_ids).toContain('cat-child');
+        expect(Array.isArray(product.categories)).toBe(true);
+        expect(product.categories.some((c: any) => c.id === 'cat-child')).toBe(true);
+        expect(Array.isArray(product.images)).toBe(true);
+        expect(product.images.length).toBeGreaterThan(0);
+        expect(product.main_image).toBeTruthy();
+        expect(product.main_image).toContain('/themes/theme-raed-master/public/images/placeholder.png');
+        expect(Array.isArray(product.options)).toBe(true);
+        expect(product.options[0].values.length).toBe(2);
+        expect(Array.isArray(product.variants)).toBe(true);
+        expect(product.variants[0].quantity).toBe(7);
+        expect(product.variants[0].price.amount).toBe(130);
+
+        const updateProductRes = await fetch(`${baseUrl}/api/v1/products/prod-parity-1`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                category_ids: ['cat-root'],
+                images: [],
+                main_image: '/themes/theme-raed-master/public/images/placeholder.png',
+                variants: [{ sku: 'SKU-ROOT', quantity: 3, price: 200 }]
+            })
+        });
+        expect(updateProductRes.status).toBe(200);
+
+        const getUpdatedProductRes = await fetch(`${baseUrl}/api/v1/products/prod-parity-1`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getUpdatedProductRes.status).toBe(200);
+        const getUpdatedProductJson: any = await getUpdatedProductRes.json();
+        const updatedProduct = getUpdatedProductJson.data;
+        expect(updatedProduct.category_ids).toContain('cat-root');
+        expect(updatedProduct.categories.some((c: any) => c.id === 'cat-root')).toBe(true);
+        expect(Array.isArray(updatedProduct.images)).toBe(true);
+        expect(updatedProduct.images.length).toBeGreaterThan(0);
+        expect(updatedProduct.main_image).toContain('/themes/theme-raed-master/public/images/placeholder.png');
+        expect(updatedProduct.variants[0].quantity).toBe(3);
+        expect(updatedProduct.variants[0].price.amount).toBe(200);
+
+        const deleteCategoryRes = await fetch(`${baseUrl}/api/v1/categories/cat-root`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteCategoryRes.status).toBe(200);
+        const deleteCategoryJson: any = await deleteCategoryRes.json();
+        expect(deleteCategoryJson.success).toBe(true);
+        expect(deleteCategoryJson.data.updatedProducts).toBeGreaterThanOrEqual(1);
+
+        const categoriesAfterDeleteRes = await fetch(`${baseUrl}/api/v1/categories`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(categoriesAfterDeleteRes.status).toBe(200);
+        const categoriesAfterDeleteJson: any = await categoriesAfterDeleteRes.json();
+        expect(categoriesAfterDeleteJson.data.some((c: any) => c.id === 'cat-root')).toBe(false);
+        const childAfterDelete = categoriesAfterDeleteJson.data.find((c: any) => c.id === 'cat-child');
+        expect(childAfterDelete).toBeTruthy();
+        expect(childAfterDelete.parent_id).toBeNull();
+        expect(childAfterDelete.parentId).toBe('');
+
+        const productAfterDeleteRes = await fetch(`${baseUrl}/api/v1/products/prod-parity-1`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(productAfterDeleteRes.status).toBe(200);
+        const productAfterDeleteJson: any = await productAfterDeleteRes.json();
+        expect(productAfterDeleteJson.data.category_ids.includes('cat-root')).toBe(false);
+
+        const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`);
+        expect(storeRes.status).toBe(200);
+        const storeJson: any = await storeRes.json();
+        const themeId = storeJson.data.themeId as string;
+        const themeVersion = storeJson.data.themeVersion.version as string;
+
+        const previewRes = await fetch(`${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}?page=index`);
+        expect(previewRes.status).toBe(200);
+        const previewHtml = await previewRes.text();
+        expect(previewHtml.toLowerCase()).toContain('<html');
+    }, 120000);
 });
