@@ -63,7 +63,7 @@ const ThemeSettingsPanel: React.FC<ThemeSettingsPanelProps> = ({ onSave }) => {
         console.error('Failed to load theme settings', err);
         setLoading(false);
       });
-  }, []);
+  }, [storeId]);
 
   const handleChange = (id: string, value: any) => {
     setValues(v => ({ ...v, [id]: value }));

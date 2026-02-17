@@ -66,6 +66,12 @@ const PAGES = [
 
 type PageElementsMap = { [pageId: string]: PageElement[] };
 
+const createEmptyElementsMap = (): PageElementsMap =>
+  PAGES.reduce((acc, page) => {
+    acc[page.id] = [];
+    return acc;
+  }, {} as PageElementsMap);
+
 
 interface PageComponentsEditorProps {
   selectedStoreId: string | null;
@@ -73,7 +79,7 @@ interface PageComponentsEditorProps {
 
 const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedStoreId }) => {
   const [selectedPage, setSelectedPage] = useState<string>('home');
-  const [elementsMap, setElementsMap] = useState<PageElementsMap>({ home: [], product: [], category: [], orders: [], header: [], footer: [] });
+  const [elementsMap, setElementsMap] = useState<PageElementsMap>(createEmptyElementsMap());
   const [showAdd, setShowAdd] = useState(false);
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
   const [search, setSearch] = useState('');
@@ -109,6 +115,40 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
       })
       .catch(() => {
         setAvailableComponents([]);
+      });
+  }, [selectedStoreId]);
+
+  // Load existing saved page compositions from theme settings
+  useEffect(() => {
+    if (!selectedStoreId) {
+      setElementsMap(createEmptyElementsMap());
+      return;
+    }
+
+    fetch(apiUrl('v1/theme/settings'), {
+      headers: {
+        'X-VTDR-Store-Id': selectedStoreId,
+        'Context-Store-Id': selectedStoreId
+      }
+    })
+      .then(res => res.json())
+      .then((response) => {
+        const saved = response?.data?.values?.page_compositions;
+        const nextMap = createEmptyElementsMap();
+        if (saved && typeof saved === 'object') {
+          Object.entries(saved).forEach(([pageId, value]) => {
+            if (!Array.isArray(value)) return;
+            nextMap[pageId] = value.map((entry: any) => ({
+              id: String(entry?.id || randomId()),
+              componentId: String(entry?.componentId || entry?.id || ''),
+              props: entry?.props && typeof entry.props === 'object' ? entry.props : {}
+            })).filter((entry: PageElement) => Boolean(entry.componentId));
+          });
+        }
+        setElementsMap(nextMap);
+      })
+      .catch(() => {
+        setElementsMap(createEmptyElementsMap());
       });
   }, [selectedStoreId]);
 
@@ -148,7 +188,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
       return;
     }
     const storeId = selectedStoreId;
-    const pageState = elementsMap[selectedPage];
     try {
       await fetch(apiUrl('v1/theme/settings'), {
         method: 'PUT',
@@ -158,9 +197,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           'Context-Store-Id': storeId
         },
         body: JSON.stringify({
-          page_compositions: {
-            [selectedPage]: pageState
-          }
+          page_compositions: elementsMap
         })
       });
       alert('تم حفظ ترتيب وخصائص المكونات بنجاح!');

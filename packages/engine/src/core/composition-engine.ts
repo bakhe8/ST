@@ -24,6 +24,16 @@ export class CompositionEngine {
         private localizationService: LocalizationService
     ) { }
 
+    private parseJsonObject(value: any): Record<string, any> {
+        if (!value) return {};
+        try {
+            const parsed = JSON.parse(value);
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+
     /**
      * Merges Theme Files + Store State to produce the final Runtime Context
      */
@@ -55,6 +65,12 @@ export class CompositionEngine {
 
         // 4. Construct Final Salla-Standard Context
         const activePageId = pageId || store.activePage || 'home';
+        const storeSettings = this.parseJsonObject(store.settingsJson);
+        const themeSettings = this.parseJsonObject((store as any).themeSettingsJson);
+        const effectiveSettings = this.mergeSettings(schema.settings, {
+            ...storeSettings,
+            ...themeSettings
+        });
 
         const context: RuntimeContext = {
             storeId: storeId,
@@ -90,7 +106,7 @@ export class CompositionEngine {
                 shipping: storeData.shipping,
                 currencies: storeData.currencies,
                 languages: storeData.languages,
-                settings: JSON.parse(store.settingsJson || '{}'),
+                settings: storeSettings,
                 themeId: store.themeId,
                 themeVersionId: store.themeVersionId
             },
@@ -98,7 +114,7 @@ export class CompositionEngine {
                 id: activePageId,
                 components: this.resolveComponents(schema, (store as any).componentStates || [])
             },
-            settings: this.mergeSettings(schema.settings, JSON.parse(store.settingsJson || '{}')),
+            settings: effectiveSettings,
             translations: LocalizationService.flatten(storeData.translations || {}),
 
             // Rich Data Injections
@@ -121,8 +137,9 @@ export class CompositionEngine {
         const merged = { ...userSettings };
         if (Array.isArray(schemaSettings)) {
             schemaSettings.forEach(s => {
-                if (s.name && merged[s.name] === undefined) {
-                    merged[s.name] = s.value;
+                const key = s?.id || s?.name;
+                if (key && merged[key] === undefined) {
+                    merged[key] = s?.value;
                 }
             });
         }

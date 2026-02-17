@@ -13,6 +13,7 @@ const StoreLayout = () => {
         { id: 'categories', label: 'الأقسام', icon: Folder, path: `/store/${storeId}/categories` },
         { id: 'static-pages', label: 'الصفحات الثابتة', icon: Book, path: `/store/${storeId}/static-pages` },
         { id: 'theme', label: 'تخصيص الثيم', icon: Palette, path: `/store/${storeId}/theme` },
+        { id: 'theme-components', label: 'مكونات الصفحات', icon: Book, path: `/store/${storeId}/theme-components` },
         { id: 'settings', label: 'إعدادات المتجر', icon: Settings, path: `/store/${storeId}/settings` },
     ];
 

@@ -11,6 +11,7 @@ import StorePreview from './pages/StorePreview';
 import EditProduct from './pages/EditProduct';
 import StoreCategories from './pages/StoreCategories';
 import StoreStaticPages from './pages/StoreStaticPages';
+import StoreThemeComponents from './pages/StoreThemeComponents';
 
 const App = () => {
     return (
@@ -36,6 +37,7 @@ const App = () => {
                     <Route path="static-pages" element={<StoreStaticPages />} />
                     <Route path="settings" element={<StoreSettingsPanel />} />
                     <Route path="theme" element={<ThemeSettingsPanel />} />
+                    <Route path="theme-components" element={<StoreThemeComponents />} />
                     <Route path="preview" element={<StorePreview />} />
                 </Route>
 

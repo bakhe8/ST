@@ -53,7 +53,7 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
-`Slice-01: Product + Category Parity`
+`Slice-02: Theme Visual Parity (Settings + Page Components)`
 
 ### Slice-01 Scope
 - Product shape unification:
@@ -83,3 +83,12 @@ Each slice is closed only when all are done:
 3. Category tree renders correctly from root and nested nodes.
 4. Preview remains functional after product/category updates.
 5. Integration tests remain green.
+
+## Slice-02 Scope
+- Theme settings persistence must merge updates instead of replacing stored values.
+- Page components editor must load/save real `page_compositions` for the selected store.
+- Preview must consume `themeSettingsJson` and page composition overrides for home components.
+- Store UI should expose page components editing flow as a first-class screen.
+
+### Slice-02 Status
+- In progress: implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.

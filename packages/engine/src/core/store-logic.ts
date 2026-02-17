@@ -53,11 +53,36 @@ export class StoreLogic {
     }
 
     public async updateThemeSettings(storeId: string, values: Record<string, any>, tx?: any) {
-        const payload =
+        const incoming =
             values && typeof values === 'object' && !Array.isArray(values) ? values : {};
 
+        const store: any = await this.storeRepo.getById(storeId, tx);
+        const parseObject = (value: any): Record<string, any> => {
+            if (!value) return {};
+            try {
+                const parsed = JSON.parse(value);
+                return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            } catch {
+                return {};
+            }
+        };
+
+        const existing = parseObject(store?.themeSettingsJson);
+        const merged: Record<string, any> = {
+            ...existing,
+            ...incoming
+        };
+
+        // Preserve non-target page compositions while allowing partial updates.
+        if (existing.page_compositions || incoming.page_compositions) {
+            merged.page_compositions = {
+                ...(existing.page_compositions && typeof existing.page_compositions === 'object' ? existing.page_compositions : {}),
+                ...(incoming.page_compositions && typeof incoming.page_compositions === 'object' ? incoming.page_compositions : {})
+            };
+        }
+
         return this.storeRepo.update(storeId, {
-            themeSettingsJson: JSON.stringify(payload)
+            themeSettingsJson: JSON.stringify(merged)
         }, tx);
     }
 

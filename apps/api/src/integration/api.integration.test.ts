@@ -174,6 +174,38 @@ describe('VTDR API integration (Store-First)', () => {
         const saveThemeSettingsJson: any = await saveThemeSettingsRes.json();
         expect(saveThemeSettingsJson.success).toBe(true);
 
+        const componentsRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
+            headers: contextHeaders
+        });
+        expect(componentsRes.status).toBe(200);
+        const componentsJson: any = await componentsRes.json();
+        const homeComponent = (componentsJson.data.components || []).find((c: any) =>
+            String(c.path || '').startsWith('home.')
+        );
+        expect(homeComponent).toBeTruthy();
+
+        const savePageCompositionRes = await fetch(`${baseUrl}/api/v1/theme/settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                ...contextHeaders
+            },
+            body: JSON.stringify({
+                page_compositions: {
+                    home: [
+                        {
+                            id: 'home-1',
+                            componentId: String(homeComponent.key),
+                            props: { title: 'VTDR Visual Marker' }
+                        }
+                    ]
+                }
+            })
+        });
+        expect(savePageCompositionRes.status).toBe(200);
+        const savePageCompositionJson: any = await savePageCompositionRes.json();
+        expect(savePageCompositionJson.success).toBe(true);
+
         const getThemeSettingsRes = await fetch(`${baseUrl}/api/v1/theme/settings`, {
             headers: contextHeaders
         });
@@ -182,6 +214,8 @@ describe('VTDR API integration (Store-First)', () => {
         expect(getThemeSettingsJson.success).toBe(true);
         expect(getThemeSettingsJson.data.values.header_is_sticky).toBe(false);
         expect(getThemeSettingsJson.data.values.sticky_add_to_cart).toBe(true);
+        expect(Array.isArray(getThemeSettingsJson.data.values.page_compositions.home)).toBe(true);
+        expect(getThemeSettingsJson.data.values.page_compositions.home[0].componentId).toBe(String(homeComponent.key));
     }, 120000);
 
     it('returns unified error when store context is missing', async () => {

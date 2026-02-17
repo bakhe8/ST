@@ -285,41 +285,74 @@ export class RendererService {
                     const twilightContent = await this.fs.readFile(twilightPath, 'utf8');
                     const twilight = JSON.parse(twilightContent);
                     if (twilight.components) {
-                        (context as any)['home'] = twilight.components
-                            .filter((c: any) => c.path && c.path.startsWith('home.'))
-                            .map((c: any) => {
-                                const data: any = {};
-                                c.fields?.forEach((f: any) => {
-                                    if (f.id) {
-                                        let val = f.value;
-                                        if (f.type === 'collection' && Array.isArray(val)) {
-                                            val = val.map((item: any) => {
-                                                const newItem: any = {};
-                                                for (const key in item) {
-                                                    const cleanKey = key.includes('.') ? key.split('.').pop() : key;
-                                                    newItem[cleanKey!] = item[key];
-                                                }
-                                                return newItem;
-                                            });
+                        const homeComponents = twilight.components
+                            .filter((c: any) => c.path && c.path.startsWith('home.'));
+
+                        const mapHomeComponent = (
+                            component: any,
+                            position: number,
+                            overrideProps?: Record<string, any>
+                        ) => {
+                            const data: any = {};
+                            component.fields?.forEach((f: any) => {
+                                if (!f.id) return;
+                                let val = f.value;
+                                if (f.type === 'collection' && Array.isArray(val)) {
+                                    val = val.map((item: any) => {
+                                        const newItem: any = {};
+                                        for (const key in item) {
+                                            const cleanKey = key.includes('.') ? key.split('.').pop() : key;
+                                            newItem[cleanKey!] = item[key];
                                         }
-                                        data[f.id] = val;
-                                    }
-                                });
-                                const products = (c.path.includes('product') || c.path.includes('slider') || c.path.includes('banner'))
-                                    ? (context as any).products
-                                    : [];
-                                return {
-                                    path: c.path,
-                                    name: c.path,
-                                    data: {
-                                        ...data,
-                                        ...c,
-                                        products: products,
-                                        product_ids_mock: products.map((p: any) => p.id),
-                                        product_ids_mock_str: products.map((p: any) => p.id).join(',')
-                                    }
-                                };
+                                        return newItem;
+                                    });
+                                }
+                                data[f.id] = val;
                             });
+
+                            const products = (component.path.includes('product') || component.path.includes('slider') || component.path.includes('banner'))
+                                ? (context as any).products
+                                : [];
+
+                            return {
+                                path: component.path,
+                                name: component.path,
+                                data: {
+                                    ...component,
+                                    ...data,
+                                    ...(overrideProps && typeof overrideProps === 'object' ? overrideProps : {}),
+                                    position,
+                                    products: products,
+                                    product_ids_mock: products.map((p: any) => p.id),
+                                    product_ids_mock_str: products.map((p: any) => p.id).join(',')
+                                }
+                            };
+                        };
+
+                        const savedCompositions = (context as any)?.settings?.page_compositions?.home;
+                        if (Array.isArray(savedCompositions)) {
+                            const byKey = new Map<string, any>();
+                            const byPath = new Map<string, any>();
+                            homeComponents.forEach((component: any) => {
+                                byKey.set(String(component.key), component);
+                                byPath.set(String(component.path), component);
+                            });
+
+                            (context as any)['home'] = savedCompositions
+                                .map((entry: any, index: number) => {
+                                    const componentId = String(entry?.componentId || entry?.id || '');
+                                    if (!componentId) return null;
+                                    const component = byKey.get(componentId) || byPath.get(componentId);
+                                    if (!component) return null;
+                                    const props = entry?.props && typeof entry.props === 'object' ? entry.props : {};
+                                    return mapHomeComponent(component, index, props);
+                                })
+                                .filter(Boolean);
+                        } else {
+                            (context as any)['home'] = homeComponents.map((component: any, index: number) =>
+                                mapHomeComponent(component, index)
+                            );
+                        }
                     }
                     console.log(`[Renderer] Injected ${(context as any)['home'].length} home components.`);
                 } catch (err) {
