@@ -347,6 +347,19 @@ export class RendererService {
                             );
                         };
 
+                        const resolveVariableListValue = (rawValue: any): string => {
+                            if (typeof rawValue === 'string') return rawValue;
+                            if (Array.isArray(rawValue)) {
+                                const first = rawValue.find((entry) => entry != null);
+                                return resolveVariableListValue(first);
+                            }
+                            if (rawValue && typeof rawValue === 'object') {
+                                const candidate = rawValue.url ?? rawValue.value ?? rawValue.path ?? rawValue.link ?? '';
+                                return typeof candidate === 'string' ? candidate : String(candidate || '');
+                            }
+                            return '';
+                        };
+
                         const resolveItemsBySource = (
                             sourceKey: string,
                             rawValue: any,
@@ -421,6 +434,11 @@ export class RendererService {
 
                                 if (f.type === 'collection') {
                                     mergedData[f.id] = flattenCollectionItems(mergedData[f.id]);
+                                    return;
+                                }
+
+                                if (String(f.format || '') === 'variable-list') {
+                                    mergedData[f.id] = resolveVariableListValue(mergedData[f.id]);
                                     return;
                                 }
 

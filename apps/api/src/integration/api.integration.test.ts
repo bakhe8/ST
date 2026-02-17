@@ -153,6 +153,7 @@ describe('VTDR API integration (Store-First)', () => {
         expect(categoriesField.options.length).toBeGreaterThan(0);
         expect(Array.isArray(productsField?.options)).toBe(true);
         expect(productsField.options.length).toBeGreaterThan(0);
+        expect(homeMainLinks).toBeTruthy();
 
         const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`, {
             headers: contextHeaders
@@ -197,6 +198,26 @@ describe('VTDR API integration (Store-First)', () => {
             c.fields.some((f: any) => f.id === 'title')
         );
         expect(homeComponent).toBeTruthy();
+        const mainLinksComponentId = String(homeMainLinks?.key || homeMainLinks?.path || '');
+        expect(mainLinksComponentId).toBeTruthy();
+
+        const visualCategoryId = `vtdr-visual-cat-${Date.now()}`;
+        const visualCategoryName = `VTDR Visual Category ${Date.now()}`;
+        const createVisualCategoryRes = await fetch(`${baseUrl}/api/v1/categories`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...contextHeaders
+            },
+            body: JSON.stringify({
+                id: visualCategoryId,
+                name: visualCategoryName,
+                parentId: '',
+                url: '/vtdr-visual-category',
+                order: 999
+            })
+        });
+        expect(createVisualCategoryRes.status).toBe(201);
 
         const savePageCompositionRes = await fetch(`${baseUrl}/api/v1/theme/settings`, {
             method: 'PUT',
@@ -207,6 +228,16 @@ describe('VTDR API integration (Store-First)', () => {
             body: JSON.stringify({
                 page_compositions: {
                     home: [
+                        {
+                            id: 'home-main-links',
+                            componentId: mainLinksComponentId,
+                            props: {
+                                title: 'VTDR Visual Main Links',
+                                show_cats: true,
+                                show_controls: true,
+                                categories: [visualCategoryId]
+                            }
+                        },
                         {
                             id: 'home-1',
                             componentId: String(homeComponent.key),
@@ -228,8 +259,10 @@ describe('VTDR API integration (Store-First)', () => {
         expect(getThemeSettingsJson.success).toBe(true);
         expect(getThemeSettingsJson.data.values.header_is_sticky).toBe(false);
         expect(getThemeSettingsJson.data.values.sticky_add_to_cart).toBe(true);
-        expect(Array.isArray(getThemeSettingsJson.data.values.page_compositions.home)).toBe(true);
-        expect(getThemeSettingsJson.data.values.page_compositions.home[0].componentId).toBe(String(homeComponent.key));
+        const savedHomeCompositions = getThemeSettingsJson.data.values.page_compositions.home;
+        expect(Array.isArray(savedHomeCompositions)).toBe(true);
+        expect(savedHomeCompositions.some((entry: any) => entry.componentId === String(homeComponent.key))).toBe(true);
+        expect(savedHomeCompositions.some((entry: any) => entry.componentId === mainLinksComponentId)).toBe(true);
 
         const previewAfterCompositionRes = await fetch(
             `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}?page=index`
@@ -237,6 +270,8 @@ describe('VTDR API integration (Store-First)', () => {
         expect(previewAfterCompositionRes.status).toBe(200);
         const previewAfterCompositionHtml = await previewAfterCompositionRes.text();
         expect(previewAfterCompositionHtml).toContain('VTDR Visual Marker');
+        expect(previewAfterCompositionHtml).toContain('VTDR Visual Main Links');
+        expect(previewAfterCompositionHtml).toContain(visualCategoryName);
     }, 120000);
 
     it('returns unified error when store context is missing', async () => {

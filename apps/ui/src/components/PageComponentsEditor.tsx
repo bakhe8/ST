@@ -59,6 +59,19 @@ function normalizeItemsFieldValue(value: any): string[] {
   );
 }
 
+function normalizeVariableListValue(value: any): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    const first = value.find((entry) => entry != null);
+    return normalizeVariableListValue(first);
+  }
+  if (value && typeof value === 'object') {
+    const candidate = (value as any).url ?? (value as any).value ?? (value as any).path ?? '';
+    return typeof candidate === 'string' ? candidate : String(candidate || '');
+  }
+  return '';
+}
+
 function getFieldDefaultValue(field: any) {
   if (field.type === 'boolean') return Boolean(field.value);
   if (field.type === 'collection' || field.format === 'collection') {
@@ -126,6 +139,8 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const [elementsMap, setElementsMap] = useState<PageElementsMap>(createEmptyElementsMap());
   const [showAdd, setShowAdd] = useState(false);
   const [editingElement, setEditingElement] = useState<PageElement | null>(null);
+  const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
+  const [jsonDraftErrors, setJsonDraftErrors] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [availableComponents, setAvailableComponents] = useState<PageComponent[]>([]);
 
@@ -195,6 +210,32 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
         setElementsMap(createEmptyElementsMap());
       });
   }, [selectedStoreId]);
+
+  useEffect(() => {
+    if (!editingElement) {
+      setJsonDrafts({});
+      setJsonDraftErrors({});
+      return;
+    }
+
+    const component = availableComponents.find(c => c.id === editingElement.componentId);
+    if (!component) {
+      setJsonDrafts({});
+      setJsonDraftErrors({});
+      return;
+    }
+
+    const nextDrafts: Record<string, string> = {};
+    (component.fields ?? []).forEach((field: any) => {
+      if (field.type === 'collection' || field.format === 'collection') {
+        const value = editingElement.props[field.id];
+        const normalizedValue = Array.isArray(value) ? value : [];
+        nextDrafts[field.id] = JSON.stringify(normalizedValue, null, 2);
+      }
+    });
+    setJsonDrafts(nextDrafts);
+    setJsonDraftErrors({});
+  }, [editingElement, availableComponents]);
 
   // Filter components for the selected page only
   const selectedPageObj = PAGES.find(p => p.id === selectedPage);
@@ -382,6 +423,62 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                   </div>
                 );
               }
+
+              if (field.type === 'collection' || field.format === 'collection') {
+                const draft = jsonDrafts[field.id] ?? JSON.stringify(
+                  Array.isArray(editingElement.props[field.id]) ? editingElement.props[field.id] : [],
+                  null,
+                  2
+                );
+                const error = jsonDraftErrors[field.id];
+                return (
+                  <div key={field.id} style={{ marginBottom: 12 }}>
+                    <label>{field.label}</label>
+                    <textarea
+                      value={draft}
+                      onChange={e => {
+                        const nextText = e.target.value;
+                        setJsonDrafts(prev => ({ ...prev, [field.id]: nextText }));
+                        try {
+                          const parsed = JSON.parse(nextText);
+                          const normalized = Array.isArray(parsed) ? parsed : [];
+                          setJsonDraftErrors(prev => {
+                            const next = { ...prev };
+                            delete next[field.id];
+                            return next;
+                          });
+                          setEditingElement({
+                            ...editingElement,
+                            props: { ...editingElement.props, [field.id]: normalized }
+                          });
+                        } catch {
+                          setJsonDraftErrors(prev => ({ ...prev, [field.id]: 'صيغة JSON غير صالحة' }));
+                        }
+                      }}
+                      style={{ width: '100%', minHeight: 140, padding: 8, borderRadius: 6, border: '1px solid #eee', fontFamily: 'monospace', direction: 'ltr' }}
+                    />
+                    {error && <div style={{ marginTop: 4, color: '#ef4444', fontSize: 12 }}>{error}</div>}
+                  </div>
+                );
+              }
+
+              if (field.format === 'variable-list') {
+                return (
+                  <div key={field.id} style={{ marginBottom: 12 }}>
+                    <label>{field.label}</label>
+                    <input
+                      type="text"
+                      value={normalizeVariableListValue(editingElement.props[field.id])}
+                      onChange={e => setEditingElement({
+                        ...editingElement,
+                        props: { ...editingElement.props, [field.id]: e.target.value }
+                      })}
+                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                    />
+                  </div>
+                );
+              }
+
               if (field.type === 'boolean') {
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
@@ -409,7 +506,20 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               );
             });
           })()}
-          <button onClick={() => editingElement && handleEditProps(editingElement, editingElement.props)} style={{ marginTop: 16, background: '#2196f3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 24px', fontWeight: 600 }}>حفظ</button>
+          <button
+            onClick={() => {
+              if (Object.keys(jsonDraftErrors).length > 0) {
+                alert('تحقق من حقول JSON قبل الحفظ');
+                return;
+              }
+              if (editingElement) {
+                handleEditProps(editingElement, editingElement.props);
+              }
+            }}
+            style={{ marginTop: 16, background: '#2196f3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 24px', fontWeight: 600 }}
+          >
+            حفظ
+          </button>
           <button onClick={() => setEditingElement(null)} style={{ marginTop: 16, marginRight: 8 }}>إلغاء</button>
         </div>
       )}
