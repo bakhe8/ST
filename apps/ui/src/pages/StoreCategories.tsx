@@ -26,9 +26,14 @@ const StoreCategories: React.FC = () => {
     })
       .then(res => res.json())
       .then(data => {
-        // تأكد أن جميع الأقسام parentId فيها string (أو '')
+        // دعم الصيغتين parentId / parent_id
         const cats = Array.isArray(data?.data) ? data.data : [];
-        setCategories(cats.map((c: Category) => ({ ...c, parentId: c.parentId ? String(c.parentId) : '' })));
+        setCategories(
+          cats.map((c: any) => ({
+            ...c,
+            parentId: c?.parentId ? String(c.parentId) : (c?.parent_id ? String(c.parent_id) : '')
+          }))
+        );
       })
       .finally(() => setLoading(false));
   };
@@ -161,8 +166,8 @@ const StoreCategories: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {/* ابدأ العرض من الأقسام التي parentId لها 'root' */}
-            {renderCategoryTree(categories, 'root', 0)}
+            {/* ابدأ العرض من الجذر (بدون parentId) */}
+            {renderCategoryTree(categories, '', 0)}
           </tbody>
         </table>
       )}

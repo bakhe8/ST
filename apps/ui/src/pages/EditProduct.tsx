@@ -7,6 +7,26 @@ interface ProductProperty {
   value: string;
 }
 
+interface ProductOptionValue {
+  id?: string;
+  name: string;
+  price?: number;
+}
+
+interface ProductOption {
+  id?: string;
+  name: string;
+  type?: string;
+  values?: ProductOptionValue[];
+}
+
+interface ProductVariant {
+  id?: string;
+  sku?: string;
+  quantity?: number;
+  price?: { amount?: number; currency?: string };
+}
+
 interface Product {
   id: string;
   name: string;
@@ -19,8 +39,11 @@ interface Product {
   image?: { url: string };
   thumbnail?: string;
   description?: string;
-  categories?: string[]; // array of category ids
+  categories?: ({ id?: string; name?: string } | string)[]; // supports both ids and objects
+  category_ids?: string[];
   properties?: ProductProperty[];
+  options?: ProductOption[];
+  variants?: ProductVariant[];
   stock?: number;
 }
 
@@ -37,6 +60,19 @@ const EditProduct = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const extractCategoryIds = (candidate: any): string[] => {
+    const fromCategoryIds = Array.isArray(candidate?.category_ids) ? candidate.category_ids.map(String) : [];
+    if (fromCategoryIds.length > 0) return fromCategoryIds;
+    if (!Array.isArray(candidate?.categories)) return [];
+    return candidate.categories
+      .map((item: any) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && item.id != null) return String(item.id);
+        return '';
+      })
+      .filter(Boolean);
+  };
+
   useEffect(() => {
     if (!productId) return;
     // جلب بيانات المنتج
@@ -45,7 +81,17 @@ const EditProduct = () => {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.success) setProduct(data.data);
+        if (data.success) {
+          const raw = data.data || {};
+          const categoryIds = extractCategoryIds(raw);
+          setProduct({
+            ...raw,
+            categories: categoryIds,
+            category_ids: categoryIds,
+            options: Array.isArray(raw.options) ? raw.options : [],
+            variants: Array.isArray(raw.variants) ? raw.variants : []
+          });
+        }
         else setError('Product not found');
         setLoading(false);
       })
@@ -66,7 +112,7 @@ const EditProduct = () => {
   const handleCategoriesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (!product) return;
     const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
-    setProduct({ ...product, categories: selected });
+    setProduct({ ...product, categories: selected, category_ids: selected });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -126,13 +172,21 @@ const EditProduct = () => {
 
   const handleSave = () => {
     if (!product) return;
+    const categoryIds = extractCategoryIds(product);
+    const payload = {
+      ...product,
+      categories: categoryIds,
+      category_ids: categoryIds,
+      options: Array.isArray(product.options) ? product.options : [],
+      variants: Array.isArray(product.variants) ? product.variants : []
+    };
     fetch(apiUrl(`v1/products/${productId}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Context-Store-Id': storeId || 'default'
       },
-      body: JSON.stringify(product)
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
@@ -157,7 +211,7 @@ const EditProduct = () => {
             <select
               multiple
               name="categories"
-              value={product.categories || []}
+              value={extractCategoryIds(product)}
               onChange={handleCategoriesChange}
               style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', minHeight: 80 }}
             >
@@ -217,6 +271,86 @@ const EditProduct = () => {
             ))}
           </div>
           <button onClick={handleAddProperty} style={{ background: '#3b82f6', color: 'white', padding: '6px 16px', border: 'none', borderRadius: 8, fontWeight: 600, marginBottom: 16 }}>إضافة خاصية</button>
+
+          <div style={{ marginBottom: 12, fontWeight: 600 }}>خيارات المنتج</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+            {(product.options || []).map((option, idx) => (
+              <div key={option.id || idx} style={{ background: '#0f172a', borderRadius: 6, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{option.name} ({option.type || 'select'}) - {(option.values || []).length} values</span>
+                <button
+                  onClick={() => setProduct({
+                    ...product,
+                    options: (product.options || []).filter((_, i) => i !== idx)
+                  })}
+                  style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  حذف
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const name = prompt('اسم الخيار (مثال: المقاس):');
+              if (!name) return;
+              const type = prompt('نوع الخيار (select/radio/image/text/date):', 'select') || 'select';
+              const valuesRaw = prompt('القيم مفصولة بفاصلة (مثال: S,M,L):', '') || '';
+              const values = valuesRaw
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean)
+                .map((value) => ({ name: value, price: 0 }));
+              setProduct({
+                ...product,
+                options: [...(product.options || []), { name, type, values }]
+              });
+            }}
+            style={{ background: '#3b82f6', color: 'white', padding: '6px 16px', border: 'none', borderRadius: 8, fontWeight: 600, marginBottom: 16 }}
+          >
+            إضافة خيار
+          </button>
+
+          <div style={{ marginBottom: 12, fontWeight: 600 }}>متغيرات المنتج</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+            {(product.variants || []).map((variant, idx) => (
+              <div key={variant.id || idx} style={{ background: '#0f172a', borderRadius: 6, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{variant.sku || 'no-sku'} | qty: {variant.quantity || 0} | price: {variant.price?.amount || 0}</span>
+                <button
+                  onClick={() => setProduct({
+                    ...product,
+                    variants: (product.variants || []).filter((_, i) => i !== idx)
+                  })}
+                  style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  حذف
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const sku = prompt('SKU المتغير:', '') || '';
+              const price = Number(prompt('السعر:', '0') || '0');
+              const quantity = Number(prompt('الكمية:', '0') || '0');
+              setProduct({
+                ...product,
+                variants: [
+                  ...(product.variants || []),
+                  {
+                    sku,
+                    quantity,
+                    price: {
+                      amount: price,
+                      currency: product.price?.currency || 'SAR'
+                    }
+                  }
+                ]
+              });
+            }}
+            style={{ background: '#3b82f6', color: 'white', padding: '6px 16px', border: 'none', borderRadius: 8, fontWeight: 600, marginBottom: 16 }}
+          >
+            إضافة متغير
+          </button>
 
           <div style={{ marginBottom: 12, fontWeight: 600 }}>المخزون</div>
           <input type="number" min={0} value={product.stock || 0} onChange={handleStockChange} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', marginBottom: 8 }} />

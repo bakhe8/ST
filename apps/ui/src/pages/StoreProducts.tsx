@@ -14,7 +14,10 @@ interface Product {
     main_image?: string;
     image?: { url: string };
     thumbnail?: string;
-    categories?: string[];
+    categories?: ({ id?: string; name?: string } | string)[];
+    category_ids?: string[];
+    options?: { id?: string; name?: string; type?: string; values?: any[] }[];
+    variants?: { id?: string; sku?: string; quantity?: number }[];
     stock?: number;
     properties?: { key: string; value: string }[];
 }
@@ -69,6 +72,19 @@ const StoreProducts = () => {
 
     // صورة افتراضية في حال فشل تحميل الصورة المحلية
     const placeholderImg = '/images/products/placeholder.png';
+    const getProductCategoryIds = (product: Product) => {
+        if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
+            return product.category_ids.map(String);
+        }
+        if (!Array.isArray(product.categories)) return [];
+        return product.categories
+            .map((category: any) => {
+                if (typeof category === 'string') return category;
+                if (category && typeof category === 'object' && category.id != null) return String(category.id);
+                return '';
+            })
+            .filter(Boolean);
+    };
     const isExternalPlaceholder = (url?: string) => !!url && /via\.placeholder\.com/i.test(url);
     const resolveImageSrc = (url?: string) => {
         if (!url || isExternalPlaceholder(url)) return placeholderImg;
@@ -124,6 +140,7 @@ const StoreProducts = () => {
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Price</th>
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Stock</th>
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Properties</th>
+                            <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Options / Variants</th>
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Status</th>
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}>Categories</th>
                             <th style={{ padding: 16, borderBottom: '1px solid #334155' }}></th>
@@ -135,7 +152,7 @@ const StoreProducts = () => {
                         ) : products.length === 0 ? (
                             <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>No products found.</td></tr>
                         ) : products
-                            .filter(product => !selectedCategory || (product.categories && product.categories.includes(selectedCategory)))
+                            .filter(product => !selectedCategory || getProductCategoryIds(product).includes(selectedCategory))
                             .map(product => (
                                 <tr key={product.id} style={{ borderBottom: '1px solid #334155' }}>
                                     <td style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -174,6 +191,14 @@ const StoreProducts = () => {
                                             : <span style={{ color: '#94a3b8', fontSize: 12 }}>-</span>}
                                     </td>
                                     <td style={{ padding: 16 }}>
+                                        <span style={{ display: 'inline-block', background: '#334155', color: '#fff', borderRadius: 8, padding: '2px 8px', fontSize: 12, marginRight: 6 }}>
+                                            options: {Array.isArray(product.options) ? product.options.length : 0}
+                                        </span>
+                                        <span style={{ display: 'inline-block', background: '#334155', color: '#fff', borderRadius: 8, padding: '2px 8px', fontSize: 12 }}>
+                                            variants: {Array.isArray(product.variants) ? product.variants.length : 0}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: 16 }}>
                                         <span style={{
                                             padding: '4px 10px',
                                             borderRadius: 12,
@@ -185,8 +210,8 @@ const StoreProducts = () => {
                                         </span>
                                     </td>
                                     <td style={{ padding: 16 }}>
-                                        {(product.categories && product.categories.length > 0)
-                                            ? product.categories.map(catId => {
+                                        {(getProductCategoryIds(product).length > 0)
+                                            ? getProductCategoryIds(product).map(catId => {
                                                 const cat = categories.find(c => c.id === catId);
                                                 return cat ? (
                                                     <span key={cat.id} style={{

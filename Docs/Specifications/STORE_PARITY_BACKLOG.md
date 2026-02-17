@@ -1,0 +1,80 @@
+# VTDR Store Parity Backlog (Product-First)
+
+Last updated: 2026-02-18  
+Owner: VTDR Core Team  
+Scope: Close the gap between current virtual stores and practical Salla-like store behavior for theme development.
+
+## Goal
+Raise VTDR store realism so theme design/customization decisions are based on realistic store capabilities, data, and state transitions.
+
+## Prioritization Model
+- `P0`: Mandatory for MVP parity.
+- `P1`: High impact after P0 closure.
+- `P2`: Nice-to-have / optimization after functional parity.
+
+## P0 (Must Have)
+1. Product domain parity:
+   - Unified product shape across API/UI/Preview.
+   - Support `images`, `main_image`, `options`, `variants`, `category_ids`.
+   - Category references must be consistent (ids + resolved objects).
+2. Category domain parity:
+   - Support hierarchical categories with stable parent mapping (`parent_id` / `parentId`).
+   - Category CRUD reflected immediately in products and preview.
+3. Theme settings + component parity:
+   - Store-scoped settings and component composition must round-trip.
+   - Preview must consume effective store state.
+4. Core store simulation parity:
+   - Cart behavior stable (`add/update/remove/totals`).
+   - Store data seeding must avoid broken external assets.
+5. End-to-end slice tests:
+   - For each closed P0 slice: `Schema -> API -> UI -> Preview`.
+
+## P1 (After P0)
+1. Checkout simulation depth:
+   - shipping zones, taxes, payment methods, coupon effects.
+2. Content domains:
+   - blog/posts, reviews/questions, offers, announcements.
+3. Inventory + merchandising behavior:
+   - stock rules, out-of-stock states, product sorting/filters.
+4. Sync maturity:
+   - stronger conflict handling and partial sync reporting.
+
+## P2 (Later)
+1. Advanced observability dashboards.
+2. Full RBAC matrix.
+3. Performance profiling and large-store stress scenarios.
+
+## Execution Method (Vertical Slices)
+Each slice is closed only when all are done:
+1. Data model + normalization.
+2. API endpoints and contracts.
+3. UI authoring flow.
+4. Preview behavior.
+5. Integration tests.
+
+## Current Active Slice
+`Slice-01: Product + Category Parity`
+
+### Slice-01 Scope
+- Product shape unification:
+  - `category_ids` + resolved `categories`
+  - `main_image`/`thumbnail` derivation from `images`
+  - normalized `options`/`variants`
+- Category shape unification:
+  - bidirectional compatibility for `parent_id` and `parentId`
+  - root rendering and parent resolution in UI
+- UI updates:
+  - Product list filtering and display by normalized category ids.
+  - Product editor supports categories/options/variants editing flow.
+- Seed updates:
+  - remove dependency on external placeholder host.
+
+### Slice-01 Status
+- In progress: implemented in code and under validation in runtime usage.
+
+### Slice-01 Exit Criteria
+1. Product edit/save round-trip preserves categories/options/variants correctly.
+2. Product list filtering by category works for both seeded and synced data.
+3. Category tree renders correctly from root and nested nodes.
+4. Preview remains functional after product/category updates.
+5. Integration tests remain green.

@@ -8,6 +8,7 @@ Last updated: 2026-02-18
 - `Docs/Specifications/DATA_SCHEMA_SPEC.md`
 - `Docs/Specifications/Database Design Document.md`
 - `Docs/Specifications/Master Specification.md`
+- `Docs/Specifications/STORE_PARITY_BACKLOG.md`
 - `Docs/Specifications/SYSTEM_SPEC.md`
 - `Docs/Specifications/Unified-Answers-Execution-Blueprint.md`
 - `Docs/VTDR/API-ROUTES.snapshot.json`

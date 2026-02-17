@@ -11,6 +11,7 @@
 - `Docs/Specifications/Master Specification.md`
 - `Docs/Specifications/API_SPEC.md`
 - `Docs/Specifications/DATA_SCHEMA_SPEC.md`
+- `Docs/Specifications/STORE_PARITY_BACKLOG.md`
 - `Docs/VTDR/API-ROUTES.snapshot.json`
 - `Docs/VTDR/DATA-SCHEMA.snapshot.json`
 - Historical archive: `archive/docs-pruned-20260217-233737/Docs`
@@ -189,3 +190,8 @@ npm run dev
    - تحديث `Docs/README.md` وأرشفة الأصول غير النشطة في `archive/docs-assets-pruned-20260218-000241/`.
 
 - الإجراء التالي: بدء دورة تحسينات المنتج التالية على مستوى السلوك (تحسينات المنتج والقدرات) فوق خط أساس عقود ووثائق مستقر.
+
+## موجة التنفيذ التالية (Product-First / Store Parity)
+1. اعتماد `Docs/Specifications/STORE_PARITY_BACKLOG.md` كمرجع أولوية للميزات.
+2. تنفيذ Vertical Slices بدل تحسينات أفقية عامة.
+3. البدء بـ `Slice-01: Product + Category Parity` حتى الإغلاق الكامل قبل الانتقال لأي Slice آخر.

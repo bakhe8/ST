@@ -55,6 +55,178 @@ export class SimulatorService {
         };
     }
 
+    private normalizePriceValue(value: any, fallbackCurrency = 'SAR') {
+        if (value && typeof value === 'object') {
+            const amount = this.toNumber(value.amount, this.toNumber(value.value, 0));
+            const currency = String(value.currency || fallbackCurrency);
+            return { amount, currency };
+        }
+        if (typeof value === 'number' || typeof value === 'string') {
+            return { amount: this.toNumber(value, 0), currency: fallbackCurrency };
+        }
+        return { amount: 0, currency: fallbackCurrency };
+    }
+
+    private normalizeProductImages(data: any) {
+        const directImages = Array.isArray(data?.images) ? data.images : [];
+        const normalizedFromArray = directImages
+            .filter((img: any) => img && (typeof img === 'string' || img.url))
+            .map((img: any, index: number) => {
+                if (typeof img === 'string') {
+                    return {
+                        id: this.generateEntityId('img'),
+                        url: img,
+                        alt: `Image ${index + 1}`,
+                        is_default: index === 0
+                    };
+                }
+                return {
+                    id: String(img.id || this.generateEntityId('img')),
+                    url: String(img.url || ''),
+                    alt: String(img.alt || `Image ${index + 1}`),
+                    is_default: Boolean(img.is_default ?? index === 0)
+                };
+            })
+            .filter((img: any) => img.url);
+
+        if (normalizedFromArray.length > 0) {
+            const main = normalizedFromArray.find((img: any) => img.is_default) || normalizedFromArray[0];
+            return {
+                images: normalizedFromArray,
+                main_image: main?.url || normalizedFromArray[0]?.url,
+                thumbnail: normalizedFromArray[0]?.url
+            };
+        }
+
+        const candidate = data?.main_image || data?.image?.url || data?.thumbnail;
+        if (!candidate) {
+            return {
+                images: [],
+                main_image: undefined,
+                thumbnail: undefined
+            };
+        }
+
+        const single = {
+            id: this.generateEntityId('img'),
+            url: String(candidate),
+            alt: 'Main',
+            is_default: true
+        };
+        return {
+            images: [single],
+            main_image: single.url,
+            thumbnail: single.url
+        };
+    }
+
+    private normalizeProductOptions(data: any) {
+        const options = Array.isArray(data?.options) ? data.options : [];
+        return options.map((option: any) => ({
+            id: String(option?.id || this.generateEntityId('opt')),
+            name: String(option?.name || option?.title || 'Option'),
+            type: String(option?.type || 'select'),
+            values: Array.isArray(option?.values)
+                ? option.values.map((value: any) => ({
+                    id: String(value?.id || this.generateEntityId('opt_val')),
+                    name: String(value?.name || value?.label || 'Value'),
+                    price: this.toNumber(value?.price, 0),
+                    is_default: Boolean(value?.is_default),
+                    color: value?.color ? String(value.color) : undefined
+                }))
+                : []
+        }));
+    }
+
+    private normalizeProductVariants(data: any) {
+        const variants = Array.isArray(data?.variants) ? data.variants : [];
+        return variants.map((variant: any) => {
+            const price = this.normalizePriceValue(variant?.price ?? data?.price);
+            return {
+                id: String(variant?.id || this.generateEntityId('variant')),
+                sku: variant?.sku ? String(variant.sku) : undefined,
+                quantity: this.normalizeQuantity(variant?.quantity ?? variant?.stock ?? 0, 0),
+                is_available: variant?.is_available !== false,
+                price,
+                options: Array.isArray(variant?.options) ? variant.options : []
+            };
+        });
+    }
+
+    private async normalizeProductCategories(storeId: string, categoriesInput: any) {
+        const refs = Array.isArray(categoriesInput) ? categoriesInput : [];
+        const ids = new Set<string>();
+        const fallbackById = new Map<string, any>();
+
+        for (const ref of refs) {
+            if (typeof ref === 'string' || typeof ref === 'number') {
+                ids.add(String(ref));
+                continue;
+            }
+            if (ref && typeof ref === 'object' && ref.id != null) {
+                const id = String(ref.id);
+                ids.add(id);
+                fallbackById.set(id, { ...ref, id });
+            }
+        }
+
+        const allCategories = await this.storeLogic.getDataEntities(storeId, 'category');
+        const categoryById = new Map<string, any>();
+        (allCategories || []).forEach((category: any) => {
+            if (category?.id != null) {
+                categoryById.set(String(category.id), category);
+            }
+        });
+
+        const categoryIds = Array.from(ids);
+        const categories = categoryIds.map((id) => {
+            const fromStore = categoryById.get(id);
+            if (fromStore) return fromStore;
+            const fallback = fallbackById.get(id);
+            if (fallback) return fallback;
+            return { id, name: id };
+        });
+
+        return { category_ids: categoryIds, categories };
+    }
+
+    private async normalizeProductPayload(storeId: string, data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const images = this.normalizeProductImages(base);
+        const categoriesFromInput = base?.category_ids ?? base?.categories ?? [];
+        const categories = await this.normalizeProductCategories(storeId, categoriesFromInput);
+        const currency = String(base?.price?.currency || base?.sale_price?.currency || base?.regular_price?.currency || 'SAR');
+        const price = this.normalizePriceValue(base?.price, currency);
+        const regularPrice = this.normalizePriceValue(base?.regular_price || { amount: price.amount }, currency);
+        const salePrice = this.normalizePriceValue(base?.sale_price || { amount: price.amount }, currency);
+
+        return {
+            ...base,
+            ...images,
+            ...categories,
+            price,
+            regular_price: regularPrice,
+            sale_price: salePrice,
+            options: this.normalizeProductOptions(base),
+            variants: this.normalizeProductVariants(base)
+        };
+    }
+
+    private normalizeCategoryPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const rawParent = base?.parentId ?? base?.parent_id ?? '';
+        const parentValue = String(rawParent || '').trim();
+        const parent_id = parentValue && parentValue !== 'root' ? parentValue : null;
+
+        return {
+            ...base,
+            id: key,
+            parent_id,
+            parentId: parent_id || '',
+            order: Number.isFinite(Number(base?.order)) ? Number(base.order) : 0
+        };
+    }
+
     private normalizeQuantity(value: any, fallback = 1) {
         const parsed = Number(value);
         if (!Number.isFinite(parsed)) return fallback;
@@ -196,26 +368,32 @@ export class SimulatorService {
 
     public async getProducts(storeId: string) {
         const products = await this.storeLogic.getDataEntities(storeId, 'product');
-        return this.wrapResponse(this.mapToSchema(products, 'product'));
+        const normalized = await Promise.all(
+            (products || []).map((product: any) =>
+                this.normalizeProductPayload(storeId, product, String(product?.id || this.generateEntityId('product')))
+            )
+        );
+        return this.wrapResponse(this.mapToSchema(normalized, 'product'));
     }
 
     public async getProduct(storeId: string, productId: string) {
         const products = await this.storeLogic.getDataEntities(storeId, 'product');
         const product = products.find((p: any) => p.id == productId);
         if (!product) return null;
-        return this.wrapResponse(this.mapToSchema(product, 'product'));
+        const normalized = await this.normalizeProductPayload(storeId, product, String(product.id));
+        return this.wrapResponse(this.mapToSchema(normalized, 'product'));
     }
 
     public async createProduct(storeId: string, data: any) {
         const key = String(data?.id ?? this.generateEntityId('product'));
-        const payload = this.normalizeEntityPayload(data, key);
+        const payload = await this.normalizeProductPayload(storeId, data, key);
         await this.storeLogic.upsertDataEntity(storeId, 'product', key, payload);
         return this.wrapResponse(this.mapToSchema(payload, 'product'), 201);
     }
 
     public async updateProduct(storeId: string, productId: string, data: any) {
         const current = await this.storeLogic.getDataEntity(storeId, 'product', productId);
-        const payload = this.normalizeEntityPayload({ ...(current || {}), ...(data || {}) }, productId);
+        const payload = await this.normalizeProductPayload(storeId, { ...(current || {}), ...(data || {}) }, productId);
         await this.storeLogic.upsertDataEntity(storeId, 'product', productId, payload);
         return this.wrapResponse(this.mapToSchema(payload, 'product'));
     }
@@ -227,26 +405,30 @@ export class SimulatorService {
 
     public async getCategories(storeId: string) {
         const categories = await this.storeLogic.getDataEntities(storeId, 'category');
-        return this.wrapResponse(this.mapToSchema(categories, 'category'));
+        const normalized = (categories || []).map((category: any) =>
+            this.normalizeCategoryPayload(category, String(category?.id || this.generateEntityId('category')))
+        );
+        return this.wrapResponse(this.mapToSchema(normalized, 'category'));
     }
 
     public async getCategory(storeId: string, categoryId: string) {
         const categories = await this.storeLogic.getDataEntities(storeId, 'category');
         const category = categories.find((c: any) => c.id == categoryId);
         if (!category) return null;
-        return this.wrapResponse(this.mapToSchema(category, 'category'));
+        const normalized = this.normalizeCategoryPayload(category, String(category.id));
+        return this.wrapResponse(this.mapToSchema(normalized, 'category'));
     }
 
     public async createCategory(storeId: string, data: any) {
         const key = String(data?.id ?? this.generateEntityId('category'));
-        const payload = this.normalizeEntityPayload(data, key);
+        const payload = this.normalizeCategoryPayload(data, key);
         await this.storeLogic.upsertDataEntity(storeId, 'category', key, payload);
         return this.wrapResponse(this.mapToSchema(payload, 'category'), 201);
     }
 
     public async updateCategory(storeId: string, categoryId: string, data: any) {
         const current = await this.storeLogic.getDataEntity(storeId, 'category', categoryId);
-        const payload = this.normalizeEntityPayload({ ...(current || {}), ...(data || {}) }, categoryId);
+        const payload = this.normalizeCategoryPayload({ ...(current || {}), ...(data || {}) }, categoryId);
         await this.storeLogic.upsertDataEntity(storeId, 'category', categoryId, payload);
         return this.wrapResponse(this.mapToSchema(payload, 'category'));
     }
