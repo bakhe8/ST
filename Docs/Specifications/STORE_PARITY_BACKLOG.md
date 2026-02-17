@@ -101,3 +101,5 @@ Each slice is closed only when all are done:
 - `variable-list` now has a source-aware editor in UI (source + value) and a unified runtime resolver in preview, including collection subfields such as `links.url` and `banners.url`.
 - `variable-list` option pickers now support in-editor search/filter to handle large store datasets without degrading authoring speed.
 - `variable-list` selection now supports a dedicated modal picker (search + sort + URL preview) to improve usability for high-volume options.
+- `page_compositions` now supports per-component visual visibility rules (`visibility.enabled`, `visibility.viewport`) with runtime filtering in preview.
+- Preview flow now supports explicit device mode (`viewport=desktop|mobile`) and dashboard preview provides a direct desktop/mobile switch for visual validation.

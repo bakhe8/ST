@@ -632,6 +632,31 @@ export class RendererService {
                         };
 
                         const savedCompositions = (context as any)?.settings?.page_compositions?.home;
+                        const resolvePreviewViewport = (raw: any): 'desktop' | 'mobile' => {
+                            const normalized = String(raw || 'desktop').toLowerCase();
+                            return normalized === 'mobile' ? 'mobile' : 'desktop';
+                        };
+                        const previewViewport = resolvePreviewViewport(
+                            (context as any)?.__preview?.viewport ?? (context as any)?.settings?.__preview_viewport
+                        );
+                        const shouldRenderCompositionEntry = (entry: any): boolean => {
+                            if (!entry || typeof entry !== 'object') return false;
+
+                            const visibility =
+                                entry.visibility && typeof entry.visibility === 'object' ? entry.visibility : {};
+                            const enabled =
+                                typeof visibility.enabled === 'boolean'
+                                    ? visibility.enabled
+                                    : (typeof entry.enabled === 'boolean' ? entry.enabled : true);
+                            if (!enabled) return false;
+
+                            const viewportRule = String(visibility.viewport ?? entry.viewport ?? 'all').toLowerCase();
+                            if (!viewportRule || viewportRule === 'all') return true;
+                            if (viewportRule === 'mobile') return previewViewport === 'mobile';
+                            if (viewportRule === 'desktop') return previewViewport === 'desktop';
+                            return true;
+                        };
+
                         if (Array.isArray(savedCompositions)) {
                             const byKey = new Map<string, any>();
                             const byPath = new Map<string, any>();
@@ -641,6 +666,7 @@ export class RendererService {
                             });
 
                             (context as any)['home'] = savedCompositions
+                                .filter((entry: any) => shouldRenderCompositionEntry(entry))
                                 .map((entry: any, index: number) => {
                                     const componentId = String(entry?.componentId || entry?.id || '');
                                     if (!componentId) return null;
@@ -743,6 +769,10 @@ export class RendererService {
     }
 
     private prepareRenderContext(context: RuntimeContext, themeFolder: string) {
+        const previewViewport =
+            String((context as any)?.__preview?.viewport || context.settings?.__preview_viewport || 'desktop').toLowerCase() === 'mobile'
+                ? 'mobile'
+                : 'desktop';
         const store = {
             ...context.store,
             api: 'http://localhost:3001/api/v1',
@@ -760,6 +790,7 @@ export class RendererService {
             ...context.theme,
             is_rtl: true,
             mode: 'preview',
+            preview_viewport: previewViewport,
             translations_hash: Date.now(),
             color: {
                 primary: context.settings?.primary_color || '#004d41',
@@ -799,7 +830,8 @@ export class RendererService {
             products: context.products || [],
             categories: context.categories || [],
             brands: context.brands || [],
-            url: (pageId: string) => `/preview/${context.store.id}/${themeFolder}/${context.theme.version}?page=${pageId}`,
+            url: (pageId: string) =>
+                `/preview/${context.store.id}/${themeFolder}/${context.theme.version}?page=${pageId}&viewport=${previewViewport}`,
             trans: (key: string) => {
                 const store = this.storage.getStore();
                 const translations = (store?.translations || {}) as Record<string, string>;

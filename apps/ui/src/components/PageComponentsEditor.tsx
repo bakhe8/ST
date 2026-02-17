@@ -16,6 +16,14 @@ interface PageElement {
   id: string;
   componentId: string;
   props: any;
+  visibility?: PageElementVisibility;
+}
+
+type PageElementViewport = 'all' | 'desktop' | 'mobile';
+
+interface PageElementVisibility {
+  enabled: boolean;
+  viewport: PageElementViewport;
 }
 
 // Utility to parse fields from twilight.json component schema
@@ -356,6 +364,27 @@ function randomId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+const DEFAULT_PAGE_ELEMENT_VISIBILITY: PageElementVisibility = {
+  enabled: true,
+  viewport: 'all'
+};
+
+function normalizePageElementVisibility(raw: any): PageElementVisibility {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const viewportValue = String(source.viewport || source.device || 'all').toLowerCase();
+  const viewport: PageElementViewport =
+    viewportValue === 'desktop' || viewportValue === 'mobile' ? viewportValue : 'all';
+  const enabled =
+    typeof source.enabled === 'boolean'
+      ? source.enabled
+      : (source.hidden === true ? false : true);
+
+  return {
+    enabled,
+    viewport
+  };
+}
+
 const PAGES = [
   { id: 'home', name: 'الرئيسية (index.twig)', path: 'home' },
   { id: 'product-single', name: 'منتج مفرد (product/single.twig)', path: 'product.single' },
@@ -458,7 +487,13 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
             nextMap[pageId] = value.map((entry: any) => ({
               id: String(entry?.id || randomId()),
               componentId: String(entry?.componentId || entry?.id || ''),
-              props: entry?.props && typeof entry.props === 'object' ? entry.props : {}
+              props: entry?.props && typeof entry.props === 'object' ? entry.props : {},
+              visibility: normalizePageElementVisibility(
+                entry?.visibility ?? {
+                  enabled: entry?.enabled,
+                  viewport: entry?.viewport
+                }
+              )
             })).filter((entry: PageElement) => Boolean(entry.componentId));
           });
         }
@@ -513,12 +548,28 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   const setElements = (els: PageElement[]) => setElementsMap(map => ({ ...map, [selectedPage]: els }));
 
   const handleAddComponent = (comp: PageComponent) => {
-    setElements([...elements, { id: randomId(), componentId: comp.id, props: { ...comp.defaultProps } }]);
+    setElements([
+      ...elements,
+      {
+        id: randomId(),
+        componentId: comp.id,
+        props: { ...comp.defaultProps },
+        visibility: { ...DEFAULT_PAGE_ELEMENT_VISIBILITY }
+      }
+    ]);
     setShowAdd(false);
   };
 
-  const handleEditProps = (el: PageElement, newProps: any) => {
-    setElements(elements.map(e => e.id === el.id ? { ...e, props: newProps } : e));
+  const handleEditProps = (
+    el: PageElement,
+    newProps: any,
+    visibility: PageElementVisibility = normalizePageElementVisibility(el.visibility)
+  ) => {
+    setElements(elements.map(e => (
+      e.id === el.id
+        ? { ...e, props: newProps, visibility: normalizePageElementVisibility(visibility) }
+        : e
+    )));
     setEditingElement(null);
   };
 
@@ -540,6 +591,19 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
       return {
         ...current,
         props: { ...current.props, [fieldId]: value }
+      };
+    });
+  };
+
+  const setEditingVisibility = (patch: Partial<PageElementVisibility>) => {
+    setEditingElement((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        visibility: normalizePageElementVisibility({
+          ...normalizePageElementVisibility(current.visibility),
+          ...patch
+        })
       };
     });
   };
@@ -615,6 +679,15 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
       return;
     }
     const storeId = selectedStoreId;
+    const normalizedPageCompositions = Object.fromEntries(
+      Object.entries(elementsMap).map(([pageId, pageElements]) => [
+        pageId,
+        (pageElements || []).map((entry) => ({
+          ...entry,
+          visibility: normalizePageElementVisibility(entry.visibility)
+        }))
+      ])
+    );
     try {
       await fetch(apiUrl('v1/theme/settings'), {
         method: 'PUT',
@@ -624,7 +697,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           'Context-Store-Id': storeId
         },
         body: JSON.stringify({
-          page_compositions: elementsMap
+          page_compositions: normalizedPageCompositions
         })
       });
       alert('تم حفظ ترتيب وخصائص المكونات بنجاح!');
@@ -698,11 +771,31 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           {elements.map((el, idx) => {
             const comp = availableComponents.find(c => c.id === el.componentId);
             if (!comp) return null;
+            const visibility = normalizePageElementVisibility(el.visibility);
             return (
               <li key={el.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#f9f9f9', borderRadius: 8, padding: 12 }}>
                 <span style={{ fontSize: 24 }}>{comp.icon}</span>
-                <span style={{ flex: 1 }}>{comp.name}</span>
-                <button onClick={() => setEditingElement(el)} style={{ background: 'none', border: 'none', color: '#2196f3', cursor: 'pointer' }}>تعديل</button>
+                <div style={{ flex: 1 }}>
+                  <div>{comp.name}</div>
+                  <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {!visibility.enabled && (
+                      <span style={{ fontSize: 11, color: '#991b1b', background: '#fee2e2', padding: '2px 8px', borderRadius: 999 }}>
+                        مخفي
+                      </span>
+                    )}
+                    {visibility.viewport !== 'all' && (
+                      <span style={{ fontSize: 11, color: '#0f172a', background: '#e2e8f0', padding: '2px 8px', borderRadius: 999 }}>
+                        {visibility.viewport === 'mobile' ? 'جوال فقط' : 'سطح المكتب فقط'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingElement({ ...el, visibility })}
+                  style={{ background: 'none', border: 'none', color: '#2196f3', cursor: 'pointer' }}
+                >
+                  تعديل
+                </button>
                 <button onClick={() => handleDelete(el.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>حذف</button>
                 <button onClick={() => handleMove(idx, idx - 1)} disabled={idx === 0} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>↑</button>
                 <button onClick={() => handleMove(idx, idx + 1)} disabled={idx === elements.length - 1} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>↓</button>
@@ -716,6 +809,28 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
       {editingElement && (
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 16px #0001', padding: 24, minWidth: 340 }}>
           <h3 style={{ marginBottom: 16 }}>تعديل خصائص العنصر</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #e5e7eb' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={normalizePageElementVisibility(editingElement.visibility).enabled}
+                onChange={(e) => setEditingVisibility({ enabled: e.target.checked })}
+              />
+              <span>العنصر مفعل</span>
+            </label>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4 }}>الظهور حسب الجهاز</label>
+              <select
+                value={normalizePageElementVisibility(editingElement.visibility).viewport}
+                onChange={(e) => setEditingVisibility({ viewport: e.target.value as PageElementViewport })}
+                style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+              >
+                <option value="all">الكل</option>
+                <option value="desktop">سطح المكتب فقط</option>
+                <option value="mobile">الجوال فقط</option>
+              </select>
+            </div>
+          </div>
           {(() => {
             const comp = availableComponents.find(c => c.id === editingElement.componentId);
             if (!comp) return null;
@@ -1200,7 +1315,11 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 return;
               }
               if (editingElement) {
-                handleEditProps(editingElement, editingElement.props);
+                handleEditProps(
+                  editingElement,
+                  editingElement.props,
+                  normalizePageElementVisibility(editingElement.visibility)
+                );
               }
             }}
             style={{ marginTop: 16, background: '#2196f3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 24px', fontWeight: 600 }}

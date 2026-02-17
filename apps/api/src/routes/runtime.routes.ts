@@ -15,6 +15,8 @@ export function createRuntimeRoutes(
         try {
             const { themeId } = req.params;
             const pageId = req.query.page as string || 'home';
+            const viewportQuery = String(req.query.viewport || 'desktop').toLowerCase();
+            const viewport = viewportQuery === 'mobile' ? 'mobile' : 'desktop';
 
             // Use the store from context (middleware-resolved)
             const store = req.store;
@@ -22,6 +24,13 @@ export function createRuntimeRoutes(
 
             const context = await engine.buildContext(store.id, pageId);
             if (!context) return res.status(500).send('Failed to build context');
+            (context as any).__preview = {
+                viewport
+            };
+            context.settings = {
+                ...(context.settings || {}),
+                __preview_viewport: viewport
+            };
 
             let html = await renderer.renderPage(context, store.themeId);
 

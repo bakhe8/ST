@@ -54,6 +54,7 @@ const requestStorePreviewContext = async (storeId: string, force = false): Promi
 const StorePreview = () => {
     const { storeId } = useParams();
     const [refreshKey, setRefreshKey] = useState(0);
+    const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [store, setStore] = useState<StoreSummary | null>(null);
     const [loadingStore, setLoadingStore] = useState(true);
 
@@ -95,8 +96,8 @@ const StorePreview = () => {
     const apiRoot = API_BASE_URL.replace(/\/api$/, '');
     const previewUrl = useMemo(() => {
         if (!storeId || !themeId) return '';
-        return `${apiRoot}/preview/${storeId}/${themeId}/${version}?page=index&refresh=${refreshKey}`;
-    }, [apiRoot, refreshKey, storeId, themeId, version]);
+        return `${apiRoot}/preview/${storeId}/${themeId}/${version}?page=index&refresh=${refreshKey}&viewport=${viewport}`;
+    }, [apiRoot, refreshKey, storeId, themeId, version, viewport]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -106,6 +107,34 @@ const StorePreview = () => {
                     <p style={{ color: '#94a3b8', margin: 0 }}>View your store as customers see it.</p>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ display: 'flex', border: '1px solid #334155', borderRadius: 8, overflow: 'hidden' }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewport('desktop')}
+                            style={{
+                                background: viewport === 'desktop' ? '#334155' : '#0f172a',
+                                border: 'none',
+                                color: 'white',
+                                padding: '8px 12px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            سطح المكتب
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewport('mobile')}
+                            style={{
+                                background: viewport === 'mobile' ? '#334155' : '#0f172a',
+                                border: 'none',
+                                color: 'white',
+                                padding: '8px 12px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            الجوال
+                        </button>
+                    </div>
                     <button
                         onClick={() => setRefreshKey(prev => prev + 1)}
                         style={{
@@ -151,11 +180,32 @@ const StorePreview = () => {
                 </div>
             </div>
 
-            <div style={{ flex: 1, background: '#0f172a', borderRadius: 12, overflow: 'hidden', border: '1px solid #334155' }}>
+            <div
+                style={{
+                    flex: 1,
+                    background: '#0f172a',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    border: '1px solid #334155',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'stretch',
+                    padding: viewport === 'mobile' ? 16 : 0
+                }}
+            >
                 {loadingStore ? (
                     <div style={{ color: '#94a3b8', padding: 16 }}>Loading store preview context...</div>
                 ) : (
-                    <PreviewPane url={previewUrl} style={{ width: '100%', height: '100%' }} />
+                    <div
+                        style={{
+                            width: viewport === 'mobile' ? 390 : '100%',
+                            maxWidth: '100%',
+                            height: '100%',
+                            transition: 'width 0.2s ease'
+                        }}
+                    >
+                        <PreviewPane url={previewUrl} style={{ width: '100%', height: '100%' }} />
+                    </div>
                 )}
             </div>
         </div>

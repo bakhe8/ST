@@ -288,6 +288,33 @@ describe('VTDR API integration (Store-First)', () => {
                             id: 'home-1',
                             componentId: String(homeComponent.key),
                             props: { title: 'VTDR Visual Marker' }
+                        },
+                        {
+                            id: 'home-hidden',
+                            componentId: String(homeComponent.key),
+                            visibility: {
+                                enabled: false,
+                                viewport: 'all'
+                            },
+                            props: { title: 'VTDR Hidden Marker' }
+                        },
+                        {
+                            id: 'home-desktop-only',
+                            componentId: String(homeComponent.key),
+                            visibility: {
+                                enabled: true,
+                                viewport: 'desktop'
+                            },
+                            props: { title: 'VTDR Desktop Marker' }
+                        },
+                        {
+                            id: 'home-mobile-only',
+                            componentId: String(homeComponent.key),
+                            visibility: {
+                                enabled: true,
+                                viewport: 'mobile'
+                            },
+                            props: { title: 'VTDR Mobile Marker' }
                         }
                     ]
                 }
@@ -320,7 +347,19 @@ describe('VTDR API integration (Store-First)', () => {
         expect(previewAfterCompositionHtml).toContain(visualCategoryName);
         expect(previewAfterCompositionHtml).toContain('VTDR Product Link');
         expect(previewAfterCompositionHtml).toContain('VTDR Banner Link');
+        expect(previewAfterCompositionHtml).toContain('VTDR Desktop Marker');
+        expect(previewAfterCompositionHtml).not.toContain('VTDR Mobile Marker');
+        expect(previewAfterCompositionHtml).not.toContain('VTDR Hidden Marker');
         expect(previewAfterCompositionHtml).toContain(selectedProductHref);
+
+        const previewMobileRes = await fetch(
+            `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}?page=index&viewport=mobile`
+        );
+        expect(previewMobileRes.status).toBe(200);
+        const previewMobileHtml = await previewMobileRes.text();
+        expect(previewMobileHtml).toContain('VTDR Mobile Marker');
+        expect(previewMobileHtml).not.toContain('VTDR Desktop Marker');
+        expect(previewMobileHtml).not.toContain('VTDR Hidden Marker');
     }, 120000);
 
     it('returns unified error when store context is missing', async () => {
