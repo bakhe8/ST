@@ -97,3 +97,4 @@ Each slice is closed only when all are done:
 - `theme/components` now returns real selectable options for `products/categories/brands` based on store data.
 - Page components editor supports multi-select for `items` fields and saves IDs into `page_compositions`.
 - Renderer resolves selected IDs to full entities before Twig render (brands/categories/products), with visual fallback content when no explicit selection exists.
+- Collection fields in page components now use a structured visual editor (rows + subfields) for `main-links / enhanced-slider / square-banners / testimonials`, replacing raw JSON editing in the primary flow.

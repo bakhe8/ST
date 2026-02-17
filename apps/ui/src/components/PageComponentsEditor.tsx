@@ -72,6 +72,58 @@ function normalizeVariableListValue(value: any): string {
   return '';
 }
 
+function getCollectionFieldPathTail(fieldId: string): string {
+  const normalized = String(fieldId || '');
+  const parts = normalized.split('.');
+  return parts[parts.length - 1] || normalized;
+}
+
+function normalizeCollectionItems(value: any): Record<string, any>[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry) => entry && typeof entry === 'object')
+    .map((entry) => ({ ...entry }));
+}
+
+function getCollectionItemValue(item: any, fieldId: string): any {
+  if (!item || typeof item !== 'object') return undefined;
+  if (item[fieldId] != null) return item[fieldId];
+  const shortKey = getCollectionFieldPathTail(fieldId);
+  return item[shortKey];
+}
+
+function setCollectionItemValue(item: any, fieldId: string, value: any) {
+  const next = { ...(item || {}) };
+  next[fieldId] = value;
+  const shortKey = getCollectionFieldPathTail(fieldId);
+  if (shortKey !== fieldId && Object.prototype.hasOwnProperty.call(next, shortKey)) {
+    delete next[shortKey];
+  }
+  return next;
+}
+
+function getCollectionSubFieldDefaultValue(subField: any): any {
+  if (subField?.type === 'boolean') return Boolean(subField.value);
+  if (subField?.type === 'number' || subField?.format === 'integer') {
+    const parsed = Number(subField?.value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (subField?.type === 'items' && subField?.format === 'variable-list') {
+    return normalizeVariableListValue(subField?.value);
+  }
+  if (typeof subField?.value !== 'undefined') return pickLocalizedText(subField.value);
+  return '';
+}
+
+function createCollectionItemTemplate(field: any): Record<string, any> {
+  const template: Record<string, any> = {};
+  (field?.fields ?? []).forEach((subField: any) => {
+    if (!subField?.id) return;
+    template[subField.id] = getCollectionSubFieldDefaultValue(subField);
+  });
+  return template;
+}
+
 function getFieldDefaultValue(field: any) {
   if (field.type === 'boolean') return Boolean(field.value);
   if (field.type === 'collection' || field.format === 'collection') {
@@ -267,6 +319,31 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     setElements(arr);
   };
 
+  const setEditingProp = (fieldId: string, value: any) => {
+    setEditingElement((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        props: { ...current.props, [fieldId]: value }
+      };
+    });
+  };
+
+  const updateEditingCollection = (
+    fieldId: string,
+    updater: (items: Record<string, any>[]) => Record<string, any>[]
+  ) => {
+    setEditingElement((current) => {
+      if (!current) return current;
+      const currentItems = normalizeCollectionItems(current.props?.[fieldId]);
+      const nextItems = updater(currentItems);
+      return {
+        ...current,
+        props: { ...current.props, [fieldId]: nextItems }
+      };
+    });
+  };
+
   const handleSavePageState = async () => {
     if (!selectedStoreId) {
       alert('يرجى اختيار متجر أولاً');
@@ -390,10 +467,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                         value={selectedValues}
                         onChange={e => {
                           const selected = Array.from(e.target.selectedOptions).map(option => option.value);
-                          setEditingElement({
-                            ...editingElement,
-                            props: { ...editingElement.props, [field.id]: selected }
-                          });
+                          setEditingProp(field.id, selected);
                         }}
                         style={{ width: '100%', minHeight: 120, padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                       >
@@ -413,7 +487,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                     <label>{field.label}</label>
                     <select
                       value={String(editingElement.props[field.id] || '')}
-                      onChange={e => setEditingElement({ ...editingElement, props: { ...editingElement.props, [field.id]: e.target.value } })}
+                      onChange={e => setEditingProp(field.id, e.target.value)}
                       style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                     >
                       {field.options.map((opt: any) => (
@@ -425,6 +499,200 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
               }
 
               if (field.type === 'collection' || field.format === 'collection') {
+                const subFields = Array.isArray(field.fields)
+                  ? field.fields.filter((subField: any) => Boolean(subField?.id))
+                  : [];
+
+                if (subFields.length > 0) {
+                  const items = normalizeCollectionItems(editingElement.props[field.id]);
+                  const minLength = Number(field.minLength ?? 0);
+                  const maxLength = Number(field.maxLength ?? 0);
+                  const canAdd = !Number.isFinite(maxLength) || maxLength <= 0 || items.length < maxLength;
+
+                  return (
+                    <div key={field.id} style={{ marginBottom: 16, border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <label style={{ fontWeight: 600 }}>{field.label || field.id}</label>
+                        <span style={{ color: '#64748b', fontSize: 12 }}>
+                          {items.length}{maxLength > 0 ? ` / ${maxLength}` : ''}
+                        </span>
+                      </div>
+
+                      {items.length === 0 && (
+                        <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
+                          لا توجد عناصر مضافة بعد.
+                        </div>
+                      )}
+
+                      {items.map((item: Record<string, any>, rowIndex: number) => (
+                        <div key={`${field.id}-${rowIndex}`} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginBottom: 10, background: '#fafafa' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <strong style={{ fontSize: 13 }}>
+                              {(field.item_label || 'عنصر')} #{rowIndex + 1}
+                            </strong>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => updateEditingCollection(field.id, (currentItems) => {
+                                  if (rowIndex <= 0) return currentItems;
+                                  const next = [...currentItems];
+                                  const [moved] = next.splice(rowIndex, 1);
+                                  next.splice(rowIndex - 1, 0, moved);
+                                  return next;
+                                })}
+                                disabled={rowIndex === 0}
+                                style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '2px 8px', background: '#fff', cursor: rowIndex === 0 ? 'not-allowed' : 'pointer' }}
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateEditingCollection(field.id, (currentItems) => {
+                                  if (rowIndex >= currentItems.length - 1) return currentItems;
+                                  const next = [...currentItems];
+                                  const [moved] = next.splice(rowIndex, 1);
+                                  next.splice(rowIndex + 1, 0, moved);
+                                  return next;
+                                })}
+                                disabled={rowIndex === items.length - 1}
+                                style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '2px 8px', background: '#fff', cursor: rowIndex === items.length - 1 ? 'not-allowed' : 'pointer' }}
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateEditingCollection(field.id, (currentItems) => currentItems.filter((_, idx) => idx !== rowIndex))}
+                                disabled={items.length <= minLength}
+                                style={{ border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 6, padding: '2px 8px', background: '#fff', cursor: items.length <= minLength ? 'not-allowed' : 'pointer' }}
+                              >
+                                حذف
+                              </button>
+                            </div>
+                          </div>
+
+                          {subFields.map((subField: any) => {
+                            const currentValue = getCollectionItemValue(item, subField.id);
+                            const currentText = currentValue == null ? '' : pickLocalizedText(currentValue);
+
+                            if (subField.type === 'boolean') {
+                              return (
+                                <div key={subField.id} style={{ marginBottom: 10 }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(currentValue)}
+                                      onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
+                                        currentItems.map((entry, idx) => (
+                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.checked) : entry
+                                        ))
+                                      ))}
+                                    />
+                                    <span>{subField.label || getCollectionFieldPathTail(subField.id)}</span>
+                                  </label>
+                                </div>
+                              );
+                            }
+
+                            if (subField.type === 'number' || subField.format === 'integer') {
+                              return (
+                                <div key={subField.id} style={{ marginBottom: 10 }}>
+                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
+                                  <input
+                                    type="number"
+                                    value={Number.isFinite(Number(currentValue)) ? Number(currentValue) : 0}
+                                    min={subField.minimum}
+                                    max={subField.maximum}
+                                    onChange={(e) => {
+                                      const nextValue = Number(e.target.value);
+                                      updateEditingCollection(field.id, (currentItems) => (
+                                        currentItems.map((entry, idx) => (
+                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, Number.isFinite(nextValue) ? nextValue : 0) : entry
+                                        ))
+                                      ));
+                                    }}
+                                    style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                                  />
+                                </div>
+                              );
+                            }
+
+                            if (subField.type === 'items' && subField.format === 'variable-list') {
+                              return (
+                                <div key={subField.id} style={{ marginBottom: 10 }}>
+                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
+                                  <input
+                                    type="text"
+                                    value={normalizeVariableListValue(currentValue)}
+                                    onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
+                                      currentItems.map((entry, idx) => (
+                                        idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
+                                      ))
+                                    ))}
+                                    style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr' }}
+                                  />
+                                </div>
+                              );
+                            }
+
+                            if (subField.format === 'textarea') {
+                              return (
+                                <div key={subField.id} style={{ marginBottom: 10 }}>
+                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
+                                  <textarea
+                                    value={currentText}
+                                    onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
+                                      currentItems.map((entry, idx) => (
+                                        idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
+                                      ))
+                                    ))}
+                                    style={{ width: '100%', minHeight: 80, padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                                  />
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div key={subField.id} style={{ marginBottom: 10 }}>
+                                <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
+                                <input
+                                  type="text"
+                                  value={currentText}
+                                  onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
+                                    currentItems.map((entry, idx) => (
+                                      idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
+                                    ))
+                                  ))}
+                                  style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: subField.format === 'image' ? 'ltr' : 'inherit' }}
+                                />
+                                {subField.format === 'image' && currentText && (
+                                  <div style={{ marginTop: 6 }}>
+                                    <img
+                                      src={currentText}
+                                      alt=""
+                                      style={{ width: 56, height: 56, borderRadius: 6, objectFit: 'cover', border: '1px solid #e5e7eb' }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => updateEditingCollection(field.id, (currentItems) => (
+                          [...currentItems, createCollectionItemTemplate(field)]
+                        ))}
+                        disabled={!canAdd}
+                        style={{ marginTop: 4, background: '#ecfeff', border: '1px solid #99f6e4', borderRadius: 8, padding: '8px 14px', cursor: canAdd ? 'pointer' : 'not-allowed', color: '#0f766e', fontWeight: 600 }}
+                      >
+                        + إضافة {(field.item_label || 'عنصر')}
+                      </button>
+                    </div>
+                  );
+                }
+
                 const draft = jsonDrafts[field.id] ?? JSON.stringify(
                   Array.isArray(editingElement.props[field.id]) ? editingElement.props[field.id] : [],
                   null,
@@ -447,10 +715,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                             delete next[field.id];
                             return next;
                           });
-                          setEditingElement({
-                            ...editingElement,
-                            props: { ...editingElement.props, [field.id]: normalized }
-                          });
+                          setEditingProp(field.id, normalized);
                         } catch {
                           setJsonDraftErrors(prev => ({ ...prev, [field.id]: 'صيغة JSON غير صالحة' }));
                         }
@@ -469,10 +734,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                     <input
                       type="text"
                       value={normalizeVariableListValue(editingElement.props[field.id])}
-                      onChange={e => setEditingElement({
-                        ...editingElement,
-                        props: { ...editingElement.props, [field.id]: e.target.value }
-                      })}
+                      onChange={e => setEditingProp(field.id, e.target.value)}
                       style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                     />
                   </div>
@@ -486,7 +748,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                     <input
                       type="checkbox"
                       checked={!!editingElement.props[field.id]}
-                      onChange={e => setEditingElement({ ...editingElement, props: { ...editingElement.props, [field.id]: e.target.checked } })}
+                      onChange={e => setEditingProp(field.id, e.target.checked)}
                     />
                   </div>
                 );
@@ -499,7 +761,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                   <input
                     type="text"
                     value={currentValue == null ? '' : pickLocalizedText(currentValue)}
-                    onChange={e => setEditingElement({ ...editingElement, props: { ...editingElement.props, [field.id]: e.target.value } })}
+                    onChange={e => setEditingProp(field.id, e.target.value)}
                     style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
                   />
                 </div>
