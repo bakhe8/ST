@@ -10,27 +10,74 @@ interface Store {
     description?: string;
 }
 
+const STORES_CACHE_TTL_MS = 5000;
+let storesCache: Store[] | null = null;
+let storesCacheAt = 0;
+let storesInFlight: Promise<Store[]> | null = null;
+
+const requestStores = async (force = false): Promise<Store[]> => {
+    const now = Date.now();
+    if (!force && storesCache && now - storesCacheAt < STORES_CACHE_TTL_MS) {
+        return storesCache;
+    }
+
+    if (!force && storesInFlight) {
+        return storesInFlight;
+    }
+
+    storesInFlight = fetch(apiUrl('v1/stores'))
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success || !Array.isArray(data.data)) {
+                throw new Error('Failed to load stores');
+            }
+            storesCache = data.data as Store[];
+            storesCacheAt = Date.now();
+            return storesCache;
+        })
+        .finally(() => {
+            storesInFlight = null;
+        });
+
+    return storesInFlight;
+};
+
 const SystemHome = () => {
     const [stores, setStores] = useState<Store[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [newStoreTitle, setNewStoreTitle] = useState('');
 
-    const fetchStores = () => {
+    const fetchStores = async (force = false) => {
         setLoading(true);
-        fetch(apiUrl('v1/stores'))
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setStores(data.data);
-                }
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        try {
+            const nextStores = await requestStores(force);
+            setStores(nextStores);
+        } catch (error) {
+            console.error('Failed to fetch stores', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        fetchStores();
+        let active = true;
+        setLoading(true);
+
+        requestStores()
+            .then(nextStores => {
+                if (active) setStores(nextStores);
+            })
+            .catch(error => {
+                if (active) console.error('Failed to fetch stores', error);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     const handleCreateStore = async () => {
@@ -45,7 +92,9 @@ const SystemHome = () => {
             if (data.success) {
                 setNewStoreTitle('');
                 setIsCreating(false);
-                fetchStores();
+                storesCache = null;
+                storesCacheAt = 0;
+                await fetchStores(true);
             } else {
                 alert('Failed to create store');
             }

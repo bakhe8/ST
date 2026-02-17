@@ -14,7 +14,12 @@ import StoreStaticPages from './pages/StoreStaticPages';
 
 const App = () => {
     return (
-        <BrowserRouter>
+        <BrowserRouter
+            future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+            }}
+        >
             <Routes>
                 {/* System Admin Routes */}
                 <Route path="/" element={<SystemLayout />}>

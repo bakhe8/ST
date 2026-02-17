@@ -12,6 +12,45 @@ interface StoreSummary {
     };
 }
 
+const STORE_PREVIEW_CACHE_TTL_MS = 5000;
+const storeCache = new Map<string, { at: number; data: StoreSummary }>();
+const storeInFlight = new Map<string, Promise<StoreSummary | null>>();
+
+const requestStorePreviewContext = async (storeId: string, force = false): Promise<StoreSummary | null> => {
+    const now = Date.now();
+    const cached = storeCache.get(storeId);
+    if (!force && cached && now - cached.at < STORE_PREVIEW_CACHE_TTL_MS) {
+        return cached.data;
+    }
+
+    if (!force) {
+        const pending = storeInFlight.get(storeId);
+        if (pending) return pending;
+    }
+
+    const pending = fetch(apiUrl(`stores/${storeId}`), {
+        headers: {
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        }
+    })
+        .then(res => res.json())
+        .then(json => {
+            if (json.success && json.data) {
+                const data = json.data as StoreSummary;
+                storeCache.set(storeId, { at: Date.now(), data });
+                return data;
+            }
+            return null;
+        })
+        .finally(() => {
+            storeInFlight.delete(storeId);
+        });
+
+    storeInFlight.set(storeId, pending);
+    return pending;
+};
+
 const StorePreview = () => {
     const { storeId } = useParams();
     const [refreshKey, setRefreshKey] = useState(0);
@@ -19,35 +58,34 @@ const StorePreview = () => {
     const [loadingStore, setLoadingStore] = useState(true);
 
     useEffect(() => {
-        const loadStore = async () => {
-            if (!storeId) {
-                setStore(null);
-                setLoadingStore(false);
-                return;
-            }
+        let active = true;
 
-            setLoadingStore(true);
-            try {
-                const res = await fetch(apiUrl(`stores/${storeId}`), {
-                    headers: {
-                        'X-VTDR-Store-Id': storeId,
-                        'Context-Store-Id': storeId
-                    }
-                });
-                const json = await res.json();
-                if (json.success && json.data) {
-                    setStore(json.data as StoreSummary);
-                } else {
+        if (!storeId) {
+            setStore(null);
+            setLoadingStore(false);
+            return () => {
+                active = false;
+            };
+        }
+
+        setLoadingStore(true);
+        requestStorePreviewContext(storeId)
+            .then(nextStore => {
+                if (active) setStore(nextStore);
+            })
+            .catch(error => {
+                if (active) {
+                    console.error('Failed to load store for preview', error);
                     setStore(null);
                 }
-            } catch (error) {
-                console.error('Failed to load store for preview', error);
-                setStore(null);
-            } finally {
-                setLoadingStore(false);
-            }
+            })
+            .finally(() => {
+                if (active) setLoadingStore(false);
+            });
+
+        return () => {
+            active = false;
         };
-        void loadStore();
     }, [storeId]);
 
     const themeId = store?.themeId;
