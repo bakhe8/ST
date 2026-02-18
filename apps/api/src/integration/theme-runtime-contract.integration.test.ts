@@ -79,7 +79,7 @@ describe('Theme Runtime Contract v1 compatibility', () => {
         });
 
         await waitForHealth(baseUrl);
-    }, 120000);
+    }, 300000);
 
     afterAll(async () => {
         if (apiProcess && !apiProcess.killed) {

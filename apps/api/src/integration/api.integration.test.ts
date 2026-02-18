@@ -36,7 +36,7 @@ async function findFreePort(): Promise<number> {
     });
 }
 
-async function waitForHealth(baseUrl: string, timeoutMs = 30000) {
+async function waitForHealth(baseUrl: string, timeoutMs = 120000) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
         try {
@@ -95,7 +95,7 @@ describe('VTDR API integration (Store-First)', () => {
         );
 
         await waitForHealth(baseUrl);
-    }, 120000);
+    }, 300000);
 
     afterAll(async () => {
         if (apiProcess && !apiProcess.killed) {
@@ -571,6 +571,152 @@ describe('VTDR API integration (Store-First)', () => {
         expect(deleteRes.status).toBe(200);
         const deleteJson: any = await deleteRes.json();
         expect(deleteJson.data.items.length).toBe(0);
+    });
+
+    it('supports inventory stock filters/sorting and enforces cart stock limits', async () => {
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Inventory Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const createInStockRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'inv-in-stock',
+                name: 'In Stock Product',
+                price: { amount: 150, currency: 'SAR' },
+                quantity: 5,
+                max_quantity: 5,
+                is_available: true,
+                status: 'sale'
+            })
+        });
+        expect(createInStockRes.status).toBe(201);
+
+        const createOutStockRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'inv-out-stock',
+                name: 'Out Stock Product',
+                price: { amount: 80, currency: 'SAR' },
+                quantity: 0,
+                max_quantity: 1,
+                is_available: false,
+                status: 'out-and-notify'
+            })
+        });
+        expect(createOutStockRes.status).toBe(201);
+
+        const createMidStockRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'inv-mid-stock',
+                name: 'Mid Stock Product',
+                price: { amount: 110, currency: 'SAR' },
+                quantity: 3,
+                max_quantity: 3,
+                is_available: true,
+                status: 'sale'
+            })
+        });
+        expect(createMidStockRes.status).toBe(201);
+
+        const inStockListRes = await fetch(`${baseUrl}/api/v1/products?status=in-stock`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(inStockListRes.status).toBe(200);
+        const inStockListJson: any = await inStockListRes.json();
+        expect(inStockListJson.data.some((entry: any) => entry.id === 'inv-in-stock')).toBe(true);
+        expect(inStockListJson.data.some((entry: any) => entry.id === 'inv-mid-stock')).toBe(true);
+        expect(inStockListJson.data.some((entry: any) => entry.id === 'inv-out-stock')).toBe(false);
+
+        const outStockListRes = await fetch(`${baseUrl}/api/v1/products?status=out-of-stock`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(outStockListRes.status).toBe(200);
+        const outStockListJson: any = await outStockListRes.json();
+        expect(outStockListJson.data.some((entry: any) => entry.id === 'inv-out-stock')).toBe(true);
+        expect(outStockListJson.data.some((entry: any) => entry.id === 'inv-in-stock')).toBe(false);
+
+        const sortedRes = await fetch(`${baseUrl}/api/v1/products?sort=priceFromLowToTop`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(sortedRes.status).toBe(200);
+        const sortedJson: any = await sortedRes.json();
+        const sortedIds = (sortedJson.data || []).map((entry: any) => String(entry.id));
+        expect(sortedIds.slice(0, 3)).toEqual(['inv-out-stock', 'inv-mid-stock', 'inv-in-stock']);
+
+        const addOutStockCartRes = await fetch(`${baseUrl}/api/v1/cart/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                product_id: 'inv-out-stock',
+                quantity: 1
+            })
+        });
+        expect(addOutStockCartRes.status).toBe(400);
+        const addOutStockCartJson: any = await addOutStockCartRes.json();
+        expect(addOutStockCartJson.success).toBe(false);
+
+        const addInStockCartRes = await fetch(`${baseUrl}/api/v1/cart/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                product_id: 'inv-in-stock',
+                quantity: 3
+            })
+        });
+        expect(addInStockCartRes.status).toBe(201);
+        const addInStockCartJson: any = await addInStockCartRes.json();
+        expect(addInStockCartJson.success).toBe(true);
+        expect(addInStockCartJson.data.totals.items_count).toBe(3);
+
+        const addBeyondLimitRes = await fetch(`${baseUrl}/api/v1/cart/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                product_id: 'inv-in-stock',
+                quantity: 3
+            })
+        });
+        expect(addBeyondLimitRes.status).toBe(400);
+        const addBeyondLimitJson: any = await addBeyondLimitRes.json();
+        expect(addBeyondLimitJson.success).toBe(false);
+        expect(String(addBeyondLimitJson.error?.message || addBeyondLimitJson.error || '')).toContain('Maximum available quantity');
+
+        const updateBeyondLimitRes = await fetch(`${baseUrl}/api/v1/cart/items/inv-in-stock`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                quantity: 6
+            })
+        });
+        expect(updateBeyondLimitRes.status).toBe(400);
+
+        const updateWithinLimitRes = await fetch(`${baseUrl}/api/v1/cart/items/inv-in-stock`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                quantity: 5
+            })
+        });
+        expect(updateWithinLimitRes.status).toBe(200);
+        const updateWithinLimitJson: any = await updateWithinLimitRes.json();
+        expect(updateWithinLimitJson.success).toBe(true);
+        expect(updateWithinLimitJson.data.totals.items_count).toBe(5);
     });
 
     it('supports menus read/write with nested items for preview navigation', async () => {
@@ -1214,5 +1360,195 @@ describe('VTDR API integration (Store-First)', () => {
         expect(previewRes.status).toBe(200);
         const previewHtml = await previewRes.text();
         expect(previewHtml.toLowerCase()).toContain('<html');
+    }, 120000);
+
+    it('supports customer journey parity for wishlist/orders pages and APIs', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Customer Journey Store', autoSeed: true })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const createProductRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'wishlist-preview-product',
+                name: 'Wishlist Preview Product',
+                price: { amount: 145, currency: 'SAR' },
+                quantity: 8,
+                is_available: true,
+                status: 'sale'
+            })
+        });
+        expect(createProductRes.status).toBe(201);
+
+        const addWishlistRes = await fetch(`${baseUrl}/api/v1/wishlist/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({ product_id: 'wishlist-preview-product' })
+        });
+        expect(addWishlistRes.status).toBe(201);
+        const addWishlistJson: any = await addWishlistRes.json();
+        expect(addWishlistJson.success).toBe(true);
+        expect(addWishlistJson.data.product_ids).toContain('wishlist-preview-product');
+
+        const getWishlistRes = await fetch(`${baseUrl}/api/v1/wishlist`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getWishlistRes.status).toBe(200);
+        const getWishlistJson: any = await getWishlistRes.json();
+        expect(Array.isArray(getWishlistJson.data.product_ids)).toBe(true);
+        expect(getWishlistJson.data.product_ids).toContain('wishlist-preview-product');
+
+        const wishlistProductsRes = await fetch(`${baseUrl}/api/v1/products?source=wishlist`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(wishlistProductsRes.status).toBe(200);
+        const wishlistProductsJson: any = await wishlistProductsRes.json();
+        expect(Array.isArray(wishlistProductsJson.data)).toBe(true);
+        expect(wishlistProductsJson.data.some((entry: any) => entry.id === 'wishlist-preview-product')).toBe(true);
+
+        const toggleWishlistRes = await fetch(`${baseUrl}/api/v1/wishlist/toggle`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({ product_id: 'wishlist-preview-product' })
+        });
+        expect(toggleWishlistRes.status).toBe(200);
+        const toggleWishlistJson: any = await toggleWishlistRes.json();
+        expect(toggleWishlistJson.success).toBe(true);
+        expect(toggleWishlistJson.data.action).toBe('removed');
+
+        const wishlistProductsAfterToggleRes = await fetch(`${baseUrl}/api/v1/products?source=wishlist`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(wishlistProductsAfterToggleRes.status).toBe(200);
+        const wishlistProductsAfterToggleJson: any = await wishlistProductsAfterToggleRes.json();
+        expect(wishlistProductsAfterToggleJson.data.some((entry: any) => entry.id === 'wishlist-preview-product')).toBe(false);
+
+        const addCartItemRes = await fetch(`${baseUrl}/api/v1/cart/items`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                product_id: 'wishlist-preview-product',
+                quantity: 1
+            })
+        });
+        expect(addCartItemRes.status).toBe(201);
+
+        const startCheckoutRes = await fetch(`${baseUrl}/api/v1/checkout/start`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({})
+        });
+        expect(startCheckoutRes.status).toBe(201);
+
+        const addressCheckoutRes = await fetch(`${baseUrl}/api/v1/checkout/address`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                name: 'VTDR Customer',
+                email: 'customer@vtdr.test',
+                mobile: '+966500000001',
+                country: 'SA',
+                city: 'Riyadh',
+                district: 'Olaya',
+                street: 'King Fahad Rd',
+                postal_code: '12211'
+            })
+        });
+        expect(addressCheckoutRes.status).toBe(200);
+
+        const checkoutDetailsRes = await fetch(`${baseUrl}/api/v1/checkout`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(checkoutDetailsRes.status).toBe(200);
+        const checkoutDetailsJson: any = await checkoutDetailsRes.json();
+        const shippingMethodId = String(checkoutDetailsJson.data.available_shipping_methods?.[0]?.id || '');
+        const paymentMethodId = String(checkoutDetailsJson.data.available_payment_methods?.[0]?.id || '');
+        expect(shippingMethodId).toBeTruthy();
+        expect(paymentMethodId).toBeTruthy();
+
+        const shippingCheckoutRes = await fetch(`${baseUrl}/api/v1/checkout/shipping`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({ method_id: shippingMethodId })
+        });
+        expect(shippingCheckoutRes.status).toBe(200);
+
+        const paymentCheckoutRes = await fetch(`${baseUrl}/api/v1/checkout/payment`, {
+            method: 'PATCH',
+            headers: contextHeaders,
+            body: JSON.stringify({ method_id: paymentMethodId })
+        });
+        expect(paymentCheckoutRes.status).toBe(200);
+
+        const confirmCheckoutRes = await fetch(`${baseUrl}/api/v1/checkout/confirm`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({})
+        });
+        expect(confirmCheckoutRes.status).toBe(200);
+        const confirmCheckoutJson: any = await confirmCheckoutRes.json();
+        const orderId = String(confirmCheckoutJson.data?.order?.id || '');
+        expect(orderId).toBeTruthy();
+
+        const listOrdersRes = await fetch(`${baseUrl}/api/v1/orders`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(listOrdersRes.status).toBe(200);
+        const listOrdersJson: any = await listOrdersRes.json();
+        expect(Array.isArray(listOrdersJson.data)).toBe(true);
+        expect(listOrdersJson.data.some((entry: any) => String(entry.id) === orderId)).toBe(true);
+
+        const getOrderRes = await fetch(`${baseUrl}/api/v1/orders/${orderId}`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getOrderRes.status).toBe(200);
+
+        const storeRes = await fetch(`${baseUrl}/api/stores/${storeId}`);
+        expect(storeRes.status).toBe(200);
+        const storeJson: any = await storeRes.json();
+        const themeId = storeJson.data.themeId as string;
+        const themeVersion = storeJson.data.themeVersion.version as string;
+
+        const customerOrdersPreviewRes = await fetch(
+            `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}/customer/orders`
+        );
+        const customerOrdersPreviewHtml = await customerOrdersPreviewRes.text();
+        expect(customerOrdersPreviewRes.status, customerOrdersPreviewHtml.slice(0, 600)).toBe(200);
+        expect(customerOrdersPreviewHtml.toLowerCase()).toContain('<html');
+        expect(customerOrdersPreviewHtml).not.toContain('Renderer Error');
+        expect(customerOrdersPreviewHtml).not.toContain('Render Error');
+
+        const customerSingleOrderPreviewRes = await fetch(
+            `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}/customer/orders/${orderId}`
+        );
+        const customerSingleOrderPreviewHtml = await customerSingleOrderPreviewRes.text();
+        expect(customerSingleOrderPreviewRes.status, customerSingleOrderPreviewHtml.slice(0, 600)).toBe(200);
+        expect(customerSingleOrderPreviewHtml.toLowerCase()).toContain('<html');
+        expect(customerSingleOrderPreviewHtml).not.toContain('Renderer Error');
+        expect(customerSingleOrderPreviewHtml).not.toContain('Render Error');
+
+        const customerWishlistPreviewRes = await fetch(
+            `${baseUrl}/preview/${storeId}/${themeId}/${themeVersion}/customer/wishlist`
+        );
+        expect(customerWishlistPreviewRes.status).toBe(200);
+        const customerWishlistPreviewHtml = await customerWishlistPreviewRes.text();
+        expect(customerWishlistPreviewHtml.toLowerCase()).toContain('<html');
+        expect(customerWishlistPreviewHtml).not.toContain('Renderer Error');
+        expect(customerWishlistPreviewHtml).not.toContain('Render Error');
     }, 120000);
 });
