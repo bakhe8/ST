@@ -106,3 +106,4 @@ Each slice is closed only when all are done:
 - Page Components editor now applies field-level `conditions` from theme schema at runtime, so conditional fields appear/disappear immediately based on current form values (including `collection` sub-fields).
 - Conditional `static` blocks are now visible in the editor flow, and save-time hidden-field policy is explicit (`preserve` vs `clear`) to control payload shape stability.
 - Boolean controls (`switch` / `checkbox`) in Page Components editor now use a unified visual control style with consistent on/off state presentation.
+- Textual controls (`text` / `textarea` / `image` / `icon`) now use a unified editor control style with shared label/description behavior and image preview support.

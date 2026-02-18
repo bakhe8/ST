@@ -37,6 +37,18 @@ interface BooleanFieldControlProps {
   onChange: (next: boolean) => void;
 }
 
+interface TextualFieldControlProps {
+  label: string;
+  value: string;
+  description?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  direction?: 'rtl' | 'ltr' | 'inherit';
+  compact?: boolean;
+  showImagePreview?: boolean;
+  onChange: (next: string) => void;
+}
+
 // Utility to parse fields from twilight.json component schema
 function parsePropsSchema(fields: any[]): { [key: string]: any } {
   const schema: any = {};
@@ -437,6 +449,75 @@ const BooleanFieldControl: React.FC<BooleanFieldControlProps> = ({
           </span>
         </button>
       </div>
+    </div>
+  );
+};
+
+const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
+  label,
+  value,
+  description,
+  placeholder,
+  multiline = false,
+  direction = 'inherit',
+  compact = false,
+  showImagePreview = false,
+  onChange
+}) => {
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 9,
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#0f172a',
+    direction
+  };
+
+  return (
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: compact ? 8 : 10,
+        background: '#fff'
+      }}
+    >
+      <label style={{ display: 'block', fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+        {label}
+      </label>
+      {description && (
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+          {description}
+        </div>
+      )}
+
+      {multiline ? (
+        <textarea
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ ...inputStyle, minHeight: compact ? 70 : 92, resize: 'vertical' }}
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          style={inputStyle}
+        />
+      )}
+
+      {showImagePreview && value && (
+        <div style={{ marginTop: 8 }}>
+          <img
+            src={value}
+            alt=""
+            style={{ width: compact ? 56 : 72, height: compact ? 56 : 72, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb' }}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -1474,45 +1555,23 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                               );
                             }
 
-                            if (subField.format === 'textarea') {
-                              return (
-                                <div key={subField.id} style={{ marginBottom: 10 }}>
-                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
-                                  <textarea
-                                    value={currentText}
-                                    onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
-                                      currentItems.map((entry, idx) => (
-                                        idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
-                                      ))
-                                    ))}
-                                    style={{ width: '100%', minHeight: 80, padding: 8, borderRadius: 6, border: '1px solid #eee' }}
-                                  />
-                                </div>
-                              );
-                            }
-
                             return (
                               <div key={subField.id} style={{ marginBottom: 10 }}>
-                                <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
-                                <input
-                                  type="text"
+                                <TextualFieldControl
+                                  label={subField.label || getCollectionFieldPathTail(subField.id)}
+                                  description={subField.description}
                                   value={currentText}
-                                  onChange={(e) => updateEditingCollection(field.id, (currentItems) => (
+                                  placeholder={subField.placeholder}
+                                  multiline={String(subField.format || '') === 'textarea'}
+                                  direction={String(subField.format || '') === 'image' ? 'ltr' : 'inherit'}
+                                  showImagePreview={String(subField.format || '') === 'image'}
+                                  compact
+                                  onChange={(nextText) => updateEditingCollection(field.id, (currentItems) => (
                                     currentItems.map((entry, idx) => (
-                                      idx === rowIndex ? setCollectionItemValue(entry, subField.id, e.target.value) : entry
+                                      idx === rowIndex ? setCollectionItemValue(entry, subField.id, nextText) : entry
                                     ))
                                   ))}
-                                  style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: subField.format === 'image' ? 'ltr' : 'inherit' }}
                                 />
-                                {subField.format === 'image' && currentText && (
-                                  <div style={{ marginTop: 6 }}>
-                                    <img
-                                      src={currentText}
-                                      alt=""
-                                      style={{ width: 56, height: 56, borderRadius: 6, objectFit: 'cover', border: '1px solid #e5e7eb' }}
-                                    />
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -1667,16 +1726,19 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                   </div>
                 );
               }
-              // Default: text input
               const currentValue = editingElement.props[field.id];
+              const normalizedText = currentValue == null ? '' : pickLocalizedText(currentValue);
               return (
                 <div key={field.id} style={{ marginBottom: 12 }}>
-                  <label>{field.label}</label>
-                  <input
-                    type="text"
-                    value={currentValue == null ? '' : pickLocalizedText(currentValue)}
-                    onChange={e => setEditingProp(field.id, e.target.value)}
-                    style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                  <TextualFieldControl
+                    label={field.label || field.id}
+                    description={field.description}
+                    value={normalizedText}
+                    placeholder={field.placeholder}
+                    multiline={String(field.format || '') === 'textarea'}
+                    direction={String(field.format || '') === 'image' ? 'ltr' : 'inherit'}
+                    showImagePreview={String(field.format || '') === 'image'}
+                    onChange={(nextValue) => setEditingProp(field.id, nextValue)}
                   />
                 </div>
               );
