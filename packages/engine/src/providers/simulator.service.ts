@@ -288,6 +288,165 @@ export class SimulatorService {
         };
     }
 
+    private normalizeMenuNode(data: any, fallbackId: string, fallbackOrder: number) {
+        const base = data && typeof data === 'object' ? data : {};
+        const id = String(base?.id || fallbackId);
+        const title = this.pickLocalizedText(base?.title || base?.name || `رابط ${fallbackOrder}`);
+        const url = this.pickLocalizedText(base?.url || base?.href || '#');
+        const order = Number.isFinite(Number(base?.order)) ? Number(base.order) : fallbackOrder;
+        const image = this.sanitizeImageUrl(base?.image || base?.icon || '');
+        const childrenRaw = Array.isArray(base?.children) ? base.children : [];
+        const children = childrenRaw
+            .map((child: any, index: number) =>
+                this.normalizeMenuNode(child, `${id}-child-${index + 1}`, index + 1)
+            )
+            .sort((a: any, b: any) => a.order - b.order);
+
+        const products = Array.isArray(base?.products)
+            ? base.products.map((entry: any) => String(entry)).filter(Boolean)
+            : [];
+
+        return {
+            id,
+            title,
+            url,
+            type: this.pickLocalizedText(base?.type || 'link'),
+            order,
+            image: image || undefined,
+            attrs: typeof base?.attrs === 'string' ? base.attrs : '',
+            link_attrs: typeof base?.link_attrs === 'string' ? base.link_attrs : '',
+            products,
+            children
+        };
+    }
+
+    private async buildDefaultMenu(storeId: string, type: string) {
+        const normalizedType = String(type || 'header').trim().toLowerCase();
+        const [categories, pages] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'category'),
+            this.storeLogic.getDataEntities(storeId, 'page')
+        ]);
+
+        const topCategories = (categories || [])
+            .filter((category: any) => !String(category?.parent_id || category?.parentId || '').trim())
+            .slice(0, 6)
+            .map((category: any, index: number) =>
+                this.normalizeMenuNode(
+                    {
+                        id: `category-${category?.id || index + 1}`,
+                        title: this.pickLocalizedText(category?.name || category?.title || `تصنيف ${index + 1}`),
+                        url: this.pickLocalizedText(category?.url || `/categories/${category?.id || index + 1}`),
+                        order: index + 1
+                    },
+                    `category-${index + 1}`,
+                    index + 1
+                )
+            );
+
+        const staticPages = (pages || [])
+            .slice(0, 6)
+            .map((page: any, index: number) =>
+                this.normalizeMenuNode(
+                    {
+                        id: `page-${page?.id || index + 1}`,
+                        title: this.pickLocalizedText(page?.title || page?.name || `صفحة ${index + 1}`),
+                        url: this.pickLocalizedText(page?.url || `/${page?.slug || page?.id || `page-${index + 1}`}`),
+                        order: index + 1
+                    },
+                    `page-${index + 1}`,
+                    index + 1
+                )
+            );
+
+        if (normalizedType === 'footer') {
+            return [
+                this.normalizeMenuNode(
+                    {
+                        id: 'footer-pages',
+                        title: 'صفحات مهمة',
+                        url: '/pages',
+                        order: 1,
+                        children: staticPages
+                    },
+                    'footer-pages',
+                    1
+                ),
+                this.normalizeMenuNode(
+                    {
+                        id: 'footer-contact',
+                        title: 'تواصل معنا',
+                        url: '/contact',
+                        order: 2
+                    },
+                    'footer-contact',
+                    2
+                )
+            ];
+        }
+
+        return [
+            this.normalizeMenuNode(
+                {
+                    id: 'header-home',
+                    title: 'الرئيسية',
+                    url: '/',
+                    order: 1
+                },
+                'header-home',
+                1
+            ),
+            this.normalizeMenuNode(
+                {
+                    id: 'header-products',
+                    title: 'المنتجات',
+                    url: '/products',
+                    order: 2
+                },
+                'header-products',
+                2
+            ),
+            this.normalizeMenuNode(
+                {
+                    id: 'header-categories',
+                    title: 'التصنيفات',
+                    url: '/categories',
+                    order: 3,
+                    children: topCategories
+                },
+                'header-categories',
+                3
+            ),
+            this.normalizeMenuNode(
+                {
+                    id: 'header-brands',
+                    title: 'الماركات',
+                    url: '/brands',
+                    order: 4
+                },
+                'header-brands',
+                4
+            ),
+            this.normalizeMenuNode(
+                {
+                    id: 'header-blog',
+                    title: 'المدونة',
+                    url: '/blog',
+                    order: 5
+                },
+                'header-blog',
+                5
+            )
+        ];
+    }
+
+    private extractMenuItemsPayload(data: any) {
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.items)) return data.items;
+        if (Array.isArray(data?.menu)) return data.menu;
+        if (Array.isArray(data?.menus)) return data.menus;
+        return [];
+    }
+
     private normalizeQuantity(value: any, fallback = 1) {
         const parsed = Number(value);
         if (!Number.isFinite(parsed)) return fallback;
@@ -926,13 +1085,36 @@ export class SimulatorService {
     }
 
     public async getMenus(storeId: string, type: string) {
-        // Return a mock menu structure that Salla themes expect
-        const menus = [
-            { id: 1, title: 'الرئيسية', url: '/', order: 1, type: 'link' },
-            { id: 2, title: 'المنتجات', url: '/products', order: 2, type: 'link' },
-            { id: 3, title: 'من نحن', url: '/about-us', order: 3, type: 'link' }
-        ];
-        return this.wrapResponse(this.mapToSchema(menus, 'storeBlock')); // Basic block mapping
+        const menuType = String(type || 'header').trim().toLowerCase() || 'header';
+        const storedMenu = await this.storeLogic.getDataEntity(storeId, 'menu', menuType);
+        const storedItems = this.extractMenuItemsPayload(storedMenu);
+        const fallbackItems = await this.buildDefaultMenu(storeId, menuType);
+        const source = storedItems.length > 0 ? storedItems : fallbackItems;
+        const normalized = source
+            .map((menu: any, index: number) =>
+                this.normalizeMenuNode(menu, `${menuType}-${index + 1}`, index + 1)
+            )
+            .sort((a: any, b: any) => a.order - b.order);
+
+        return this.wrapResponse(normalized);
+    }
+
+    public async updateMenus(storeId: string, type: string, data: any) {
+        const menuType = String(type || 'header').trim().toLowerCase() || 'header';
+        const source = this.extractMenuItemsPayload(data);
+        const normalized = source
+            .map((menu: any, index: number) =>
+                this.normalizeMenuNode(menu, `${menuType}-${index + 1}`, index + 1)
+            )
+            .sort((a: any, b: any) => a.order - b.order);
+
+        await this.storeLogic.upsertDataEntity(storeId, 'menu', menuType, {
+            type: menuType,
+            items: normalized,
+            updated_at: new Date().toISOString()
+        });
+
+        return this.wrapResponse(normalized);
     }
 
     public async getStaticPages(storeId: string) {

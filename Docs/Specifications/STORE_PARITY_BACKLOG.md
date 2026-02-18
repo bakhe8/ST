@@ -53,7 +53,7 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
-`Slice-04: Brands + Offers Parity`
+`Slice-05: Navigation Menus Parity`
 
 ### Slice-01 Scope
 - Product shape unification:
@@ -150,7 +150,7 @@ Each slice is closed only when all are done:
   - integration coverage for brand CRUD + offer CRUD + brand option propagation into `theme/components`.
 
 ### Slice-04 Status
-- In progress: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+- Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-04 Progress Notes
 - Added simulator routes under:
@@ -165,3 +165,34 @@ Each slice is closed only when all are done:
   - brand CRUD behavior
   - offer CRUD behavior
   - immediate propagation of brand updates/deletion into `theme/components` selectable options.
+
+## Slice-05 Scope
+- Navigation menu parity:
+  - Replace static mock menu payload with store-scoped persisted menus (`header/footer`).
+  - Keep menu shape compatible with theme runtime (`title/url/order/children/products/image/attrs/link_attrs`).
+- API contract:
+  - `GET /api/v1/menus/:type` (resolved from store data with smart fallback defaults).
+  - `PUT /api/v1/menus/:type` for authoring and persistence.
+- UI management:
+  - dedicated dashboard screen for editing header/footer menu items and nested children.
+- Seed realism:
+  - auto-seed must provide baseline header/footer menus for immediate preview navigation.
+- Tests:
+  - integration coverage for menu read/write and nested structure persistence.
+
+### Slice-05 Status
+- Closed: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+
+### Slice-05 Progress Notes
+- `SimulatorService.getMenus` now reads store-scoped `menu` entities and falls back to generated defaults based on available categories/pages.
+- Added `SimulatorService.updateMenus` to persist normalized menu payload per type (`header` / `footer`).
+- Added API endpoint:
+  - `PUT /api/v1/menus/:type`
+- Extended seeding with baseline menu payloads:
+  - `menu/header`
+  - `menu/footer`
+- Added dashboard screen:
+  - `/store/:storeId/menus`
+- Integration tests now assert:
+  - menu fallback read behavior
+  - menu nested write/read round-trip for header/footer.

@@ -72,6 +72,22 @@ export class SeederService {
             await this.simulationLogic.createDataEntity(storeId, 'page', page, tx);
         }
 
+        // Seed Menus (header/footer)
+        await this.simulationLogic.upsertDataEntity(
+            storeId,
+            'menu',
+            'header',
+            this.generateHeaderMenu(categories),
+            tx
+        );
+        await this.simulationLogic.upsertDataEntity(
+            storeId,
+            'menu',
+            'footer',
+            this.generateFooterMenu(pages),
+            tx
+        );
+
         // Seed Blog Categories
         const blogCategories = Array.from({ length: 4 }).map((_, index) => this.generateBlogCategory(index + 1));
         for (const category of blogCategories) {
@@ -100,6 +116,7 @@ export class SeederService {
                 categories: 5,
                 products: productCount,
                 pages: pages.length,
+                menus: 2,
                 blogCategories: blogCategories.length,
                 blogArticles: blogArticles.length,
                 offers: offers.length
@@ -260,6 +277,55 @@ export class SeederService {
             image: SeederService.DEFAULT_LOCAL_IMAGE,
             url: `/offers/${slug}`,
             is_active: true
+        };
+    }
+
+    private generateHeaderMenu(categories: any[]) {
+        const categoryChildren = (categories || [])
+            .slice(0, 6)
+            .map((category: any, index: number) => ({
+                id: `header-category-${String(category?.id || index + 1)}`,
+                title: String(category?.name || `تصنيف ${index + 1}`),
+                url: String(category?.url || `/categories/${String(category?.id || index + 1)}`),
+                type: 'link',
+                order: index + 1,
+                children: [],
+                products: []
+            }));
+
+        return {
+            id: 'header',
+            type: 'header',
+            items: [
+                { id: 'header-home', title: 'الرئيسية', url: '/', type: 'link', order: 1, children: [], products: [] },
+                { id: 'header-products', title: 'المنتجات', url: '/products', type: 'link', order: 2, children: [], products: [] },
+                { id: 'header-categories', title: 'التصنيفات', url: '/categories', type: 'link', order: 3, children: categoryChildren, products: [] },
+                { id: 'header-brands', title: 'الماركات', url: '/brands', type: 'link', order: 4, children: [], products: [] },
+                { id: 'header-blog', title: 'المدونة', url: '/blog', type: 'link', order: 5, children: [], products: [] }
+            ]
+        };
+    }
+
+    private generateFooterMenu(pages: any[]) {
+        const pageChildren = (pages || [])
+            .slice(0, 6)
+            .map((page: any, index: number) => ({
+                id: `footer-page-${String(page?.id || index + 1)}`,
+                title: String(page?.title || `صفحة ${index + 1}`),
+                url: `/${String(page?.slug || page?.id || `page-${index + 1}`)}`,
+                type: 'link',
+                order: index + 1,
+                children: [],
+                products: []
+            }));
+
+        return {
+            id: 'footer',
+            type: 'footer',
+            items: [
+                { id: 'footer-pages', title: 'صفحات مهمة', url: '/pages', type: 'link', order: 1, children: pageChildren, products: [] },
+                { id: 'footer-contact', title: 'تواصل معنا', url: '/contact', type: 'link', order: 2, children: [], products: [] }
+            ]
         };
     }
 }

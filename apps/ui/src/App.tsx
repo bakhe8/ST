@@ -16,6 +16,7 @@ import StoreBlogCategories from './pages/StoreBlogCategories';
 import StoreBlogArticles from './pages/StoreBlogArticles';
 import StoreBrands from './pages/StoreBrands';
 import StoreOffers from './pages/StoreOffers';
+import StoreMenus from './pages/StoreMenus';
 
 const App = () => {
     return (
@@ -41,6 +42,7 @@ const App = () => {
                     <Route path="offers" element={<StoreOffers />} />
                     <Route path="categories" element={<StoreCategories />} />
                     <Route path="static-pages" element={<StoreStaticPages />} />
+                    <Route path="menus" element={<StoreMenus />} />
                     <Route path="blog/categories" element={<StoreBlogCategories />} />
                     <Route path="blog/articles" element={<StoreBlogArticles />} />
                     <Route path="settings" element={<StoreSettingsPanel />} />

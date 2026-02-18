@@ -214,6 +214,11 @@ export function createSimulatorRoutes(
         return res.status(response.status || 200).json(response);
     });
 
+    router.put('/menus/:type', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateMenus(req.storeId!, req.params.type as string, req.body);
+        return res.status(response.status || 200).json(response);
+    });
+
     router.get('/theme/settings', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.getThemeSettings(req.storeId!);
         if (!response) return fail(res, 404, 'Theme settings not found');

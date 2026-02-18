@@ -3,7 +3,7 @@
   "generatedFrom": {
     "apiIndex": "apps/api/src/index.ts"
   },
-  "totalEndpoints": 77,
+  "totalEndpoints": 78,
   "endpoints": [
     {
       "method": "GET",
@@ -232,6 +232,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/menus/:type",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
       "path": "/api/v1/menus/:type",
       "source": "apps/api/src/routes/simulator.routes.ts"
     },

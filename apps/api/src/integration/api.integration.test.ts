@@ -573,6 +573,100 @@ describe('VTDR API integration (Store-First)', () => {
         expect(deleteJson.data.items.length).toBe(0);
     });
 
+    it('supports menus read/write with nested items for preview navigation', async () => {
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Menus Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const initialHeaderRes = await fetch(`${baseUrl}/api/v1/menus/header`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(initialHeaderRes.status).toBe(200);
+        const initialHeaderJson: any = await initialHeaderRes.json();
+        expect(Array.isArray(initialHeaderJson.data)).toBe(true);
+        expect(initialHeaderJson.data.length).toBeGreaterThan(0);
+
+        const putHeaderRes = await fetch(`${baseUrl}/api/v1/menus/header`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                items: [
+                    {
+                        id: 'header-home',
+                        title: 'الرئيسية',
+                        url: '/',
+                        order: 1,
+                        children: []
+                    },
+                    {
+                        id: 'header-main',
+                        title: 'الأقسام',
+                        url: '/categories',
+                        order: 2,
+                        children: [
+                            {
+                                id: 'header-main-sub',
+                                title: 'قسم تجريبي',
+                                url: '/categories/demo',
+                                order: 1
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+        expect(putHeaderRes.status).toBe(200);
+        const putHeaderJson: any = await putHeaderRes.json();
+        expect(Array.isArray(putHeaderJson.data)).toBe(true);
+        expect(putHeaderJson.data.some((item: any) => item.id === 'header-main')).toBe(true);
+
+        const getHeaderRes = await fetch(`${baseUrl}/api/v1/menus/header`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getHeaderRes.status).toBe(200);
+        const getHeaderJson: any = await getHeaderRes.json();
+        const headerMain = (getHeaderJson.data || []).find((item: any) => item.id === 'header-main');
+        expect(headerMain).toBeTruthy();
+        expect(Array.isArray(headerMain.children)).toBe(true);
+        expect(headerMain.children[0]?.title).toBe('قسم تجريبي');
+
+        const putFooterRes = await fetch(`${baseUrl}/api/v1/menus/footer`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                items: [
+                    {
+                        id: 'footer-pages',
+                        title: 'روابط مهمة',
+                        url: '/pages',
+                        order: 1,
+                        children: []
+                    }
+                ]
+            })
+        });
+        expect(putFooterRes.status).toBe(200);
+
+        const getFooterRes = await fetch(`${baseUrl}/api/v1/menus/footer`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getFooterRes.status).toBe(200);
+        const getFooterJson: any = await getFooterRes.json();
+        expect(Array.isArray(getFooterJson.data)).toBe(true);
+        expect(getFooterJson.data[0]?.title).toBe('روابط مهمة');
+    });
+
     it('supports brands/offers CRUD and propagates brand options into theme components', async () => {
         const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
         expect(syncThemesRes.status).toBe(200);

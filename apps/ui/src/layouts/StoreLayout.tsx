@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useParams, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Palette, Settings, ArrowLeft, Book, Folder, Newspaper, Tags, Gem, BadgePercent } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Palette, Settings, ArrowLeft, Book, Folder, Newspaper, Tags, Gem, BadgePercent, ListTree } from 'lucide-react';
 
 const StoreLayout = () => {
     const { storeId } = useParams();
@@ -14,6 +14,7 @@ const StoreLayout = () => {
         { id: 'categories', label: 'الأقسام', icon: Folder, path: `/store/${storeId}/categories` },
         { id: 'offers', label: 'العروض الخاصة', icon: BadgePercent, path: `/store/${storeId}/offers` },
         { id: 'static-pages', label: 'الصفحات الثابتة', icon: Book, path: `/store/${storeId}/static-pages` },
+        { id: 'menus', label: 'قوائم التنقل', icon: ListTree, path: `/store/${storeId}/menus` },
         { id: 'blog-categories', label: 'تصنيفات المدونة', icon: Tags, path: `/store/${storeId}/blog/categories` },
         { id: 'blog-articles', label: 'مقالات المدونة', icon: Newspaper, path: `/store/${storeId}/blog/articles` },
         { id: 'theme', label: 'تخصيص الثيم', icon: Palette, path: `/store/${storeId}/theme` },
