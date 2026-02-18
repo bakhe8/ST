@@ -3,7 +3,7 @@
   "generatedFrom": {
     "apiIndex": "apps/api/src/index.ts"
   },
-  "totalEndpoints": 67,
+  "totalEndpoints": 77,
   "endpoints": [
     {
       "method": "GET",
@@ -162,6 +162,31 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/brands",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/brands",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/brands/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/brands/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/brands/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/cart",
       "source": "apps/api/src/routes/simulator.routes.ts"
     },
@@ -208,6 +233,31 @@
     {
       "method": "GET",
       "path": "/api/v1/menus/:type",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/offers",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/offers",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/offers/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/offers/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/offers/:id",
       "source": "apps/api/src/routes/simulator.routes.ts"
     },
     {

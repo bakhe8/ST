@@ -573,6 +573,140 @@ describe('VTDR API integration (Store-First)', () => {
         expect(deleteJson.data.items.length).toBe(0);
     });
 
+    it('supports brands/offers CRUD and propagates brand options into theme components', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Brand Offer Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const createBrandRes = await fetch(`${baseUrl}/api/v1/brands`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'brand-vtdr',
+                name: 'VTDR Brand',
+                logo: '/themes/theme-raed-master/public/images/placeholder.png',
+                banner: '/themes/theme-raed-master/public/images/placeholder.png'
+            })
+        });
+        expect(createBrandRes.status).toBe(201);
+
+        const listBrandsRes = await fetch(`${baseUrl}/api/v1/brands`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(listBrandsRes.status).toBe(200);
+        const listBrandsJson: any = await listBrandsRes.json();
+        expect(Array.isArray(listBrandsJson.data)).toBe(true);
+        expect(listBrandsJson.data.some((entry: any) => entry.id === 'brand-vtdr')).toBe(true);
+
+        const themeComponentsRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(themeComponentsRes.status).toBe(200);
+        const themeComponentsJson: any = await themeComponentsRes.json();
+        const homeBrands = (themeComponentsJson.data.components || []).find((c: any) => c.path === 'home.brands');
+        const brandsField = homeBrands?.fields?.find((f: any) => f.id === 'brands');
+        expect(Array.isArray(brandsField?.options)).toBe(true);
+        expect(brandsField.options.some((opt: any) => opt.value === 'brand-vtdr')).toBe(true);
+
+        const updateBrandRes = await fetch(`${baseUrl}/api/v1/brands/brand-vtdr`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({ name: 'VTDR Brand Updated' })
+        });
+        expect(updateBrandRes.status).toBe(200);
+
+        const getBrandRes = await fetch(`${baseUrl}/api/v1/brands/brand-vtdr`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getBrandRes.status).toBe(200);
+        const getBrandJson: any = await getBrandRes.json();
+        expect(getBrandJson.data.name).toBe('VTDR Brand Updated');
+
+        const createOfferRes = await fetch(`${baseUrl}/api/v1/offers`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'offer-vtdr',
+                title: 'VTDR Offer',
+                discount_type: 'percentage',
+                discount_value: 15,
+                starts_at: '2026-02-01',
+                ends_at: '2026-12-31',
+                is_active: true
+            })
+        });
+        expect(createOfferRes.status).toBe(201);
+
+        const listOffersRes = await fetch(`${baseUrl}/api/v1/offers`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(listOffersRes.status).toBe(200);
+        const listOffersJson: any = await listOffersRes.json();
+        expect(Array.isArray(listOffersJson.data)).toBe(true);
+        expect(listOffersJson.data.some((entry: any) => entry.id === 'offer-vtdr')).toBe(true);
+
+        const updateOfferRes = await fetch(`${baseUrl}/api/v1/offers/offer-vtdr`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                discount_value: 25,
+                is_active: false
+            })
+        });
+        expect(updateOfferRes.status).toBe(200);
+
+        const getOfferRes = await fetch(`${baseUrl}/api/v1/offers/offer-vtdr`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getOfferRes.status).toBe(200);
+        const getOfferJson: any = await getOfferRes.json();
+        expect(getOfferJson.data.discount_value).toBe(25);
+        expect(getOfferJson.data.is_active).toBe(false);
+
+        const deleteBrandRes = await fetch(`${baseUrl}/api/v1/brands/brand-vtdr`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteBrandRes.status).toBe(200);
+
+        const themeComponentsAfterDeleteRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(themeComponentsAfterDeleteRes.status).toBe(200);
+        const themeComponentsAfterDeleteJson: any = await themeComponentsAfterDeleteRes.json();
+        const homeBrandsAfterDelete = (themeComponentsAfterDeleteJson.data.components || []).find((c: any) => c.path === 'home.brands');
+        const brandsFieldAfterDelete = homeBrandsAfterDelete?.fields?.find((f: any) => f.id === 'brands');
+        expect(Array.isArray(brandsFieldAfterDelete?.options)).toBe(true);
+        expect(brandsFieldAfterDelete.options.some((opt: any) => opt.value === 'brand-vtdr')).toBe(false);
+
+        const deleteOfferRes = await fetch(`${baseUrl}/api/v1/offers/offer-vtdr`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteOfferRes.status).toBe(200);
+
+        const offersAfterDeleteRes = await fetch(`${baseUrl}/api/v1/offers`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(offersAfterDeleteRes.status).toBe(200);
+        const offersAfterDeleteJson: any = await offersAfterDeleteRes.json();
+        expect(offersAfterDeleteJson.data.some((entry: any) => entry.id === 'offer-vtdr')).toBe(false);
+    });
+
     it('supports blog content CRUD and propagates to theme variable-list options', async () => {
         const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
         expect(syncThemesRes.status).toBe(200);

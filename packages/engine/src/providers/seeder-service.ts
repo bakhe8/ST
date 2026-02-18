@@ -86,6 +86,12 @@ export class SeederService {
             await this.simulationLogic.createDataEntity(storeId, 'blog_article', article, tx);
         }
 
+        // Seed Special Offers
+        const offers = Array.from({ length: 4 }).map((_, index) => this.generateSpecialOffer(index + 1));
+        for (const offer of offers) {
+            await this.simulationLogic.createDataEntity(storeId, 'specialOffer', offer, tx);
+        }
+
         return {
             success: true,
             stats: {
@@ -95,7 +101,8 @@ export class SeederService {
                 products: productCount,
                 pages: pages.length,
                 blogCategories: blogCategories.length,
-                blogArticles: blogArticles.length
+                blogArticles: blogArticles.length,
+                offers: offers.length
             }
         };
     }
@@ -234,6 +241,25 @@ export class SeederService {
                 : undefined,
             published_at: new Date(Date.now() - index * 86400000).toISOString(),
             is_published: true
+        };
+    }
+
+    private generateSpecialOffer(index: number) {
+        const title = `عرض خاص ${index}`;
+        const slug = this.slugify(`special-offer-${index}-${this.randomString(4)}`);
+        return {
+            id: `offer_${this.randomString(10)}`,
+            name: title,
+            title,
+            slug,
+            description: `تفاصيل ${title}`,
+            discount_type: index % 2 === 0 ? 'fixed' : 'percentage',
+            discount_value: index % 2 === 0 ? this.randomNumber(10, 40) : this.randomNumber(5, 30),
+            starts_at: new Date(Date.now() - index * 86400000).toISOString(),
+            ends_at: new Date(Date.now() + (7 + index) * 86400000).toISOString(),
+            image: SeederService.DEFAULT_LOCAL_IMAGE,
+            url: `/offers/${slug}`,
+            is_active: true
         };
     }
 }

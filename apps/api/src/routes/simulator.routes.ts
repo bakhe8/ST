@@ -59,6 +59,32 @@ export function createSimulatorRoutes(
         return res.status(response.status || 200).json(response);
     });
 
+    router.get('/brands', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBrands(req.storeId!);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/brands/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBrand(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Brand not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/brands', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createBrand(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/brands/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateBrand(req.storeId!, req.params.id as string, req.body);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/brands/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteBrand(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
     router.get('/categories', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.getCategories(req.storeId!);
         return res.status(response.status || 200).json(response);
@@ -82,6 +108,32 @@ export function createSimulatorRoutes(
 
     router.delete('/categories/:id', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.deleteCategory(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/offers', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getOffers(req.storeId!);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/offers/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getOffer(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Offer not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/offers', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createOffer(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/offers/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateOffer(req.storeId!, req.params.id as string, req.body);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/offers/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteOffer(req.storeId!, req.params.id as string);
         return res.status(response.status || 200).json(response);
     });
 

@@ -243,6 +243,51 @@ export class SimulatorService {
         };
     }
 
+    private normalizeBrandPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const name = this.pickLocalizedText(base?.name || base?.title || key);
+        const slug = this.slugify(base?.slug || name, 'brand');
+        const logo = this.sanitizeImageUrl(base?.logo || base?.image?.url) || this.defaultProductPlaceholder;
+        const banner = this.sanitizeImageUrl(base?.banner || base?.cover?.url || base?.header_image);
+
+        return {
+            ...base,
+            id: key,
+            name,
+            title: this.pickLocalizedText(base?.title || name),
+            slug,
+            url: this.pickLocalizedText(base?.url || `/brands/${slug}`),
+            description: this.pickLocalizedText(base?.description || ''),
+            logo,
+            banner: banner || undefined,
+            order: Number.isFinite(Number(base?.order)) ? Number(base.order) : 0
+        };
+    }
+
+    private normalizeOfferPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const title = this.pickLocalizedText(base?.title || base?.name || key);
+        const slug = this.slugify(base?.slug || title, 'offer');
+        const image = this.sanitizeImageUrl(base?.image || base?.cover?.url) || this.defaultProductPlaceholder;
+        const discountValue = this.toNumber(base?.discount_value ?? base?.value ?? base?.discount, 0);
+
+        return {
+            ...base,
+            id: key,
+            name: this.pickLocalizedText(base?.name || title),
+            title,
+            slug,
+            description: this.pickLocalizedText(base?.description || ''),
+            url: this.pickLocalizedText(base?.url || `/offers/${slug}`),
+            image,
+            discount_type: this.pickLocalizedText(base?.discount_type || base?.type || 'percentage'),
+            discount_value: discountValue,
+            starts_at: this.pickLocalizedText(base?.starts_at || base?.start_at || ''),
+            ends_at: this.pickLocalizedText(base?.ends_at || base?.end_at || ''),
+            is_active: base?.is_active !== false
+        };
+    }
+
     private normalizeQuantity(value: any, fallback = 1) {
         const parsed = Number(value);
         if (!Number.isFinite(parsed)) return fallback;
@@ -291,6 +336,14 @@ export class SimulatorService {
             this.storeLogic.getDataEntities(storeId, 'blog_articles')
         ]);
         return [...(primary || []), ...(alt || [])];
+    }
+
+    private async getSpecialOffersRaw(storeId: string) {
+        const [specialOffers, offers] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'specialOffer'),
+            this.storeLogic.getDataEntities(storeId, 'offer')
+        ]);
+        return [...(specialOffers || []), ...(offers || [])];
     }
 
     private normalizeBlogCategoryPayload(data: any, key: string) {
@@ -389,6 +442,7 @@ export class SimulatorService {
         if (source === 'products') return this.pickLocalizedText(item?.url || `/products/${idOrSlug || ''}`);
         if (source === 'categories') return this.pickLocalizedText(item?.url || `/categories/${idOrSlug || ''}`);
         if (source === 'brands') return this.pickLocalizedText(item?.url || `/brands/${idOrSlug || ''}`);
+        if (source === 'offers') return this.pickLocalizedText(item?.url || `/offers/${idOrSlug || ''}`);
         if (source === 'pages') return this.pickLocalizedText(item?.url || `/pages/${idOrSlug || ''}`);
         if (source === 'blog_articles') return this.pickLocalizedText(item?.url || `/blog/${idOrSlug || ''}`);
         if (source === 'blog_categories') return this.pickLocalizedText(item?.url || `/blog/categories/${idOrSlug || ''}`);
@@ -761,6 +815,116 @@ export class SimulatorService {
         };
     }
 
+    public async getBrands(storeId: string) {
+        const brands = await this.storeLogic.getDataEntities(storeId, 'brand');
+        const normalized = (brands || []).map((brand: any) =>
+            this.normalizeBrandPayload(brand, String(brand?.id || this.generateEntityId('brand')))
+        );
+        return this.wrapResponse(this.mapToSchema(normalized, 'brand'));
+    }
+
+    public async getBrand(storeId: string, brandId: string) {
+        const brands = await this.storeLogic.getDataEntities(storeId, 'brand');
+        const brand = (brands || []).find((entry: any) => String(entry?.id || '') === String(brandId));
+        if (!brand) return null;
+        const normalized = this.normalizeBrandPayload(brand, String(brand.id));
+        return this.wrapResponse(this.mapToSchema(normalized, 'brand'));
+    }
+
+    public async createBrand(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('brand'));
+        const payload = this.normalizeBrandPayload(data, key);
+        await this.storeLogic.upsertDataEntity(storeId, 'brand', key, payload);
+        return this.wrapResponse(this.mapToSchema(payload, 'brand'), 201);
+    }
+
+    public async updateBrand(storeId: string, brandId: string, data: any) {
+        const current = await this.storeLogic.getDataEntity(storeId, 'brand', brandId);
+        const payload = this.normalizeBrandPayload({ ...(current || {}), ...(data || {}) }, brandId);
+        await this.storeLogic.upsertDataEntity(storeId, 'brand', brandId, payload);
+        return this.wrapResponse(this.mapToSchema(payload, 'brand'));
+    }
+
+    public async deleteBrand(storeId: string, brandId: string) {
+        const id = String(brandId);
+        const products = await this.storeLogic.getDataEntities(storeId, 'product');
+        let updatedProducts = 0;
+
+        for (const product of products || []) {
+            const productId = String(product?.id || this.generateEntityId('product'));
+            const currentBrandId = String(product?.brand?.id ?? product?.brand_id ?? '').trim();
+            if (currentBrandId !== id) continue;
+
+            const payload = await this.normalizeProductPayload(
+                storeId,
+                {
+                    ...product,
+                    brand: undefined,
+                    brand_id: ''
+                },
+                productId
+            );
+            await this.storeLogic.upsertDataEntity(storeId, 'product', productId, payload);
+            updatedProducts++;
+        }
+
+        await this.storeLogic.deleteDataEntity(storeId, 'brand', id);
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id,
+                deleted: true,
+                updatedProducts
+            }
+        };
+    }
+
+    public async getOffers(storeId: string) {
+        const offers = await this.getSpecialOffersRaw(storeId);
+        const normalized = (offers || []).map((offer: any) =>
+            this.normalizeOfferPayload(offer, String(offer?.id || this.generateEntityId('offer')))
+        );
+        return this.wrapResponse(normalized);
+    }
+
+    public async getOffer(storeId: string, offerId: string) {
+        const offers = await this.getSpecialOffersRaw(storeId);
+        const offer = (offers || []).find((entry: any) => String(entry?.id || '') === String(offerId));
+        if (!offer) return null;
+        const normalized = this.normalizeOfferPayload(offer, String(offer.id));
+        return this.wrapResponse(normalized);
+    }
+
+    public async createOffer(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('offer'));
+        const payload = this.normalizeOfferPayload(data, key);
+        await this.storeLogic.upsertDataEntity(storeId, 'specialOffer', key, payload);
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateOffer(storeId: string, offerId: string, data: any) {
+        const currentPrimary = await this.storeLogic.getDataEntity(storeId, 'specialOffer', offerId);
+        const currentFallback = currentPrimary || await this.storeLogic.getDataEntity(storeId, 'offer', offerId);
+        const payload = this.normalizeOfferPayload({ ...(currentFallback || {}), ...(data || {}) }, offerId);
+        await this.storeLogic.upsertDataEntity(storeId, 'specialOffer', offerId, payload);
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteOffer(storeId: string, offerId: string) {
+        const id = String(offerId);
+        await this.storeLogic.deleteDataEntity(storeId, 'specialOffer', id);
+        await this.storeLogic.deleteDataEntity(storeId, 'offer', id);
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id,
+                deleted: true
+            }
+        };
+    }
+
     public async getMenus(storeId: string, type: string) {
         // Return a mock menu structure that Salla themes expect
         const menus = [
@@ -943,6 +1107,7 @@ export class SimulatorService {
                         productsRaw,
                         categoriesRaw,
                         brandsRaw,
+                        offersRaw,
                         pagesRaw,
                         blogArticlesRaw,
                         blogArticlesAltRaw,
@@ -952,6 +1117,7 @@ export class SimulatorService {
                         this.storeLogic.getDataEntities(storeId, 'product'),
                         this.storeLogic.getDataEntities(storeId, 'category'),
                         this.storeLogic.getDataEntities(storeId, 'brand'),
+                        this.getSpecialOffersRaw(storeId),
                         this.storeLogic.getDataEntities(storeId, 'page'),
                         this.storeLogic.getDataEntities(storeId, 'blog_article'),
                         this.storeLogic.getDataEntities(storeId, 'blog_articles'),
@@ -975,11 +1141,17 @@ export class SimulatorService {
                         )
                     );
                     const brands = (brandsRaw || []).map((brand: any) => ({
-                        ...(brand || {}),
-                        id: String(brand?.id || this.generateEntityId('brand')),
-                        name: this.pickLocalizedText(brand?.name || brand?.title || brand?.id || 'Brand'),
-                        logo: this.sanitizeImageUrl(brand?.logo) || this.defaultProductPlaceholder
+                        ...this.normalizeBrandPayload(
+                            brand,
+                            String(brand?.id || this.generateEntityId('brand'))
+                        )
                     }));
+                    const offers = (offersRaw || []).map((offer: any) =>
+                        this.normalizeOfferPayload(
+                            offer,
+                            String(offer?.id || this.generateEntityId('offer'))
+                        )
+                    );
                     const pages = (pagesRaw || []).map((page: any) => {
                         const id = this.getSourceEntityKey(page, 'page');
                         const slug = String(page?.slug || id);
@@ -1023,6 +1195,7 @@ export class SimulatorService {
                         products,
                         categories,
                         brands,
+                        offers,
                         pages,
                         blog_articles: blogArticles,
                         blog_categories: blogCategories,

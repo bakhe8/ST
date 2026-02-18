@@ -53,7 +53,7 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
-`Slice-03: Blog Content Parity (Categories + Articles)`
+`Slice-04: Brands + Offers Parity`
 
 ### Slice-01 Scope
 - Product shape unification:
@@ -124,7 +124,7 @@ Each slice is closed only when all are done:
   - integration coverage for blog CRUD and variable-list propagation.
 
 ### Slice-03 Status
-- In progress: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+- Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-03 Progress Notes
 - Added simulator routes under `/api/v1/blog/categories*` and `/api/v1/blog/articles*`.
@@ -136,3 +136,32 @@ Each slice is closed only when all are done:
 - Integration tests now assert:
   - blog CRUD behavior
   - population of `variable-list` options for `blog_articles/blog_categories`.
+
+## Slice-04 Scope
+- Brands domain parity:
+  - `brands` CRUD APIs with normalized payload (`id/name/title/slug/url/logo/banner/order`).
+  - Dashboard management screen for brands.
+  - Theme component options must reflect brand CRUD changes immediately.
+- Offers domain parity:
+  - `offers` CRUD APIs with normalized payload (`title/slug/discount_type/discount_value/starts_at/ends_at/is_active`).
+  - Dashboard management screen for special offers.
+  - Seed must include realistic special offers for immediate store realism.
+- Tests:
+  - integration coverage for brand CRUD + offer CRUD + brand option propagation into `theme/components`.
+
+### Slice-04 Status
+- In progress: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+
+### Slice-04 Progress Notes
+- Added simulator routes under:
+  - `/api/v1/brands*`
+  - `/api/v1/offers*`
+- Added simulator-service normalization and persistence flows for brand/offer payloads.
+- Extended seeding to generate `specialOffer` entities with active discount windows.
+- Added dashboard screens:
+  - `/store/:storeId/brands`
+  - `/store/:storeId/offers`
+- Integration tests now assert:
+  - brand CRUD behavior
+  - offer CRUD behavior
+  - immediate propagation of brand updates/deletion into `theme/components` selectable options.

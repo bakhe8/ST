@@ -14,6 +14,8 @@ import StoreStaticPages from './pages/StoreStaticPages';
 import StoreThemeComponents from './pages/StoreThemeComponents';
 import StoreBlogCategories from './pages/StoreBlogCategories';
 import StoreBlogArticles from './pages/StoreBlogArticles';
+import StoreBrands from './pages/StoreBrands';
+import StoreOffers from './pages/StoreOffers';
 
 const App = () => {
     return (
@@ -35,6 +37,8 @@ const App = () => {
                     <Route index element={<StoreDashboard />} />
                     <Route path="products" element={<StoreProducts />} />
                     <Route path="products/:productId/edit" element={<EditProduct />} />
+                    <Route path="brands" element={<StoreBrands />} />
+                    <Route path="offers" element={<StoreOffers />} />
                     <Route path="categories" element={<StoreCategories />} />
                     <Route path="static-pages" element={<StoreStaticPages />} />
                     <Route path="blog/categories" element={<StoreBlogCategories />} />
