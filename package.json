@@ -10,6 +10,7 @@
         "dev": "turbo dev",
         "build": "turbo build",
         "test": "turbo test",
+        "test:contract:theme-runtime": "turbo test --filter=@vtdr/api -- --run src/integration/theme-runtime-contract.integration.test.ts",
         "lint": "turbo lint",
         "data:harden:check": "npm exec tsx tools/data-hardening/harden-store-data.mts",
         "data:harden": "npm exec tsx tools/data-hardening/harden-store-data.mts -- --write",

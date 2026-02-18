@@ -22,3 +22,22 @@ jobs:
 
       - name: Run validation pipeline
         run: npm run validate
+
+  theme-runtime-contract:
+    name: Theme Runtime Contract Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Theme Runtime Contract v1
+        run: npm run test:contract:theme-runtime
