@@ -17,6 +17,8 @@ import StoreBlogArticles from './pages/StoreBlogArticles';
 import StoreBrands from './pages/StoreBrands';
 import StoreOffers from './pages/StoreOffers';
 import StoreMenus from './pages/StoreMenus';
+import StoreReviews from './pages/StoreReviews';
+import StoreQuestions from './pages/StoreQuestions';
 
 const App = () => {
     return (
@@ -40,6 +42,8 @@ const App = () => {
                     <Route path="products/:productId/edit" element={<EditProduct />} />
                     <Route path="brands" element={<StoreBrands />} />
                     <Route path="offers" element={<StoreOffers />} />
+                    <Route path="reviews" element={<StoreReviews />} />
+                    <Route path="questions" element={<StoreQuestions />} />
                     <Route path="categories" element={<StoreCategories />} />
                     <Route path="static-pages" element={<StoreStaticPages />} />
                     <Route path="menus" element={<StoreMenus />} />

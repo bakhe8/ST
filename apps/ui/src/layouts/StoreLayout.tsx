@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useParams, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Palette, Settings, ArrowLeft, Book, Folder, Newspaper, Tags, Gem, BadgePercent, ListTree } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Palette, Settings, ArrowLeft, Book, Folder, Newspaper, Tags, Gem, BadgePercent, ListTree, MessageSquare, HelpCircle } from 'lucide-react';
 
 const StoreLayout = () => {
     const { storeId } = useParams();
@@ -13,6 +13,8 @@ const StoreLayout = () => {
         { id: 'brands', label: 'الماركات', icon: Gem, path: `/store/${storeId}/brands` },
         { id: 'categories', label: 'الأقسام', icon: Folder, path: `/store/${storeId}/categories` },
         { id: 'offers', label: 'العروض الخاصة', icon: BadgePercent, path: `/store/${storeId}/offers` },
+        { id: 'reviews', label: 'تقييمات المنتجات', icon: MessageSquare, path: `/store/${storeId}/reviews` },
+        { id: 'questions', label: 'الأسئلة والأجوبة', icon: HelpCircle, path: `/store/${storeId}/questions` },
         { id: 'static-pages', label: 'الصفحات الثابتة', icon: Book, path: `/store/${storeId}/static-pages` },
         { id: 'menus', label: 'قوائم التنقل', icon: ListTree, path: `/store/${storeId}/menus` },
         { id: 'blog-categories', label: 'تصنيفات المدونة', icon: Tags, path: `/store/${storeId}/blog/categories` },

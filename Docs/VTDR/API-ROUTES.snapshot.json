@@ -3,7 +3,7 @@
   "generatedFrom": {
     "apiIndex": "apps/api/src/index.ts"
   },
-  "totalEndpoints": 78,
+  "totalEndpoints": 90,
   "endpoints": [
     {
       "method": "GET",
@@ -288,6 +288,66 @@
     {
       "method": "PUT",
       "path": "/api/v1/products/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/:id/questions",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/products/:id/reviews",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/questions",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/questions",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/questions/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/questions/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/questions/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reviews",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reviews",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/reviews/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reviews/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/reviews/:id",
       "source": "apps/api/src/routes/simulator.routes.ts"
     },
     {

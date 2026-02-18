@@ -56,9 +56,11 @@ export class SeederService {
         }
 
         // Seed Products
+        const seededProducts: any[] = [];
         for (let i = 0; i < productCount; i++) {
             const product = this.generateProduct(brands, categories);
             await (this.simulationLogic as any).createDataEntity(storeId, 'product', product, tx);
+            seededProducts.push(product);
         }
 
         // Seed Static Pages
@@ -108,6 +110,28 @@ export class SeederService {
             await this.simulationLogic.createDataEntity(storeId, 'specialOffer', offer, tx);
         }
 
+        // Seed Reviews (derived from product comments for rating consistency)
+        const reviews: any[] = [];
+        for (const product of seededProducts) {
+            const comments = Array.isArray(product?.comments) ? product.comments : [];
+            for (const comment of comments) {
+                const review = this.generateReviewFromComment(product, comment);
+                reviews.push(review);
+                await this.simulationLogic.createDataEntity(storeId, 'review', review, tx);
+            }
+        }
+
+        // Seed Questions
+        const questions: any[] = [];
+        for (const product of seededProducts.slice(0, Math.min(seededProducts.length, 12))) {
+            const totalQuestions = this.randomNumber(1, 3);
+            for (let i = 0; i < totalQuestions; i++) {
+                const question = this.generateQuestionForProduct(product, i + 1);
+                questions.push(question);
+                await this.simulationLogic.createDataEntity(storeId, 'question', question, tx);
+            }
+        }
+
         return {
             success: true,
             stats: {
@@ -119,7 +143,9 @@ export class SeederService {
                 menus: 2,
                 blogCategories: blogCategories.length,
                 blogArticles: blogArticles.length,
-                offers: offers.length
+                offers: offers.length,
+                reviews: reviews.length,
+                questions: questions.length
             }
         };
     }
@@ -326,6 +352,38 @@ export class SeederService {
                 { id: 'footer-pages', title: 'صفحات مهمة', url: '/pages', type: 'link', order: 1, children: pageChildren, products: [] },
                 { id: 'footer-contact', title: 'تواصل معنا', url: '/contact', type: 'link', order: 2, children: [], products: [] }
             ]
+        };
+    }
+
+    private generateReviewFromComment(product: any, comment: any) {
+        const productId = String(product?.id || '');
+        return {
+            id: `review_${this.randomString(10)}`,
+            product_id: productId,
+            stars: Math.min(5, Math.max(1, Number(comment?.stars || this.randomNumber(3, 5)))),
+            content: String(comment?.content || `تجربة ممتازة للمنتج ${product?.name || ''}`),
+            customer_name: String(comment?.customer?.name || `عميل ${this.randomString(4)}`),
+            customer_avatar: String(comment?.customer?.avatar || SeederService.DEFAULT_LOCAL_IMAGE),
+            is_published: true,
+            created_at: String(comment?.created_at || new Date().toISOString())
+        };
+    }
+
+    private generateQuestionForProduct(product: any, index: number) {
+        const productId = String(product?.id || '');
+        const answered = this.randomBoolean();
+        const questionText = `هل يتوفر ${product?.name || 'هذا المنتج'} بمقاسات مختلفة؟`;
+        return {
+            id: `question_${this.randomString(10)}`,
+            product_id: productId,
+            question: questionText,
+            answer: answered ? 'نعم، المنتج متوفر بعدة خيارات داخل صفحة المنتج.' : '',
+            is_answered: answered,
+            customer_name: `زائر ${this.randomString(4)}`,
+            customer_avatar: SeederService.DEFAULT_LOCAL_IMAGE,
+            is_published: true,
+            created_at: new Date(Date.now() - index * 3600000).toISOString(),
+            answered_at: answered ? new Date().toISOString() : ''
         };
     }
 }

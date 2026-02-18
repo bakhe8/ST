@@ -33,7 +33,8 @@ Raise VTDR store realism so theme design/customization decisions are based on re
 1. Checkout simulation depth:
    - shipping zones, taxes, payment methods, coupon effects.
 2. Content domains:
-   - blog/posts, reviews/questions, offers, announcements.
+   - announcements.
+   - advanced moderation/state flows for blog/posts, reviews/questions, and offers.
 3. Inventory + merchandising behavior:
    - stock rules, out-of-stock states, product sorting/filters.
 4. Sync maturity:
@@ -53,7 +54,7 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
-`Slice-05: Navigation Menus Parity`
+`Slice-07: Inventory + Merchandising Visual Parity`
 
 ### Slice-01 Scope
 - Product shape unification:
@@ -196,3 +197,48 @@ Each slice is closed only when all are done:
 - Integration tests now assert:
   - menu fallback read behavior
   - menu nested write/read round-trip for header/footer.
+
+## Slice-06 Scope
+- Reviews parity:
+  - `reviews` CRUD APIs with normalized payload shape (`title/content/stars/customer_name/is_published/is_verified/product_id`).
+  - Dashboard management screen for product reviews.
+- Questions parity:
+  - `questions` CRUD APIs with normalized payload shape (`question/answer/customer_name/is_answered/is_published/product_id`).
+  - Dashboard management screen for product Q&A.
+- Product visual feedback coupling:
+  - product `rating` and `comments` must be recomputed from published reviews.
+  - product `questions` and `questions_count` must be recomputed from question entities.
+- Theme authoring impact:
+  - `theme/components` sources must expose `reviews` and `questions` options for variable-list flows.
+- Tests:
+  - integration coverage for review/question CRUD and feedback metric propagation into products.
+
+### Slice-06 Status
+- Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+
+### Slice-06 Progress Notes
+- Added simulator routes under:
+  - `/api/v1/reviews*`
+  - `/api/v1/questions*`
+  - `/api/v1/products/:id/reviews`
+  - `/api/v1/products/:id/questions`
+- Added simulator-service normalization + persistence flows for reviews/questions with store-safe product resolution.
+- Added feedback metric recomputation after review/question mutations:
+  - `rating.stars`, `rating.count`
+  - `comments[]`
+  - `questions[]`, `questions_count`
+- Extended seeding with realistic review/question entities per store to keep preview behavior populated.
+- Added dashboard screens:
+  - `/store/:storeId/reviews`
+  - `/store/:storeId/questions`
+- Integration tests now assert:
+  - review CRUD behavior
+  - question CRUD behavior
+  - product feedback metric recomputation and propagation.
+
+### Slice-06 Exit Criteria
+1. Review create/update/delete updates product rating/comments deterministically.
+2. Question create/update/delete updates product questions/questions_count deterministically.
+3. Review/question CRUD is available via dedicated dashboard screens.
+4. `theme/components` includes usable `reviews/questions` data sources.
+5. Integration tests remain green under `npm run validate`.

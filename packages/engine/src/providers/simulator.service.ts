@@ -505,6 +505,179 @@ export class SimulatorService {
         return [...(specialOffers || []), ...(offers || [])];
     }
 
+    private async getReviewsRaw(storeId: string) {
+        const [primary, alt] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'review'),
+            this.storeLogic.getDataEntities(storeId, 'product_review')
+        ]);
+        return [...(primary || []), ...(alt || [])];
+    }
+
+    private async getQuestionsRaw(storeId: string) {
+        const [primary, alt] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'question'),
+            this.storeLogic.getDataEntities(storeId, 'product_question')
+        ]);
+        return [...(primary || []), ...(alt || [])];
+    }
+
+    private normalizeReviewPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const productId = String(
+            base?.product_id ??
+            base?.productId ??
+            base?.product?.id ??
+            ''
+        ).trim();
+        const stars = Math.min(5, Math.max(1, Math.round(this.toNumber(base?.stars ?? base?.rating ?? 5, 5))));
+        const customerName = this.pickLocalizedText(base?.customer_name || base?.customer?.name || 'عميل المتجر');
+        const customerAvatar = this.sanitizeImageUrl(base?.customer_avatar || base?.customer?.avatar || '') || this.defaultProductPlaceholder;
+        const content = this.pickLocalizedText(base?.content || base?.comment || base?.text || '');
+
+        return {
+            ...base,
+            id: key,
+            product_id: productId,
+            stars,
+            content,
+            customer_name: customerName,
+            customer_avatar: customerAvatar,
+            customer: {
+                id: String(base?.customer?.id || this.generateEntityId('customer')),
+                name: customerName,
+                avatar: customerAvatar
+            },
+            is_published: base?.is_published !== false,
+            created_at: this.pickLocalizedText(base?.created_at || new Date().toISOString())
+        };
+    }
+
+    private normalizeQuestionPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const productId = String(
+            base?.product_id ??
+            base?.productId ??
+            base?.product?.id ??
+            ''
+        ).trim();
+        const customerName = this.pickLocalizedText(base?.customer_name || base?.customer?.name || 'زائر');
+        const customerAvatar = this.sanitizeImageUrl(base?.customer_avatar || base?.customer?.avatar || '') || this.defaultProductPlaceholder;
+        const question = this.pickLocalizedText(base?.question || base?.title || base?.content || base?.text || '');
+        const answer = this.pickLocalizedText(base?.answer || base?.reply || '');
+        const isAnswered = base?.is_answered != null ? Boolean(base.is_answered) : Boolean(answer);
+
+        return {
+            ...base,
+            id: key,
+            product_id: productId,
+            question,
+            answer,
+            is_answered: isAnswered,
+            is_published: base?.is_published !== false,
+            customer_name: customerName,
+            customer_avatar: customerAvatar,
+            customer: {
+                id: String(base?.customer?.id || this.generateEntityId('customer')),
+                name: customerName,
+                avatar: customerAvatar
+            },
+            created_at: this.pickLocalizedText(base?.created_at || new Date().toISOString()),
+            answered_at: isAnswered
+                ? this.pickLocalizedText(base?.answered_at || base?.updated_at || new Date().toISOString())
+                : ''
+        };
+    }
+
+    private async resolveFeedbackProductId(storeId: string, rawProductId: any) {
+        const directId = String(rawProductId || '').trim();
+        if (directId) {
+            const existing = await this.storeLogic.getDataEntity(storeId, 'product', directId);
+            if (existing) return directId;
+        }
+
+        const products = await this.storeLogic.getDataEntities(storeId, 'product');
+        const fallback = String(products?.[0]?.id || '').trim();
+        return fallback || directId;
+    }
+
+    private async refreshProductFeedbackMetrics(storeId: string, productId: string) {
+        const normalizedProductId = String(productId || '').trim();
+        if (!normalizedProductId) return;
+
+        const currentProduct = await this.storeLogic.getDataEntity(storeId, 'product', normalizedProductId);
+        if (!currentProduct) return;
+
+        const [reviewsRaw, questionsRaw] = await Promise.all([
+            this.getReviewsRaw(storeId),
+            this.getQuestionsRaw(storeId)
+        ]);
+
+        const reviews = (reviewsRaw || [])
+            .map((entry: any) =>
+                this.normalizeReviewPayload(
+                    entry,
+                    String(entry?.id || this.generateEntityId('review'))
+                )
+            )
+            .filter((entry: any) => entry.product_id === normalizedProductId && entry.is_published !== false);
+
+        const questions = (questionsRaw || [])
+            .map((entry: any) =>
+                this.normalizeQuestionPayload(
+                    entry,
+                    String(entry?.id || this.generateEntityId('question'))
+                )
+            )
+            .filter((entry: any) => entry.product_id === normalizedProductId && entry.is_published !== false);
+
+        const comments = reviews.map((review: any) => ({
+            id: String(review.id),
+            stars: Number(review.stars || 0),
+            content: this.pickLocalizedText(review.content || ''),
+            created_at: this.pickLocalizedText(review.created_at || new Date().toISOString()),
+            customer: {
+                name: this.pickLocalizedText(review.customer_name || review.customer?.name || 'عميل المتجر'),
+                avatar: this.pickLocalizedText(review.customer_avatar || review.customer?.avatar || this.defaultProductPlaceholder)
+            }
+        }));
+
+        const ratingCount = comments.length;
+        const ratingStars = ratingCount > 0
+            ? Number((comments.reduce((sum: number, review: any) => sum + Number(review.stars || 0), 0) / ratingCount).toFixed(2))
+            : 0;
+
+        const questionsView = questions.map((question: any) => ({
+            id: String(question.id),
+            question: this.pickLocalizedText(question.question || ''),
+            answer: this.pickLocalizedText(question.answer || ''),
+            is_answered: Boolean(question.is_answered),
+            created_at: this.pickLocalizedText(question.created_at || new Date().toISOString()),
+            customer: {
+                name: this.pickLocalizedText(question.customer_name || question.customer?.name || 'زائر'),
+                avatar: this.pickLocalizedText(question.customer_avatar || question.customer?.avatar || this.defaultProductPlaceholder)
+            }
+        }));
+
+        const payload = await this.normalizeProductPayload(
+            storeId,
+            {
+                ...currentProduct,
+                comments,
+                rating: ratingCount > 0
+                    ? {
+                        stars: ratingStars,
+                        count: ratingCount
+                    }
+                    : undefined,
+                questions: questionsView,
+                questions_count: questionsView.length
+            },
+            normalizedProductId
+        );
+
+        await this.storeLogic.upsertDataEntity(storeId, 'product', normalizedProductId, payload);
+    }
+
     private normalizeBlogCategoryPayload(data: any, key: string) {
         const base = this.normalizeEntityPayload(data, key);
         const title = this.pickLocalizedText(base?.title || base?.name || key);
@@ -605,6 +778,8 @@ export class SimulatorService {
         if (source === 'pages') return this.pickLocalizedText(item?.url || `/pages/${idOrSlug || ''}`);
         if (source === 'blog_articles') return this.pickLocalizedText(item?.url || `/blog/${idOrSlug || ''}`);
         if (source === 'blog_categories') return this.pickLocalizedText(item?.url || `/blog/categories/${idOrSlug || ''}`);
+        if (source === 'reviews') return this.pickLocalizedText(item?.url || `/products/${item?.product_id || ''}#reviews`);
+        if (source === 'questions') return this.pickLocalizedText(item?.url || `/products/${item?.product_id || ''}#questions`);
         if (source === 'offers_link') return '/offers';
         if (source === 'brands_link') return '/brands';
         if (source === 'blog_link') return '/blog';
@@ -1084,6 +1259,154 @@ export class SimulatorService {
         };
     }
 
+    public async getReviews(storeId: string, productId?: string) {
+        const normalizedProductId = String(productId || '').trim();
+        const reviews = await this.getReviewsRaw(storeId);
+        const normalized = (reviews || []).map((entry: any) =>
+            this.normalizeReviewPayload(
+                entry,
+                String(entry?.id || this.generateEntityId('review'))
+            )
+        );
+        const filtered = normalizedProductId
+            ? normalized.filter((entry: any) => entry.product_id === normalizedProductId)
+            : normalized;
+        return this.wrapResponse(filtered);
+    }
+
+    public async getReview(storeId: string, reviewId: string) {
+        const reviews = await this.getReviewsRaw(storeId);
+        const review = (reviews || []).find((entry: any) => String(entry?.id || '') === String(reviewId));
+        if (!review) return null;
+        const normalized = this.normalizeReviewPayload(review, String(review.id));
+        return this.wrapResponse(normalized);
+    }
+
+    public async createReview(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('review'));
+        const payload = this.normalizeReviewPayload(data, key);
+        payload.product_id = await this.resolveFeedbackProductId(storeId, payload.product_id);
+        await this.storeLogic.upsertDataEntity(storeId, 'review', key, payload);
+        await this.refreshProductFeedbackMetrics(storeId, payload.product_id);
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateReview(storeId: string, reviewId: string, data: any) {
+        const currentPrimary = await this.storeLogic.getDataEntity(storeId, 'review', reviewId);
+        const currentFallback = currentPrimary || await this.storeLogic.getDataEntity(storeId, 'product_review', reviewId);
+        if (!currentFallback) return null;
+
+        const previous = this.normalizeReviewPayload(currentFallback, reviewId);
+        const payload = this.normalizeReviewPayload({ ...(currentFallback || {}), ...(data || {}) }, reviewId);
+        payload.product_id = await this.resolveFeedbackProductId(storeId, payload.product_id || previous.product_id);
+
+        await this.storeLogic.upsertDataEntity(storeId, 'review', reviewId, payload);
+        await this.refreshProductFeedbackMetrics(storeId, previous.product_id);
+        if (payload.product_id !== previous.product_id) {
+            await this.refreshProductFeedbackMetrics(storeId, payload.product_id);
+        }
+
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteReview(storeId: string, reviewId: string) {
+        const currentPrimary = await this.storeLogic.getDataEntity(storeId, 'review', reviewId);
+        const currentFallback = currentPrimary || await this.storeLogic.getDataEntity(storeId, 'product_review', reviewId);
+        const previous = currentFallback
+            ? this.normalizeReviewPayload(currentFallback, reviewId)
+            : null;
+
+        await this.storeLogic.deleteDataEntity(storeId, 'review', reviewId);
+        await this.storeLogic.deleteDataEntity(storeId, 'product_review', reviewId);
+
+        if (previous?.product_id) {
+            await this.refreshProductFeedbackMetrics(storeId, previous.product_id);
+        }
+
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id: String(reviewId),
+                deleted: true
+            }
+        };
+    }
+
+    public async getQuestions(storeId: string, productId?: string) {
+        const normalizedProductId = String(productId || '').trim();
+        const questions = await this.getQuestionsRaw(storeId);
+        const normalized = (questions || []).map((entry: any) =>
+            this.normalizeQuestionPayload(
+                entry,
+                String(entry?.id || this.generateEntityId('question'))
+            )
+        );
+        const filtered = normalizedProductId
+            ? normalized.filter((entry: any) => entry.product_id === normalizedProductId)
+            : normalized;
+        return this.wrapResponse(filtered);
+    }
+
+    public async getQuestion(storeId: string, questionId: string) {
+        const questions = await this.getQuestionsRaw(storeId);
+        const question = (questions || []).find((entry: any) => String(entry?.id || '') === String(questionId));
+        if (!question) return null;
+        const normalized = this.normalizeQuestionPayload(question, String(question.id));
+        return this.wrapResponse(normalized);
+    }
+
+    public async createQuestion(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('question'));
+        const payload = this.normalizeQuestionPayload(data, key);
+        payload.product_id = await this.resolveFeedbackProductId(storeId, payload.product_id);
+        await this.storeLogic.upsertDataEntity(storeId, 'question', key, payload);
+        await this.refreshProductFeedbackMetrics(storeId, payload.product_id);
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateQuestion(storeId: string, questionId: string, data: any) {
+        const currentPrimary = await this.storeLogic.getDataEntity(storeId, 'question', questionId);
+        const currentFallback = currentPrimary || await this.storeLogic.getDataEntity(storeId, 'product_question', questionId);
+        if (!currentFallback) return null;
+
+        const previous = this.normalizeQuestionPayload(currentFallback, questionId);
+        const payload = this.normalizeQuestionPayload({ ...(currentFallback || {}), ...(data || {}) }, questionId);
+        payload.product_id = await this.resolveFeedbackProductId(storeId, payload.product_id || previous.product_id);
+
+        await this.storeLogic.upsertDataEntity(storeId, 'question', questionId, payload);
+        await this.refreshProductFeedbackMetrics(storeId, previous.product_id);
+        if (payload.product_id !== previous.product_id) {
+            await this.refreshProductFeedbackMetrics(storeId, payload.product_id);
+        }
+
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteQuestion(storeId: string, questionId: string) {
+        const currentPrimary = await this.storeLogic.getDataEntity(storeId, 'question', questionId);
+        const currentFallback = currentPrimary || await this.storeLogic.getDataEntity(storeId, 'product_question', questionId);
+        const previous = currentFallback
+            ? this.normalizeQuestionPayload(currentFallback, questionId)
+            : null;
+
+        await this.storeLogic.deleteDataEntity(storeId, 'question', questionId);
+        await this.storeLogic.deleteDataEntity(storeId, 'product_question', questionId);
+
+        if (previous?.product_id) {
+            await this.refreshProductFeedbackMetrics(storeId, previous.product_id);
+        }
+
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id: String(questionId),
+                deleted: true
+            }
+        };
+    }
+
     public async getMenus(storeId: string, type: string) {
         const menuType = String(type || 'header').trim().toLowerCase() || 'header';
         const storedMenu = await this.storeLogic.getDataEntity(storeId, 'menu', menuType);
@@ -1294,7 +1617,9 @@ export class SimulatorService {
                         blogArticlesRaw,
                         blogArticlesAltRaw,
                         blogCategoriesRaw,
-                        blogCategoriesAltRaw
+                        blogCategoriesAltRaw,
+                        reviewsRaw,
+                        questionsRaw
                     ] = await Promise.all([
                         this.storeLogic.getDataEntities(storeId, 'product'),
                         this.storeLogic.getDataEntities(storeId, 'category'),
@@ -1304,7 +1629,9 @@ export class SimulatorService {
                         this.storeLogic.getDataEntities(storeId, 'blog_article'),
                         this.storeLogic.getDataEntities(storeId, 'blog_articles'),
                         this.storeLogic.getDataEntities(storeId, 'blog_category'),
-                        this.storeLogic.getDataEntities(storeId, 'blog_categories')
+                        this.storeLogic.getDataEntities(storeId, 'blog_categories'),
+                        this.getReviewsRaw(storeId),
+                        this.getQuestionsRaw(storeId)
                     ]);
 
                     const products = await Promise.all(
@@ -1373,6 +1700,20 @@ export class SimulatorService {
                         };
                     });
 
+                    const reviews = (reviewsRaw || []).map((review: any) =>
+                        this.normalizeReviewPayload(
+                            review,
+                            String(review?.id || this.generateEntityId('review'))
+                        )
+                    );
+
+                    const questions = (questionsRaw || []).map((question: any) =>
+                        this.normalizeQuestionPayload(
+                            question,
+                            String(question?.id || this.generateEntityId('question'))
+                        )
+                    );
+
                     const sources = {
                         products,
                         categories,
@@ -1381,6 +1722,8 @@ export class SimulatorService {
                         pages,
                         blog_articles: blogArticles,
                         blog_categories: blogCategories,
+                        reviews,
+                        questions,
                         offers_link: [{ id: 'offers_link', name: 'التخفيضات', url: '/offers' }],
                         brands_link: [{ id: 'brands_link', name: 'الماركات التجارية', url: '/brands' }],
                         blog_link: [{ id: 'blog_link', name: 'المدونة', url: '/blog' }],

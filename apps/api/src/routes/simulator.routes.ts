@@ -137,6 +137,70 @@ export function createSimulatorRoutes(
         return res.status(response.status || 200).json(response);
     });
 
+    router.get('/reviews', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getReviews(req.storeId!, String(req.query.product_id || ''));
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/products/:id/reviews', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getReviews(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/reviews/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getReview(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Review not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/reviews', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createReview(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/reviews/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateReview(req.storeId!, req.params.id as string, req.body);
+        if (!response) return fail(res, 404, 'Review not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/reviews/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteReview(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/questions', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getQuestions(req.storeId!, String(req.query.product_id || ''));
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/products/:id/questions', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getQuestions(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/questions/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getQuestion(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Question not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/questions', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createQuestion(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/questions/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateQuestion(req.storeId!, req.params.id as string, req.body);
+        if (!response) return fail(res, 404, 'Question not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/questions/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteQuestion(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
     router.get('/static-pages', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.getStaticPages(req.storeId!);
         return res.status(response.status || 200).json(response);

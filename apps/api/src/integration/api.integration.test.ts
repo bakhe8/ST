@@ -667,6 +667,142 @@ describe('VTDR API integration (Store-First)', () => {
         expect(getFooterJson.data[0]?.title).toBe('روابط مهمة');
     });
 
+    it('supports reviews/questions CRUD and updates product feedback metrics', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Feedback Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const createProductRes = await fetch(`${baseUrl}/api/v1/products`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'product-feedback',
+                name: 'Feedback Product',
+                price: { amount: 120, currency: 'SAR' },
+                images: [{ url: '/themes/theme-raed-master/public/images/placeholder.png' }]
+            })
+        });
+        expect(createProductRes.status).toBe(201);
+
+        const createReview1Res = await fetch(`${baseUrl}/api/v1/reviews`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'review-1',
+                product_id: 'product-feedback',
+                stars: 5,
+                content: 'ممتاز جدًا',
+                customer_name: 'عميل 1'
+            })
+        });
+        expect(createReview1Res.status).toBe(201);
+
+        const createReview2Res = await fetch(`${baseUrl}/api/v1/reviews`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'review-2',
+                product_id: 'product-feedback',
+                stars: 3,
+                content: 'جيد',
+                customer_name: 'عميل 2'
+            })
+        });
+        expect(createReview2Res.status).toBe(201);
+
+        const productAfterReviewsRes = await fetch(`${baseUrl}/api/v1/products/product-feedback`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(productAfterReviewsRes.status).toBe(200);
+        const productAfterReviewsJson: any = await productAfterReviewsRes.json();
+        expect(productAfterReviewsJson.data.rating.count).toBe(2);
+        expect(productAfterReviewsJson.data.rating.stars).toBe(4);
+        expect(Array.isArray(productAfterReviewsJson.data.comments)).toBe(true);
+        expect(productAfterReviewsJson.data.comments.length).toBe(2);
+
+        const updateReviewRes = await fetch(`${baseUrl}/api/v1/reviews/review-2`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                stars: 4,
+                content: 'جيد جدًا'
+            })
+        });
+        expect(updateReviewRes.status).toBe(200);
+
+        const productAfterReviewUpdateRes = await fetch(`${baseUrl}/api/v1/products/product-feedback`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(productAfterReviewUpdateRes.status).toBe(200);
+        const productAfterReviewUpdateJson: any = await productAfterReviewUpdateRes.json();
+        expect(productAfterReviewUpdateJson.data.rating.count).toBe(2);
+        expect(productAfterReviewUpdateJson.data.rating.stars).toBe(4.5);
+
+        const createQuestionRes = await fetch(`${baseUrl}/api/v1/questions`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'question-1',
+                product_id: 'product-feedback',
+                question: 'هل المنتج متوفر الآن؟',
+                customer_name: 'زائر 1'
+            })
+        });
+        expect(createQuestionRes.status).toBe(201);
+
+        const updateQuestionRes = await fetch(`${baseUrl}/api/v1/questions/question-1`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                answer: 'نعم، المنتج متوفر وجاهز للشحن',
+                is_answered: true
+            })
+        });
+        expect(updateQuestionRes.status).toBe(200);
+
+        const questionsByProductRes = await fetch(`${baseUrl}/api/v1/products/product-feedback/questions`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(questionsByProductRes.status).toBe(200);
+        const questionsByProductJson: any = await questionsByProductRes.json();
+        expect(Array.isArray(questionsByProductJson.data)).toBe(true);
+        expect(questionsByProductJson.data.length).toBeGreaterThan(0);
+        expect(questionsByProductJson.data[0].is_answered).toBe(true);
+
+        const productAfterQuestionRes = await fetch(`${baseUrl}/api/v1/products/product-feedback`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(productAfterQuestionRes.status).toBe(200);
+        const productAfterQuestionJson: any = await productAfterQuestionRes.json();
+        expect(productAfterQuestionJson.data.questions_count).toBeGreaterThan(0);
+
+        const deleteReviewRes = await fetch(`${baseUrl}/api/v1/reviews/review-1`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteReviewRes.status).toBe(200);
+
+        const deleteQuestionRes = await fetch(`${baseUrl}/api/v1/questions/question-1`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteQuestionRes.status).toBe(200);
+    });
+
     it('supports brands/offers CRUD and propagates brand options into theme components', async () => {
         const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
         expect(syncThemesRes.status).toBe(200);
