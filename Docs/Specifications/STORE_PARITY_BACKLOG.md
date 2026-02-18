@@ -108,3 +108,4 @@ Each slice is closed only when all are done:
 - Boolean controls (`switch` / `checkbox`) in Page Components editor now use a unified visual control style with consistent on/off state presentation.
 - Textual controls (`text` / `textarea` / `image` / `icon`) now use a unified editor control style with shared label/description behavior and image preview support.
 - Selection controls (`dropdown` / multi-select) and numeric controls (`number` / `integer`) now use unified editor controls, including inline range guidance for numeric constraints.
+- `variable-list` controls now use one unified editor control (top-level + collection sub-fields), preserving source-aware behavior, static/custom URL handling, and the existing modal picker workflow.

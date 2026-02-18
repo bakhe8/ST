@@ -45,6 +45,7 @@ interface TextualFieldControlProps {
   multiline?: boolean;
   direction?: 'rtl' | 'ltr' | 'inherit';
   compact?: boolean;
+  disabled?: boolean;
   showImagePreview?: boolean;
   onChange: (next: string) => void;
 }
@@ -486,6 +487,7 @@ const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
   multiline = false,
   direction = 'inherit',
   compact = false,
+  disabled = false,
   showImagePreview = false,
   onChange
 }) => {
@@ -494,7 +496,7 @@ const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
     padding: 9,
     borderRadius: 8,
     border: '1px solid #cbd5e1',
-    background: '#fff',
+    background: disabled ? '#f8fafc' : '#fff',
     color: '#0f172a',
     direction
   };
@@ -521,6 +523,7 @@ const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
         <textarea
           value={value}
           placeholder={placeholder}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           style={{ ...inputStyle, minHeight: compact ? 70 : 92, resize: 'vertical' }}
         />
@@ -529,6 +532,7 @@ const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
           type="text"
           value={value}
           placeholder={placeholder}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           style={inputStyle}
         />
@@ -873,6 +877,143 @@ function applyVariableSelectionToCollectionItem(item: any, fieldId: string, sele
   next = setCollectionItemMetaValue(next, fieldId, 'value', selection.value || selection.url || '');
   return next;
 }
+
+function buildVariableListSelectionForSource(
+  nextSource: string,
+  optionsBySource: Record<string, VariableListOption[]>
+): VariableListSelection {
+  const source = String(nextSource || '').trim().toLowerCase();
+  const options = optionsBySource[source] || [];
+  const staticUrl = getStaticVariableSourceUrl(source);
+
+  if (staticUrl) {
+    return { source, value: source, url: staticUrl };
+  }
+  if (source === 'custom') {
+    return { source: 'custom', value: '', url: '' };
+  }
+  if (options.length > 0) {
+    return {
+      source,
+      value: options[0].value,
+      url: options[0].url || ''
+    };
+  }
+  return { source, value: '', url: '' };
+}
+
+interface VariableListFieldControlProps {
+  label: string;
+  description?: string;
+  sourceEntries: VariableListSourceEntry[];
+  optionsBySource: Record<string, VariableListOption[]>;
+  selection: VariableListSelection;
+  compact?: boolean;
+  onChange: (nextSelection: VariableListSelection) => void;
+  onOpenPicker?: (payload: {
+    source: string;
+    selectedValue: string;
+    options: VariableListOption[];
+    title: string;
+  }) => void;
+}
+
+const VariableListFieldControl: React.FC<VariableListFieldControlProps> = ({
+  label,
+  description,
+  sourceEntries,
+  optionsBySource,
+  selection,
+  compact = false,
+  onChange,
+  onOpenPicker
+}) => {
+  const selectedSource = selection.source || sourceEntries[0]?.value || 'custom';
+  const activeOptions = optionsBySource[selectedSource] || [];
+  const staticUrl = getStaticVariableSourceUrl(selectedSource);
+  const isStaticSource = Boolean(staticUrl);
+  const isCustomSource = selectedSource === 'custom';
+  const shouldUsePicker = !isCustomSource && !isStaticSource && activeOptions.length > 0;
+  const selectedOption = activeOptions.find((option) => option.value === selection.value);
+  const selectedLabel = selectedOption?.label || selection.value || 'غير محدد';
+  const selectedUrl = selectedOption?.url || selection.url || '';
+
+  return (
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: compact ? 8 : 10,
+        background: '#fff'
+      }}
+    >
+      <label style={{ display: 'block', fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+        {label}
+      </label>
+      {description && (
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+          {description}
+        </div>
+      )}
+
+      {sourceEntries.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <SelectionFieldControl
+            label="مصدر الرابط"
+            options={sourceEntries.map((entry) => ({ value: entry.value, label: entry.label }))}
+            selectedValues={[selectedSource]}
+            compact={compact}
+            onChange={(nextValues) => {
+              const nextSource = nextValues[0] || '';
+              onChange(buildVariableListSelectionForSource(nextSource, optionsBySource));
+            }}
+          />
+        </div>
+      )}
+
+      {shouldUsePicker ? (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: compact ? 8 : 10, background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <strong style={{ fontSize: 12 }}>{selectedLabel}</strong>
+            {onOpenPicker && (
+              <button
+                type="button"
+                onClick={() => onOpenPicker({
+                  source: selectedSource,
+                  selectedValue: selection.value,
+                  options: activeOptions,
+                  title: label
+                })}
+                style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+              >
+                فتح المحدد
+              </button>
+            )}
+          </div>
+          <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>
+            الخيارات المتاحة: {activeOptions.length}
+          </div>
+          <div style={{ color: '#334155', fontSize: 11, direction: 'ltr', wordBreak: 'break-all' }}>
+            {selectedUrl || '-'}
+          </div>
+        </div>
+      ) : (
+        <TextualFieldControl
+          label="الرابط"
+          value={isStaticSource ? staticUrl : (selection.url || selection.value)}
+          direction="ltr"
+          compact={compact}
+          disabled={isStaticSource}
+          onChange={(nextText) => onChange({
+            source: selectedSource || 'custom',
+            value: nextText,
+            url: nextText
+          })}
+        />
+      )}
+    </div>
+  );
+};
 
 function getFieldDefaultValue(field: any) {
   if (field.type === 'boolean') return Boolean(field.value);
@@ -1628,101 +1769,38 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                               const metaSource = getCollectionItemMetaValue(item, subField.id, 'type');
                               const metaValue = getCollectionItemMetaValue(item, subField.id, 'value');
                               const parsedSelection = parseVariableListSelection(currentValue, metaSource, metaValue);
-                              const selectedSource = parsedSelection.source || sourceEntries[0]?.value || 'custom';
-                              const activeOptions = optionsBySource[selectedSource] || [];
-                              const staticUrl = getStaticVariableSourceUrl(selectedSource);
-                              const isStaticSource = Boolean(staticUrl);
-                              const isCustomSource = selectedSource === 'custom';
-                              const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
-                              const selectedOption = activeOptions.find((option) => option.value === parsedSelection.value);
-                              const selectedLabel = selectedOption?.label || parsedSelection.value || 'غير محدد';
-                              const selectedUrl = selectedOption?.url || parsedSelection.url || '';
 
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
-                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
-                                  {sourceEntries.length > 0 && (
-                                    <select
-                                      value={selectedSource}
-                                      onChange={(e) => {
-                                        const nextSource = e.target.value;
-                                        const nextOptions = optionsBySource[nextSource] || [];
-                                        const nextStaticUrl = getStaticVariableSourceUrl(nextSource);
-                                        const nextSelection: VariableListSelection = nextStaticUrl
-                                          ? { source: nextSource, value: nextSource, url: nextStaticUrl }
-                                          : nextSource === 'custom'
-                                            ? { source: 'custom', value: '', url: '' }
-                                            : nextOptions.length > 0
-                                              ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
-                                              : { source: nextSource, value: '', url: '' };
-
-                                        updateEditingCollection(field.id, (currentItems) => (
-                                          currentItems.map((entry, idx) => (
-                                            idx === rowIndex
-                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
-                                              : entry
-                                          ))
-                                        ));
-                                      }}
-                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
-                                    >
-                                      {sourceEntries.map((entry) => (
-                                        <option key={entry.value} value={entry.value}>{entry.label}</option>
-                                      ))}
-                                    </select>
-                                  )}
-
-                                  {shouldUseSelect ? (
-                                    <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, background: '#fff' }}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                        <strong style={{ fontSize: 12 }}>{selectedLabel}</strong>
-                                        <button
-                                          type="button"
-                                          onClick={() => openVariablePicker({
-                                            scope: 'collection',
-                                            source: selectedSource,
-                                            fieldId: subField.id,
-                                            parentFieldId: field.id,
-                                            rowIndex,
-                                            selectedValue: parsedSelection.value,
-                                            options: activeOptions,
-                                            title: subField.label || getCollectionFieldPathTail(subField.id)
-                                          })}
-                                          style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
-                                        >
-                                          فتح المحدد
-                                        </button>
-                                      </div>
-                                      <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>
-                                        الخيارات المتاحة: {activeOptions.length}
-                                      </div>
-                                      <div style={{ color: '#334155', fontSize: 11, direction: 'ltr', wordBreak: 'break-all' }}>
-                                        {selectedUrl || '-'}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <input
-                                      type="text"
-                                      value={isStaticSource ? staticUrl : (parsedSelection.url || parsedSelection.value)}
-                                      onChange={(e) => {
-                                        const nextText = e.target.value;
-                                        const nextSelection: VariableListSelection = {
-                                          source: selectedSource || 'custom',
-                                          value: nextText,
-                                          url: nextText
-                                        };
-                                        updateEditingCollection(field.id, (currentItems) => (
-                                          currentItems.map((entry, idx) => (
-                                            idx === rowIndex
-                                              ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
-                                              : entry
-                                          ))
-                                        ));
-                                      }}
-                                      disabled={isStaticSource}
-                                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr', background: isStaticSource ? '#f8fafc' : '#fff' }}
-                                    />
-                                  )}
+                                  <VariableListFieldControl
+                                    label={subField.label || getCollectionFieldPathTail(subField.id)}
+                                    description={subField.description}
+                                    sourceEntries={sourceEntries}
+                                    optionsBySource={optionsBySource}
+                                    selection={parsedSelection}
+                                    compact
+                                    onChange={(nextSelection) => {
+                                      updateEditingCollection(field.id, (currentItems) => (
+                                        currentItems.map((entry, idx) => (
+                                          idx === rowIndex
+                                            ? applyVariableSelectionToCollectionItem(entry, subField.id, nextSelection)
+                                            : entry
+                                        ))
+                                      ));
+                                    }}
+                                    onOpenPicker={({ source, selectedValue, options, title }) => {
+                                      openVariablePicker({
+                                        scope: 'collection',
+                                        source,
+                                        fieldId: subField.id,
+                                        parentFieldId: field.id,
+                                        rowIndex,
+                                        selectedValue,
+                                        options,
+                                        title
+                                      });
+                                    }}
+                                  />
                                 </div>
                               );
                             }
@@ -1802,85 +1880,29 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 const sourceEntries = getVariableListSources(field);
                 const optionsBySource = getVariableListOptionsBySource(field);
                 const parsedSelection = parseVariableListSelection(editingElement.props[field.id]);
-                const selectedSource = parsedSelection.source || sourceEntries[0]?.value || 'custom';
-                const activeOptions = optionsBySource[selectedSource] || [];
-                const staticUrl = getStaticVariableSourceUrl(selectedSource);
-                const isStaticSource = Boolean(staticUrl);
-                const isCustomSource = selectedSource === 'custom';
-                const shouldUseSelect = !isCustomSource && !isStaticSource && activeOptions.length > 0;
-                const selectedOption = activeOptions.find((option) => option.value === parsedSelection.value);
-                const selectedLabel = selectedOption?.label || parsedSelection.value || 'غير محدد';
-                const selectedUrl = selectedOption?.url || parsedSelection.url || '';
 
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
-                    <label>{field.label}</label>
-                    {sourceEntries.length > 0 && (
-                      <select
-                        value={selectedSource}
-                        onChange={e => {
-                          const nextSource = e.target.value;
-                          const nextOptions = optionsBySource[nextSource] || [];
-                          const nextStaticUrl = getStaticVariableSourceUrl(nextSource);
-                          const nextSelection: VariableListSelection = nextStaticUrl
-                            ? { source: nextSource, value: nextSource, url: nextStaticUrl }
-                            : nextSource === 'custom'
-                              ? { source: 'custom', value: '', url: '' }
-                              : nextOptions.length > 0
-                                ? { source: nextSource, value: nextOptions[0].value, url: nextOptions[0].url || '' }
-                                : { source: nextSource, value: '', url: '' };
-                          setEditingProp(field.id, buildVariableListStoreValue(nextSelection));
-                        }}
-                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', marginBottom: 8 }}
-                      >
-                        {sourceEntries.map((entry) => (
-                          <option key={entry.value} value={entry.value}>{entry.label}</option>
-                        ))}
-                      </select>
-                    )}
-
-                    {shouldUseSelect ? (
-                      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, background: '#fff' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <strong style={{ fontSize: 12 }}>{selectedLabel}</strong>
-                          <button
-                            type="button"
-                            onClick={() => openVariablePicker({
-                              scope: 'top',
-                              source: selectedSource,
-                              fieldId: field.id,
-                              selectedValue: parsedSelection.value,
-                              options: activeOptions,
-                              title: field.label || field.id
-                            })}
-                            style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
-                          >
-                            فتح المحدد
-                          </button>
-                        </div>
-                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>
-                          الخيارات المتاحة: {activeOptions.length}
-                        </div>
-                        <div style={{ color: '#334155', fontSize: 11, direction: 'ltr', wordBreak: 'break-all' }}>
-                          {selectedUrl || '-'}
-                        </div>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={isStaticSource ? staticUrl : (parsedSelection.url || parsedSelection.value)}
-                        onChange={e => {
-                          const nextText = e.target.value;
-                          setEditingProp(field.id, buildVariableListStoreValue({
-                            source: selectedSource || 'custom',
-                            value: nextText,
-                            url: nextText
-                          }));
-                        }}
-                        disabled={isStaticSource}
-                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr', background: isStaticSource ? '#f8fafc' : '#fff' }}
-                      />
-                    )}
+                    <VariableListFieldControl
+                      label={field.label || field.id}
+                      description={field.description}
+                      sourceEntries={sourceEntries}
+                      optionsBySource={optionsBySource}
+                      selection={parsedSelection}
+                      onChange={(nextSelection) => {
+                        setEditingProp(field.id, buildVariableListStoreValue(nextSelection));
+                      }}
+                      onOpenPicker={({ source, selectedValue, options, title }) => {
+                        openVariablePicker({
+                          scope: 'top',
+                          source,
+                          fieldId: field.id,
+                          selectedValue,
+                          options,
+                          title
+                        });
+                      }}
+                    />
                   </div>
                 );
               }
