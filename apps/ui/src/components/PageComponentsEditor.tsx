@@ -49,6 +49,31 @@ interface TextualFieldControlProps {
   onChange: (next: string) => void;
 }
 
+interface SelectionFieldOption {
+  value: string;
+  label: string;
+}
+
+interface SelectionFieldControlProps {
+  label: string;
+  options: SelectionFieldOption[];
+  selectedValues: string[];
+  multiple?: boolean;
+  description?: string;
+  compact?: boolean;
+  onChange: (nextValues: string[]) => void;
+}
+
+interface NumericFieldControlProps {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  description?: string;
+  compact?: boolean;
+  onChange: (nextValue: number) => void;
+}
+
 // Utility to parse fields from twilight.json component schema
 function parsePropsSchema(fields: any[]): { [key: string]: any } {
   const schema: any = {};
@@ -516,6 +541,133 @@ const TextualFieldControl: React.FC<TextualFieldControlProps> = ({
             alt=""
             style={{ width: compact ? 56 : 72, height: compact ? 56 : 72, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb' }}
           />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SelectionFieldControl: React.FC<SelectionFieldControlProps> = ({
+  label,
+  options,
+  selectedValues,
+  multiple = false,
+  description,
+  compact = false,
+  onChange
+}) => {
+  const normalizedSelected = multiple ? selectedValues : [selectedValues[0] || ''];
+
+  return (
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: compact ? 8 : 10,
+        background: '#fff'
+      }}
+    >
+      <label style={{ display: 'block', fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+        {label}
+      </label>
+      {description && (
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+          {description}
+        </div>
+      )}
+      <select
+        multiple={multiple}
+        value={multiple ? normalizedSelected : normalizedSelected[0]}
+        onChange={(e) => {
+          if (multiple) {
+            const nextValues = Array.from(e.target.selectedOptions).map((option) => option.value);
+            onChange(nextValues);
+            return;
+          }
+          onChange([e.target.value]);
+        }}
+        style={{
+          width: '100%',
+          minHeight: multiple ? (compact ? 88 : 116) : 40,
+          padding: 8,
+          borderRadius: 8,
+          border: '1px solid #cbd5e1',
+          background: '#fff',
+          color: '#0f172a'
+        }}
+      >
+        {!multiple && <option value="">-- اختر --</option>}
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      {multiple && (
+        <div style={{ marginTop: 6, fontSize: 12, color: '#64748b' }}>
+          اختيار متعدد ({normalizedSelected.length})
+        </div>
+      )}
+    </div>
+  );
+};
+
+const NumericFieldControl: React.FC<NumericFieldControlProps> = ({
+  label,
+  value,
+  min,
+  max,
+  description,
+  compact = false,
+  onChange
+}) => {
+  const numericValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+  const hasMin = Number.isFinite(Number(min));
+  const hasMax = Number.isFinite(Number(max));
+  const minValue = hasMin ? Number(min) : undefined;
+  const maxValue = hasMax ? Number(max) : undefined;
+  const isBelowMin = typeof minValue === 'number' && numericValue < minValue;
+  const isAboveMax = typeof maxValue === 'number' && numericValue > maxValue;
+  const hasRangeError = isBelowMin || isAboveMax;
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${hasRangeError ? '#fecaca' : '#e5e7eb'}`,
+        borderRadius: 8,
+        padding: compact ? 8 : 10,
+        background: '#fff'
+      }}
+    >
+      <label style={{ display: 'block', fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+        {label}
+      </label>
+      {description && (
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+          {description}
+        </div>
+      )}
+      <input
+        type="number"
+        value={numericValue}
+        min={minValue}
+        max={maxValue}
+        onChange={(e) => {
+          const parsed = Number(e.target.value);
+          onChange(Number.isFinite(parsed) ? parsed : 0);
+        }}
+        style={{
+          width: '100%',
+          padding: 8,
+          borderRadius: 8,
+          border: `1px solid ${hasRangeError ? '#fca5a5' : '#cbd5e1'}`
+        }}
+      />
+      {(hasMin || hasMax) && (
+        <div style={{ marginTop: 6, fontSize: 12, color: hasRangeError ? '#b91c1c' : '#64748b' }}>
+          {hasRangeError
+            ? `القيمة يجب أن تكون ضمن النطاق${hasMin ? ` >= ${minValue}` : ''}${hasMin && hasMax ? ' و' : ''}${hasMax ? ` <= ${maxValue}` : ''}.`
+            : `النطاق المسموح${hasMin ? `: من ${minValue}` : ''}${hasMin && hasMax ? ' إلى ' : ''}${hasMax ? maxValue : ''}`}
         </div>
       )}
     </div>
@@ -1271,43 +1423,30 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                 );
               }
               if (field.format === 'dropdown-list' && Array.isArray(field.options)) {
-                if (field.type === 'items') {
-                  const selectedValues = normalizeItemsFieldValue(editingElement.props[field.id]);
-                  return (
-                    <div key={field.id} style={{ marginBottom: 12 }}>
-                      <label>{field.label}</label>
-                      <select
-                        multiple
-                        value={selectedValues}
-                        onChange={e => {
-                          const selected = Array.from(e.target.selectedOptions).map(option => option.value);
-                          setEditingProp(field.id, selected);
-                        }}
-                        style={{ width: '100%', minHeight: 120, padding: 8, borderRadius: 6, border: '1px solid #eee' }}
-                      >
-                        {field.options.map((opt: any) => (
-                          <option key={String(opt.value)} value={String(opt.value)}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div style={{ marginTop: 4, color: '#64748b', fontSize: 12 }}>اختيار متعدد</div>
-                    </div>
-                  );
-                }
-
+                const isMultiSelect = field.type === 'items' || Boolean(field.multichoice);
+                const selectedValues = isMultiSelect
+                  ? normalizeItemsFieldValue(editingElement.props[field.id])
+                  : [String(editingElement.props[field.id] || '')];
+                const normalizedOptions: SelectionFieldOption[] = field.options.map((opt: any) => ({
+                  value: String(opt?.value ?? ''),
+                  label: pickLocalizedText(opt?.label || opt?.name || opt?.value || '')
+                })).filter((opt: SelectionFieldOption) => opt.value);
                 return (
                   <div key={field.id} style={{ marginBottom: 12 }}>
-                    <label>{field.label}</label>
-                    <select
-                      value={String(editingElement.props[field.id] || '')}
-                      onChange={e => setEditingProp(field.id, e.target.value)}
-                      style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
-                    >
-                      {field.options.map((opt: any) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <SelectionFieldControl
+                      label={field.label || field.id}
+                      description={field.description}
+                      options={normalizedOptions}
+                      selectedValues={selectedValues}
+                      multiple={isMultiSelect}
+                      onChange={(nextValues) => {
+                        if (isMultiSelect) {
+                          setEditingProp(field.id, nextValues);
+                          return;
+                        }
+                        setEditingProp(field.id, nextValues[0] || '');
+                      }}
+                    />
                   </div>
                 );
               }
@@ -1430,21 +1569,54 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                             if (subField.type === 'number' || subField.format === 'integer') {
                               return (
                                 <div key={subField.id} style={{ marginBottom: 10 }}>
-                                  <label>{subField.label || getCollectionFieldPathTail(subField.id)}</label>
-                                  <input
-                                    type="number"
+                                  <NumericFieldControl
+                                    label={subField.label || getCollectionFieldPathTail(subField.id)}
+                                    description={subField.description}
                                     value={Number.isFinite(Number(currentValue)) ? Number(currentValue) : 0}
                                     min={subField.minimum}
                                     max={subField.maximum}
-                                    onChange={(e) => {
-                                      const nextValue = Number(e.target.value);
+                                    compact
+                                    onChange={(nextValue) => {
                                       updateEditingCollection(field.id, (currentItems) => (
                                         currentItems.map((entry, idx) => (
-                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, Number.isFinite(nextValue) ? nextValue : 0) : entry
+                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, nextValue) : entry
                                         ))
                                       ));
                                     }}
-                                    style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee' }}
+                                  />
+                                </div>
+                              );
+                            }
+
+                            if (subField.format === 'dropdown-list' && Array.isArray(subField.options)) {
+                              const isMultiSelect = subField.type === 'items' || Boolean(subField.multichoice);
+                              const selectedValues = isMultiSelect
+                                ? normalizeItemsFieldValue(currentValue)
+                                : [String(currentValue || '')];
+                              const normalizedOptions: SelectionFieldOption[] = subField.options
+                                .map((opt: any) => ({
+                                  value: String(opt?.value ?? ''),
+                                  label: pickLocalizedText(opt?.label || opt?.name || opt?.value || '')
+                                }))
+                                .filter((opt: SelectionFieldOption) => opt.value);
+
+                              return (
+                                <div key={subField.id} style={{ marginBottom: 10 }}>
+                                  <SelectionFieldControl
+                                    label={subField.label || getCollectionFieldPathTail(subField.id)}
+                                    description={subField.description}
+                                    options={normalizedOptions}
+                                    selectedValues={selectedValues}
+                                    multiple={isMultiSelect}
+                                    compact
+                                    onChange={(nextValues) => {
+                                      const nextValue = isMultiSelect ? nextValues : (nextValues[0] || '');
+                                      updateEditingCollection(field.id, (currentItems) => (
+                                        currentItems.map((entry, idx) => (
+                                          idx === rowIndex ? setCollectionItemValue(entry, subField.id, nextValue) : entry
+                                        ))
+                                      ));
+                                    }}
                                   />
                                 </div>
                               );
@@ -1709,6 +1881,21 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
                         style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #eee', direction: 'ltr', background: isStaticSource ? '#f8fafc' : '#fff' }}
                       />
                     )}
+                  </div>
+                );
+              }
+
+              if (field.type === 'number' || field.format === 'integer') {
+                return (
+                  <div key={field.id} style={{ marginBottom: 12 }}>
+                    <NumericFieldControl
+                      label={field.label || field.id}
+                      description={field.description}
+                      value={Number.isFinite(Number(editingElement.props[field.id])) ? Number(editingElement.props[field.id]) : 0}
+                      min={field.minimum}
+                      max={field.maximum}
+                      onChange={(nextValue) => setEditingProp(field.id, nextValue)}
+                    />
                   </div>
                 );
               }

@@ -107,3 +107,4 @@ Each slice is closed only when all are done:
 - Conditional `static` blocks are now visible in the editor flow, and save-time hidden-field policy is explicit (`preserve` vs `clear`) to control payload shape stability.
 - Boolean controls (`switch` / `checkbox`) in Page Components editor now use a unified visual control style with consistent on/off state presentation.
 - Textual controls (`text` / `textarea` / `image` / `icon`) now use a unified editor control style with shared label/description behavior and image preview support.
+- Selection controls (`dropdown` / multi-select) and numeric controls (`number` / `integer`) now use unified editor controls, including inline range guidance for numeric constraints.
