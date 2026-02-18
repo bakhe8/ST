@@ -53,7 +53,7 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
-`Slice-02: Theme Visual Parity (Settings + Page Components)`
+`Slice-03: Blog Content Parity (Categories + Articles)`
 
 ### Slice-01 Scope
 - Product shape unification:
@@ -91,7 +91,7 @@ Each slice is closed only when all are done:
 - Store UI should expose page components editing flow as a first-class screen.
 
 ### Slice-02 Status
-- In progress: visual data sources and page composition rendering implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+- Closed: visual data sources and page composition rendering implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-02 Progress Notes
 - `theme/components` now returns real selectable options for `products/categories/brands` based on store data.
@@ -109,3 +109,30 @@ Each slice is closed only when all are done:
 - Textual controls (`text` / `textarea` / `image` / `icon`) now use a unified editor control style with shared label/description behavior and image preview support.
 - Selection controls (`dropdown` / multi-select) and numeric controls (`number` / `integer`) now use unified editor controls, including inline range guidance for numeric constraints.
 - `variable-list` controls now use one unified editor control (top-level + collection sub-fields), preserving source-aware behavior, static/custom URL handling, and the existing modal picker workflow.
+
+## Slice-03 Scope
+- Blog domain parity:
+  - `blog/categories` CRUD APIs with normalized payload shape (`id/name/title/slug/url/order`).
+  - `blog/articles` CRUD APIs with normalized payload shape (`title/slug/summary/url/image/category_id`).
+- Seed realism:
+  - auto-seed includes blog categories and articles to make visual linking flows immediately usable.
+- UI management:
+  - dedicated dashboard screens for blog categories and blog articles.
+- Theme authoring impact:
+  - `theme/components` variable-list options for `blog_articles` and `blog_categories` must be populated from real store data.
+- Tests:
+  - integration coverage for blog CRUD and variable-list propagation.
+
+### Slice-03 Status
+- In progress: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
+
+### Slice-03 Progress Notes
+- Added simulator routes under `/api/v1/blog/categories*` and `/api/v1/blog/articles*`.
+- Added simulator-service normalization for blog category/article payloads, including URL/slug defaults and category resolution.
+- Extended seeding to generate realistic blog categories and articles per store.
+- Added dashboard screens:
+  - `/store/:storeId/blog/categories`
+  - `/store/:storeId/blog/articles`
+- Integration tests now assert:
+  - blog CRUD behavior
+  - population of `variable-list` options for `blog_articles/blog_categories`.

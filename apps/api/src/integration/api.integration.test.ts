@@ -50,6 +50,21 @@ async function waitForHealth(baseUrl: string, timeoutMs = 30000) {
     throw new Error('API health check timeout');
 }
 
+function collectVariableListFields(fields: any[]): any[] {
+    if (!Array.isArray(fields)) return [];
+    const result: any[] = [];
+    for (const field of fields) {
+        if (!field || typeof field !== 'object') continue;
+        if (field.type === 'items' && field.format === 'variable-list') {
+            result.push(field);
+        }
+        if (Array.isArray(field.fields)) {
+            result.push(...collectVariableListFields(field.fields));
+        }
+    }
+    return result;
+}
+
 describe('VTDR API integration (Store-First)', () => {
     let apiProcess: ChildProcessWithoutNullStreams | null = null;
     let apiPort = 0;
@@ -148,15 +163,28 @@ describe('VTDR API integration (Store-First)', () => {
         const homeMainLinks = themeComponentsJson.data.components.find((c: any) => c.path === 'home.main-links');
         const homeSquareBanners = themeComponentsJson.data.components.find((c: any) => c.path === 'home.enhanced-square-banners');
         const homeSliderProducts = themeComponentsJson.data.components.find((c: any) => c.path === 'home.slider-products-with-header');
+        const variableListFields = (themeComponentsJson.data.components || []).flatMap((component: any) =>
+            collectVariableListFields(component?.fields || [])
+        );
         const brandsField = homeBrands?.fields?.find((f: any) => f.id === 'brands');
         const categoriesField = homeMainLinks?.fields?.find((f: any) => f.id === 'categories');
         const productsField = homeSliderProducts?.fields?.find((f: any) => f.id === 'products');
+        const blogArticlesVariableField = variableListFields.find((field: any) =>
+            Array.isArray(field?.variableOptions?.blog_articles)
+        );
+        const blogCategoriesVariableField = variableListFields.find((field: any) =>
+            Array.isArray(field?.variableOptions?.blog_categories)
+        );
         expect(Array.isArray(brandsField?.options)).toBe(true);
         expect(brandsField.options.length).toBeGreaterThan(0);
         expect(Array.isArray(categoriesField?.options)).toBe(true);
         expect(categoriesField.options.length).toBeGreaterThan(0);
         expect(Array.isArray(productsField?.options)).toBe(true);
         expect(productsField.options.length).toBeGreaterThan(0);
+        expect(Array.isArray(blogArticlesVariableField?.variableOptions?.blog_articles)).toBe(true);
+        expect((blogArticlesVariableField?.variableOptions?.blog_articles || []).length).toBeGreaterThan(0);
+        expect(Array.isArray(blogCategoriesVariableField?.variableOptions?.blog_categories)).toBe(true);
+        expect((blogCategoriesVariableField?.variableOptions?.blog_categories || []).length).toBeGreaterThan(0);
         expect(homeMainLinks).toBeTruthy();
         expect(homeSquareBanners).toBeTruthy();
 
@@ -543,6 +571,110 @@ describe('VTDR API integration (Store-First)', () => {
         expect(deleteRes.status).toBe(200);
         const deleteJson: any = await deleteRes.json();
         expect(deleteJson.data.items.length).toBe(0);
+    });
+
+    it('supports blog content CRUD and propagates to theme variable-list options', async () => {
+        const syncThemesRes = await fetch(`${baseUrl}/api/themes/sync`, { method: 'POST' });
+        expect(syncThemesRes.status).toBe(200);
+
+        const createStoreRes = await fetch(`${baseUrl}/api/stores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Blog Domain Store', autoSeed: false })
+        });
+        expect(createStoreRes.status).toBe(200);
+        const createStoreJson: any = await createStoreRes.json();
+        const storeId = createStoreJson.data.id as string;
+
+        const contextHeaders = {
+            'Content-Type': 'application/json',
+            'X-VTDR-Store-Id': storeId,
+            'Context-Store-Id': storeId
+        };
+
+        const createCategoryRes = await fetch(`${baseUrl}/api/v1/blog/categories`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'blog-cat-tech',
+                name: 'تقنية',
+                slug: 'tech'
+            })
+        });
+        expect(createCategoryRes.status).toBe(201);
+
+        const createArticleRes = await fetch(`${baseUrl}/api/v1/blog/articles`, {
+            method: 'POST',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                id: 'blog-article-vtdr',
+                title: 'VTDR Blog Article',
+                slug: 'vtdr-blog-article',
+                summary: 'Summary for VTDR blog article',
+                category_id: 'blog-cat-tech'
+            })
+        });
+        expect(createArticleRes.status).toBe(201);
+        const createArticleJson: any = await createArticleRes.json();
+        expect(createArticleJson.success).toBe(true);
+        expect(createArticleJson.data.url).toContain('/blog/');
+
+        const listArticlesRes = await fetch(`${baseUrl}/api/v1/blog/articles`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(listArticlesRes.status).toBe(200);
+        const listArticlesJson: any = await listArticlesRes.json();
+        expect(Array.isArray(listArticlesJson.data)).toBe(true);
+        expect(listArticlesJson.data.some((entry: any) => entry.id === 'blog-article-vtdr')).toBe(true);
+
+        const themeComponentsRes = await fetch(`${baseUrl}/api/v1/theme/components`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(themeComponentsRes.status).toBe(200);
+        const themeComponentsJson: any = await themeComponentsRes.json();
+        const variableListFields = (themeComponentsJson.data.components || []).flatMap((component: any) =>
+            collectVariableListFields(component?.fields || [])
+        );
+        const articleOptions = variableListFields.flatMap((field: any) =>
+            Array.isArray(field?.variableOptions?.blog_articles) ? field.variableOptions.blog_articles : []
+        );
+        const categoryOptions = variableListFields.flatMap((field: any) =>
+            Array.isArray(field?.variableOptions?.blog_categories) ? field.variableOptions.blog_categories : []
+        );
+        expect(articleOptions.some((opt: any) => opt.value === 'blog-article-vtdr')).toBe(true);
+        expect(categoryOptions.some((opt: any) => opt.value === 'blog-cat-tech')).toBe(true);
+
+        const updateArticleRes = await fetch(`${baseUrl}/api/v1/blog/articles/blog-article-vtdr`, {
+            method: 'PUT',
+            headers: contextHeaders,
+            body: JSON.stringify({
+                title: 'VTDR Blog Article Updated',
+                summary: 'Updated summary'
+            })
+        });
+        expect(updateArticleRes.status).toBe(200);
+
+        const getUpdatedArticleRes = await fetch(`${baseUrl}/api/v1/blog/articles/blog-article-vtdr`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getUpdatedArticleRes.status).toBe(200);
+        const getUpdatedArticleJson: any = await getUpdatedArticleRes.json();
+        expect(getUpdatedArticleJson.data.title).toBe('VTDR Blog Article Updated');
+
+        const deleteCategoryRes = await fetch(`${baseUrl}/api/v1/blog/categories/blog-cat-tech`, {
+            method: 'DELETE',
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(deleteCategoryRes.status).toBe(200);
+        const deleteCategoryJson: any = await deleteCategoryRes.json();
+        expect(deleteCategoryJson.success).toBe(true);
+
+        const getArticleAfterCategoryDeleteRes = await fetch(`${baseUrl}/api/v1/blog/articles/blog-article-vtdr`, {
+            headers: { 'X-VTDR-Store-Id': storeId }
+        });
+        expect(getArticleAfterCategoryDeleteRes.status).toBe(200);
+        const getArticleAfterCategoryDeleteJson: any = await getArticleAfterCategoryDeleteRes.json();
+        expect(String(getArticleAfterCategoryDeleteJson.data.category_id || '')).toBe('');
     });
 
     it('normalizes product/category parity contracts and keeps preview functional', async () => {

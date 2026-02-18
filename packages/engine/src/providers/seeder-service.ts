@@ -22,6 +22,15 @@ export class SeederService {
         return Math.random() > 0.5;
     }
 
+    private slugify(value: string): string {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\u0600-\u06ff]+/gi, '-')
+            .replace(/^-+|-+$/g, '')
+            .replace(/-+/g, '-');
+    }
+
     public async seedStoreData(storeId: string, productCount: number = 20, tx?: any) {
         // Clear existing data
         await this.simulationLogic.clearDataEntities(storeId, tx);
@@ -63,6 +72,20 @@ export class SeederService {
             await this.simulationLogic.createDataEntity(storeId, 'page', page, tx);
         }
 
+        // Seed Blog Categories
+        const blogCategories = Array.from({ length: 4 }).map((_, index) => this.generateBlogCategory(index + 1));
+        for (const category of blogCategories) {
+            await this.simulationLogic.createDataEntity(storeId, 'blog_category', category, tx);
+        }
+
+        // Seed Blog Articles
+        const blogArticles = Array.from({ length: 8 }).map((_, index) =>
+            this.generateBlogArticle(index + 1, this.randomElement(blogCategories))
+        );
+        for (const article of blogArticles) {
+            await this.simulationLogic.createDataEntity(storeId, 'blog_article', article, tx);
+        }
+
         return {
             success: true,
             stats: {
@@ -70,7 +93,9 @@ export class SeederService {
                 brands: 5,
                 categories: 5,
                 products: productCount,
-                pages: pages.length
+                pages: pages.length,
+                blogCategories: blogCategories.length,
+                blogArticles: blogArticles.length
             }
         };
     }
@@ -172,6 +197,43 @@ export class SeederService {
                     avatar: SeederService.DEFAULT_LOCAL_IMAGE
                 }
             }))
+        };
+    }
+
+    private generateBlogCategory(index: number) {
+        const title = `تصنيف المدونة ${index}`;
+        const slug = this.slugify(`blog-category-${index}-${this.randomString(4)}`);
+        return {
+            id: `blog_cat_${this.randomString(8)}`,
+            name: title,
+            title,
+            slug,
+            description: `وصف ${title}`,
+            url: `/blog/categories/${slug}`
+        };
+    }
+
+    private generateBlogArticle(index: number, category: any) {
+        const title = `مقالة تجريبية ${index}`;
+        const slug = this.slugify(`blog-article-${index}-${this.randomString(4)}`);
+        return {
+            id: `blog_article_${this.randomString(10)}`,
+            name: title,
+            title,
+            slug,
+            summary: `ملخص ${title}`,
+            description: `هذا محتوى تجريبي للمقالة رقم ${index} لاستخدامها في معاينة الثيم.`,
+            image: SeederService.DEFAULT_LOCAL_IMAGE,
+            url: `/blog/${slug}`,
+            category_id: String(category?.id || ''),
+            category: category?.id
+                ? {
+                    id: String(category.id),
+                    name: String(category.name || category.title || '')
+                }
+                : undefined,
+            published_at: new Date(Date.now() - index * 86400000).toISOString(),
+            is_published: true
         };
     }
 }

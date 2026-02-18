@@ -3,7 +3,7 @@
   "generatedFrom": {
     "apiIndex": "apps/api/src/index.ts"
   },
-  "totalEndpoints": 57,
+  "totalEndpoints": 67,
   "endpoints": [
     {
       "method": "GET",
@@ -108,6 +108,56 @@
     {
       "method": "POST",
       "path": "/api/v1/auth/login",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/blog/articles",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/blog/articles",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/blog/articles/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/blog/articles/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/blog/articles/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/blog/categories",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/blog/categories",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/blog/categories/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/blog/categories/:id",
+      "source": "apps/api/src/routes/simulator.routes.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/blog/categories/:id",
       "source": "apps/api/src/routes/simulator.routes.ts"
     },
     {

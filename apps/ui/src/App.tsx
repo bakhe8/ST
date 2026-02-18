@@ -12,6 +12,8 @@ import EditProduct from './pages/EditProduct';
 import StoreCategories from './pages/StoreCategories';
 import StoreStaticPages from './pages/StoreStaticPages';
 import StoreThemeComponents from './pages/StoreThemeComponents';
+import StoreBlogCategories from './pages/StoreBlogCategories';
+import StoreBlogArticles from './pages/StoreBlogArticles';
 
 const App = () => {
     return (
@@ -35,6 +37,8 @@ const App = () => {
                     <Route path="products/:productId/edit" element={<EditProduct />} />
                     <Route path="categories" element={<StoreCategories />} />
                     <Route path="static-pages" element={<StoreStaticPages />} />
+                    <Route path="blog/categories" element={<StoreBlogCategories />} />
+                    <Route path="blog/articles" element={<StoreBlogArticles />} />
                     <Route path="settings" element={<StoreSettingsPanel />} />
                     <Route path="theme" element={<ThemeSettingsPanel />} />
                     <Route path="theme-components" element={<StoreThemeComponents />} />

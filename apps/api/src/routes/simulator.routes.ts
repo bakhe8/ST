@@ -90,6 +90,58 @@ export function createSimulatorRoutes(
         return res.status(response.status || 200).json(response);
     });
 
+    router.get('/blog/categories', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBlogCategories(req.storeId!);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBlogCategory(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Blog category not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/blog/categories', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createBlogCategory(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateBlogCategory(req.storeId!, req.params.id as string, req.body);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteBlogCategory(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/blog/articles', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBlogArticles(req.storeId!);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.get('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.getBlogArticle(req.storeId!, req.params.id as string);
+        if (!response) return fail(res, 404, 'Blog article not found');
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.post('/blog/articles', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.createBlogArticle(req.storeId!, req.body);
+        return res.status(response.status || 201).json(response);
+    });
+
+    router.put('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.updateBlogArticle(req.storeId!, req.params.id as string, req.body);
+        return res.status(response.status || 200).json(response);
+    });
+
+    router.delete('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
+        const response = await simulatorService.deleteBlogArticle(req.storeId!, req.params.id as string);
+        return res.status(response.status || 200).json(response);
+    });
+
     router.post('/static-pages', async (req: StoreRequest, res: Response) => {
         const response = await simulatorService.createStaticPage(req.storeId!, req.body);
         return res.status(response.status || 201).json(response);

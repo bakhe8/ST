@@ -254,6 +254,17 @@ export class SimulatorService {
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    private slugify(value: any, fallbackPrefix = 'item') {
+        const text = String(value || '').trim();
+        if (!text) return `${fallbackPrefix}-${Date.now()}`;
+        const slug = text
+            .toLowerCase()
+            .replace(/[^a-z0-9\u0600-\u06ff]+/gi, '-')
+            .replace(/^-+|-+$/g, '')
+            .replace(/-+/g, '-');
+        return slug || `${fallbackPrefix}-${Date.now()}`;
+    }
+
     private pickLocalizedText(value: any) {
         if (value == null) return '';
         if (typeof value === 'string') return value;
@@ -264,6 +275,78 @@ export class SimulatorService {
             if (typeof firstString === 'string') return firstString;
         }
         return String(value);
+    }
+
+    private async getBlogCategoriesRaw(storeId: string) {
+        const [primary, alt] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'blog_category'),
+            this.storeLogic.getDataEntities(storeId, 'blog_categories')
+        ]);
+        return [...(primary || []), ...(alt || [])];
+    }
+
+    private async getBlogArticlesRaw(storeId: string) {
+        const [primary, alt] = await Promise.all([
+            this.storeLogic.getDataEntities(storeId, 'blog_article'),
+            this.storeLogic.getDataEntities(storeId, 'blog_articles')
+        ]);
+        return [...(primary || []), ...(alt || [])];
+    }
+
+    private normalizeBlogCategoryPayload(data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const title = this.pickLocalizedText(base?.title || base?.name || key);
+        const slug = this.slugify(base?.slug || title, 'blog-category');
+        return {
+            ...base,
+            id: key,
+            name: this.pickLocalizedText(base?.name || base?.title || slug),
+            title,
+            slug,
+            description: this.pickLocalizedText(base?.description || ''),
+            url: this.pickLocalizedText(base?.url || `/blog/categories/${slug}`),
+            order: Number.isFinite(Number(base?.order)) ? Number(base.order) : 0
+        };
+    }
+
+    private async normalizeBlogArticlePayload(storeId: string, data: any, key: string) {
+        const base = this.normalizeEntityPayload(data, key);
+        const title = this.pickLocalizedText(base?.title || base?.name || key);
+        const slug = this.slugify(base?.slug || title, 'blog-article');
+        const categoryId = String(
+            base?.category_id ??
+            base?.categoryId ??
+            base?.category?.id ??
+            ''
+        ).trim();
+        const categories = await this.getBlogCategoriesRaw(storeId);
+        const matchedCategory = categories.find((entry: any) => String(entry?.id || '') === categoryId);
+
+        return {
+            ...base,
+            id: key,
+            name: this.pickLocalizedText(base?.name || base?.title || slug),
+            title,
+            slug,
+            summary: this.pickLocalizedText(base?.summary || base?.excerpt || ''),
+            description: this.pickLocalizedText(base?.description || base?.content || ''),
+            image: this.sanitizeImageUrl(base?.image || base?.cover?.url) || this.defaultProductPlaceholder,
+            url: this.pickLocalizedText(base?.url || `/blog/${slug}`),
+            category_id: categoryId,
+            category: matchedCategory
+                ? {
+                    id: String(matchedCategory.id),
+                    name: this.pickLocalizedText(matchedCategory?.name || matchedCategory?.title || matchedCategory?.id)
+                }
+                : (base?.category && typeof base.category === 'object'
+                    ? {
+                        id: String(base.category.id || categoryId || ''),
+                        name: this.pickLocalizedText(base.category.name || base.category.title || '')
+                    }
+                    : undefined),
+            published_at: this.pickLocalizedText(base?.published_at || base?.created_at || new Date().toISOString()),
+            is_published: base?.is_published !== false
+        };
     }
 
     private extractItemSelectionIds(field: any): string[] {
@@ -691,6 +774,109 @@ export class SimulatorService {
     public async getStaticPages(storeId: string) {
         const pages = await this.storeLogic.getDataEntities(storeId, 'page');
         return this.wrapResponse(this.mapToSchema(pages, 'page'));
+    }
+
+    public async getBlogCategories(storeId: string) {
+        const categories = await this.getBlogCategoriesRaw(storeId);
+        const normalized = categories.map((category: any) =>
+            this.normalizeBlogCategoryPayload(category, String(category?.id || this.generateEntityId('blog_category')))
+        );
+        return this.wrapResponse(normalized);
+    }
+
+    public async getBlogCategory(storeId: string, categoryId: string) {
+        const categories = await this.getBlogCategoriesRaw(storeId);
+        const category = categories.find((entry: any) => String(entry?.id || '') === String(categoryId));
+        if (!category) return null;
+        return this.wrapResponse(
+            this.normalizeBlogCategoryPayload(category, String(category.id))
+        );
+    }
+
+    public async createBlogCategory(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('blog_category'));
+        const payload = this.normalizeBlogCategoryPayload(data, key);
+        await this.storeLogic.upsertDataEntity(storeId, 'blog_category', key, payload);
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateBlogCategory(storeId: string, categoryId: string, data: any) {
+        const current = await this.storeLogic.getDataEntity(storeId, 'blog_category', categoryId);
+        const payload = this.normalizeBlogCategoryPayload({ ...(current || {}), ...(data || {}) }, categoryId);
+        await this.storeLogic.upsertDataEntity(storeId, 'blog_category', categoryId, payload);
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteBlogCategory(storeId: string, categoryId: string) {
+        const id = String(categoryId);
+        await this.storeLogic.deleteDataEntity(storeId, 'blog_category', id);
+        await this.storeLogic.deleteDataEntity(storeId, 'blog_categories', id);
+
+        const articles = await this.getBlogArticlesRaw(storeId);
+        let touchedArticles = 0;
+        for (const article of articles) {
+            const articleId = String(article?.id || this.generateEntityId('blog_article'));
+            const payload = await this.normalizeBlogArticlePayload(
+                storeId,
+                {
+                    ...article,
+                    category_id: String(article?.category_id || article?.categoryId || '') === id ? '' : (article?.category_id || article?.categoryId || ''),
+                    category: String(article?.category?.id || '') === id ? undefined : article?.category
+                },
+                articleId
+            );
+            await this.storeLogic.upsertDataEntity(storeId, 'blog_article', articleId, payload);
+            touchedArticles++;
+        }
+
+        return {
+            status: 200,
+            success: true,
+            data: {
+                id,
+                deleted: true,
+                updatedArticles: touchedArticles
+            }
+        };
+    }
+
+    public async getBlogArticles(storeId: string) {
+        const articles = await this.getBlogArticlesRaw(storeId);
+        const normalized = await Promise.all(
+            (articles || []).map((article: any) =>
+                this.normalizeBlogArticlePayload(storeId, article, String(article?.id || this.generateEntityId('blog_article')))
+            )
+        );
+        return this.wrapResponse(normalized);
+    }
+
+    public async getBlogArticle(storeId: string, articleId: string) {
+        const articles = await this.getBlogArticlesRaw(storeId);
+        const article = articles.find((entry: any) => String(entry?.id || '') === String(articleId));
+        if (!article) return null;
+        const normalized = await this.normalizeBlogArticlePayload(storeId, article, String(article.id));
+        return this.wrapResponse(normalized);
+    }
+
+    public async createBlogArticle(storeId: string, data: any) {
+        const key = String(data?.id ?? this.generateEntityId('blog_article'));
+        const payload = await this.normalizeBlogArticlePayload(storeId, data, key);
+        await this.storeLogic.upsertDataEntity(storeId, 'blog_article', key, payload);
+        return this.wrapResponse(payload, 201);
+    }
+
+    public async updateBlogArticle(storeId: string, articleId: string, data: any) {
+        const current = await this.storeLogic.getDataEntity(storeId, 'blog_article', articleId);
+        const payload = await this.normalizeBlogArticlePayload(storeId, { ...(current || {}), ...(data || {}) }, articleId);
+        await this.storeLogic.upsertDataEntity(storeId, 'blog_article', articleId, payload);
+        return this.wrapResponse(payload);
+    }
+
+    public async deleteBlogArticle(storeId: string, articleId: string) {
+        const id = String(articleId);
+        await this.storeLogic.deleteDataEntity(storeId, 'blog_article', id);
+        await this.storeLogic.deleteDataEntity(storeId, 'blog_articles', id);
+        return { status: 200, success: true, data: { id, deleted: true } };
     }
 
     public async createStaticPage(storeId: string, data: any) {
