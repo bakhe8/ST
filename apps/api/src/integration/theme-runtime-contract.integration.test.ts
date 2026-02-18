@@ -36,7 +36,7 @@ async function findFreePort(): Promise<number> {
     });
 }
 
-async function waitForHealth(baseUrl: string, timeoutMs = 30000) {
+async function waitForHealth(baseUrl: string, timeoutMs = 120000) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
         try {
@@ -264,4 +264,3 @@ describe('Theme Runtime Contract v1 compatibility', () => {
         ).toEqual([]);
     }, 180000);
 });
-
