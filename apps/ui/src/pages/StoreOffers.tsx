@@ -38,7 +38,7 @@ const StoreOffers: React.FC = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<Partial<Offer>>(emptyOffer);
 
-  const headers = { 'Context-Store-Id': storeId || 'default' };
+  const headers = { 'X-VTDR-Store-Id': storeId || '' };
 
   const fetchItems = () => {
     setLoading(true);

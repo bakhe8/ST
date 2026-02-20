@@ -1,75 +1,30 @@
 import { Router } from 'express';
-import { ThemeRegistry, ThemeLoader, SallaValidator } from '@vtdr/engine';
-import path from 'path';
-import { ok, fail } from '../utils/api-response.js';
+import { ThemeManagementOrchestrator } from '@vtdr/engine';
+import { fail, ok } from '../utils/api-response.js';
 
-export function createThemeRoutes(
-    themeRegistry: ThemeRegistry,
-    themeLoader: ThemeLoader,
-    sallaValidator: SallaValidator,
-    themesBaseDir: string
-) {
+export function createThemeRoutes(themeManagementOrchestrator: ThemeManagementOrchestrator) {
     const router = Router();
 
-    router.get('/', async (req, res) => {
-        const themes = await themeRegistry.listThemes();
+    router.get('/', async (_req, res) => {
+        const themes = await themeManagementOrchestrator.listThemes();
         return ok(res, themes);
     });
 
-    router.post('/discover', async (req, res) => {
-        const localFolders = await themeLoader.scanThemes();
-        const registeredThemes = await themeRegistry.listThemes();
-        const registeredIds = new Set(registeredThemes.map(t => t.id));
-
-        const discovery = await Promise.all(localFolders.map(async folder => {
-            const schema = await themeLoader.loadTwilightSchema(folder);
-            if (!schema) return null;
-
-            const metadata = themeLoader.extractMetadata(folder, schema);
-            const themePath = path.join(themesBaseDir, folder);
-            const compatibility = await sallaValidator.validateTheme(themePath, schema);
-
-            return {
-                ...metadata,
-                folder,
-                isRegistered: registeredIds.has(folder),
-                compatibility
-            };
-        }));
-
-        return ok(res, discovery.filter(d => d !== null));
+    router.post('/discover', async (_req, res) => {
+        const discovery = await themeManagementOrchestrator.discoverThemes();
+        return ok(res, discovery);
     });
 
     router.post('/register', async (req, res) => {
-        const { folder } = req.body;
-        if (!folder) return fail(res, 400, 'Folder name is required');
-
-        const schema = await themeLoader.loadTwilightSchema(folder);
-        if (!schema) return fail(res, 404, 'Theme schema not found');
-
-        const metadata = themeLoader.extractMetadata(folder, schema);
-        const theme = await themeRegistry.syncTheme(metadata, schema, path.join(themesBaseDir, folder));
-
-        return ok(res, theme);
+        const result = await themeManagementOrchestrator.registerTheme(req.body?.folder);
+        if (!result.ok) return fail(res, result.status, result.message);
+        return ok(res, result.data);
     });
 
-    router.post('/sync', async (req, res) => {
-        try {
-            const localFolders = await themeLoader.scanThemes();
-            let syncedCount = 0;
-
-            for (const folder of localFolders) {
-                const schema = await themeLoader.loadTwilightSchema(folder);
-                if (!schema) continue;
-
-                const metadata = themeLoader.extractMetadata(folder, schema);
-                await themeRegistry.syncTheme(metadata, schema, path.join(themesBaseDir, folder));
-                syncedCount++;
-            }
-            return ok(res, { synced: syncedCount });
-        } catch (error: any) {
-            return fail(res, 500, error.message);
-        }
+    router.post('/sync', async (_req, res) => {
+        const result = await themeManagementOrchestrator.syncThemes();
+        if (!result.ok) return fail(res, result.status, result.message);
+        return ok(res, result.data);
     });
 
     return router;

@@ -1,0 +1,176 @@
+{% extends "layouts/master.twig" %}
+
+{% block content %}
+  <div class="container">
+    <nav class="breadcrumbs w-full py-5">
+      <salla-breadcrumb></salla-breadcrumb>
+    </nav>
+
+    <h1 class="text-2xl font-bold mb-2">إتمام الطلب</h1>
+    <p class="text-sm text-gray-500 mb-6">أكمل الخطوات التالية لإرسال الطلب.</p>
+
+    {% if cart.items|length == 0 %}
+      <div class="no-content-placeholder">
+        <i class="sicon-shopping-bag icon"></i>
+        <p>السلة فارغة. أضف منتجات أولًا للمتابعة.</p>
+        <a href="{{ link('/products') }}" class="btn btn--outline-primary btn--rounded-full">تصفح المنتجات</a>
+      </div>
+    {% else %}
+      <div class="bg-white rounded-md p-4 mb-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {% for step in checkout.steps %}
+            <div class="rounded-md border px-3 py-2 text-sm {{ step.is_current ? 'border-primary text-primary' : 'border-gray-200 text-gray-500' }}">
+              <span class="font-bold">{{ loop.index }}.</span>
+              <span class="mx-1">
+                {% if step.id == 'address' %}العنوان{% endif %}
+                {% if step.id == 'shipping' %}الشحن{% endif %}
+                {% if step.id == 'payment' %}الدفع{% endif %}
+                {% if step.id == 'review' %}المراجعة{% endif %}
+              </span>
+              {% if step.is_done %}
+                <i class="sicon-check-circle text-green-600"></i>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="lg:flex rtl:space-x-reverse lg:space-x-8 pb-12">
+        <div class="w-full lg:w-[calc(100%-384px)]">
+          {% if checkout.step == 'address' %}
+            <section class="bg-white rounded-md p-5 md:p-8 mb-5">
+              <h2 class="font-bold text-lg mb-4">بيانات العميل والعنوان</h2>
+              <form data-checkout-action="checkout.updateAddress" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm mb-1">الاسم الكامل</label>
+                    <input class="form-input" type="text" name="name" required value="{{ checkout.customer.name }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">البريد الإلكتروني</label>
+                    <input class="form-input" type="email" name="email" required value="{{ checkout.customer.email }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">رقم الجوال</label>
+                    <input class="form-input" type="text" name="mobile" required value="{{ checkout.customer.mobile }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">الدولة</label>
+                    <input class="form-input" type="text" name="country" required value="{{ checkout.address.country }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">المدينة</label>
+                    <input class="form-input" type="text" name="city" required value="{{ checkout.address.city }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">الحي</label>
+                    <input class="form-input" type="text" name="district" value="{{ checkout.address.district }}">
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="block text-sm mb-1">الشارع</label>
+                    <input class="form-input" type="text" name="street" required value="{{ checkout.address.street }}">
+                  </div>
+                  <div>
+                    <label class="block text-sm mb-1">الرمز البريدي</label>
+                    <input class="form-input" type="text" name="postal_code" value="{{ checkout.address.postal_code }}">
+                  </div>
+                </div>
+                <salla-button type="submit" loader-position="center">
+                  المتابعة إلى الشحن
+                </salla-button>
+              </form>
+            </section>
+          {% endif %}
+
+          {% if checkout.step == 'shipping' %}
+            <section class="bg-white rounded-md p-5 md:p-8 mb-5">
+              <h2 class="font-bold text-lg mb-4">اختر طريقة الشحن</h2>
+              <form data-checkout-action="checkout.updateShipping" class="space-y-3">
+                {% for method in checkout.available_shipping_methods %}
+                  <label class="block border rounded-md p-4 cursor-pointer">
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium">{{ method.name }}</span>
+                      <span class="text-sm text-gray-500">{{ method.cost|money }}</span>
+                    </div>
+                    {% if method.description %}
+                      <p class="text-sm text-gray-500 mt-1">{{ method.description }}</p>
+                    {% endif %}
+                    <input class="mt-2" type="radio" name="method_id" value="{{ method.id }}" {{ checkout.shipping.method_id == method.id ? 'checked' : '' }} required>
+                  </label>
+                {% endfor %}
+
+                <div class="flex gap-2 pt-2">
+                  <a class="btn btn--outline-primary" href="{{ link('/checkout?step=address') }}">رجوع</a>
+                  <salla-button type="submit" loader-position="center">المتابعة إلى الدفع</salla-button>
+                </div>
+              </form>
+            </section>
+          {% endif %}
+
+          {% if checkout.step == 'payment' %}
+            <section class="bg-white rounded-md p-5 md:p-8 mb-5">
+              <h2 class="font-bold text-lg mb-4">اختر وسيلة الدفع</h2>
+              <form data-checkout-action="checkout.updatePayment" class="space-y-3">
+                {% for method in checkout.available_payment_methods %}
+                  <label class="block border rounded-md p-4 cursor-pointer">
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium">{{ method.name }}</span>
+                      <span class="text-sm text-gray-500">{{ method.type }}</span>
+                    </div>
+                    <input class="mt-2" type="radio" name="method_id" value="{{ method.id }}" {{ checkout.payment.method_id == method.id ? 'checked' : '' }} required>
+                  </label>
+                {% endfor %}
+
+                <div class="flex gap-2 pt-2">
+                  <a class="btn btn--outline-primary" href="{{ link('/checkout?step=shipping') }}">رجوع</a>
+                  <salla-button type="submit" loader-position="center">المتابعة إلى المراجعة</salla-button>
+                </div>
+              </form>
+            </section>
+          {% endif %}
+
+          {% if checkout.step == 'review' %}
+            <section class="bg-white rounded-md p-5 md:p-8 mb-5">
+              <h2 class="font-bold text-lg mb-4">مراجعة الطلب</h2>
+              <div class="space-y-3 text-sm mb-6">
+                <p><b>العميل:</b> {{ checkout.customer.name }} - {{ checkout.customer.mobile }}</p>
+                <p><b>البريد:</b> {{ checkout.customer.email }}</p>
+                <p><b>العنوان:</b> {{ checkout.address.country }}، {{ checkout.address.city }}، {{ checkout.address.district }}، {{ checkout.address.street }}</p>
+                <p><b>الشحن:</b> {{ checkout.shipping.method_name }} ({{ checkout.shipping.cost|money }})</p>
+                <p><b>الدفع:</b> {{ checkout.payment.method_name }}</p>
+              </div>
+
+              <form data-checkout-action="checkout.confirm">
+                <input type="hidden" name="step" value="review">
+                <div class="flex gap-2">
+                  <a class="btn btn--outline-primary" href="{{ link('/checkout?step=payment') }}">رجوع</a>
+                  <salla-button type="submit" loader-position="center" {{ checkout.can_confirm ? '' : 'disabled' }}>
+                    تأكيد الطلب
+                  </salla-button>
+                </div>
+              </form>
+            </section>
+          {% endif %}
+        </div>
+
+        <aside class="w-full lg:w-96">
+          <div class="sticky top-24 bg-white rounded-md p-5 mb-5">
+            <h3 class="font-bold text-sm mb-4">ملخص الطلب</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">المنتجات</span><b>{{ checkout.summary.subtotal|money }}</b></div>
+              <div class="flex justify-between"><span class="text-gray-500">الخصم</span><b>- {{ checkout.summary.discount|money }}</b></div>
+              <div class="flex justify-between"><span class="text-gray-500">الشحن</span><b>{{ checkout.summary.shipping_cost|money }}</b></div>
+              <div class="flex justify-between"><span class="text-gray-500">الضريبة</span><b>{{ checkout.summary.tax_amount|money }}</b></div>
+              <div class="border-t pt-3 flex justify-between text-base"><span>الإجمالي</span><b>{{ checkout.summary.total|money }}</b></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-4">عدد المنتجات في السلة: {{ cart.count }}</p>
+          </div>
+        </aside>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script defer src="{{ 'vtdr-checkout.js' | asset }}"></script>
+{% endblock %}

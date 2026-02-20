@@ -1,8 +1,28 @@
 import { StoreLogic } from '../core/store-logic.js';
 import { Salla } from '@vtdr/contracts';
+import { getSeedProfileDefinition, type SeedProfileId } from './seed-profiles.js';
+
+export interface SeedStoreOptions {
+    profile?: SeedProfileId | string;
+}
+
+export interface EnsureCoreDataResult {
+    success: true;
+    profile: string;
+    added: {
+        store: number;
+        brands: number;
+        categories: number;
+        products: number;
+        pages: number;
+        menus: number;
+        blogCategories: number;
+        blogArticles: number;
+    };
+}
 
 export class SeederService {
-    private static readonly DEFAULT_LOCAL_IMAGE = '/themes/theme-raed-master/public/images/placeholder.png';
+    private static readonly DEFAULT_LOCAL_IMAGE = '/images/placeholder.png';
 
     constructor(private simulationLogic: StoreLogic) { }
 
@@ -22,6 +42,18 @@ export class SeederService {
         return Math.random() > 0.5;
     }
 
+    private pickSeedValue(values: string[], index: number, fallback: string): string {
+        if (!Array.isArray(values) || values.length === 0) return fallback;
+        const value = String(values[index % values.length] || '').trim();
+        return value || fallback;
+    }
+
+    private normalizeProductCount(productCount: number): number {
+        const numeric = Number(productCount);
+        if (!Number.isFinite(numeric)) return 20;
+        return Math.max(1, Math.min(250, Math.floor(numeric)));
+    }
+
     private slugify(value: string): string {
         return String(value || '')
             .trim()
@@ -31,34 +63,73 @@ export class SeederService {
             .replace(/-+/g, '-');
     }
 
-    public async seedStoreData(storeId: string, productCount: number = 20, tx?: any) {
+    private normalizeId(value: unknown): string {
+        return String(value || '').trim();
+    }
+
+    private uniqueIds(values: unknown[]): string[] {
+        const out: string[] = [];
+        const seen = new Set<string>();
+        for (const entry of values || []) {
+            const token = this.normalizeId(entry);
+            if (!token || seen.has(token)) continue;
+            seen.add(token);
+            out.push(token);
+        }
+        return out;
+    }
+
+    private collectProductCategoryIds(product: any): string[] {
+        const fromCategoryIds = Array.isArray(product?.category_ids)
+            ? product.category_ids
+            : [];
+        const fromCategories = Array.isArray(product?.categories)
+            ? product.categories.map((entry: any) => entry?.id || entry)
+            : [];
+        const directCategory = product?.category?.id || product?.category_id || '';
+        return this.uniqueIds([
+            ...fromCategoryIds,
+            ...fromCategories,
+            directCategory
+        ]);
+    }
+
+    public async seedStoreData(
+        storeId: string,
+        productCount: number = 20,
+        tx?: any,
+        options?: SeedStoreOptions
+    ) {
+        const profile = getSeedProfileDefinition(options?.profile);
+        const normalizedProductCount = this.normalizeProductCount(productCount);
+
         // Clear existing data
         await this.simulationLogic.clearDataEntities(storeId, tx);
 
         // Seed Store Settings (Pseudo-Entity for runtime)
-        const storeSettings = this.generateStoreSettings();
+        const storeSettings = this.generateStoreSettings(profile);
         await (this.simulationLogic as any).createDataEntity(storeId, 'store', storeSettings, tx);
 
         // Seed Brands
         const brands = [];
-        for (let i = 0; i < 5; i++) {
-            const brand = this.generateBrand();
+        for (let i = 0; i < Math.max(5, profile.brandNames.length); i++) {
+            const brand = this.generateBrand(i, profile);
             await (this.simulationLogic as any).createDataEntity(storeId, 'brand', brand, tx);
             brands.push(brand);
         }
 
         // Seed Categories
-        const categories = [];
-        for (let i = 0; i < 5; i++) {
-            const category = this.generateCategory();
+        const categories: any[] = [];
+        for (let i = 0; i < Math.max(5, profile.categoryNames.length); i++) {
+            const category = this.generateCategory(i, profile);
             await (this.simulationLogic as any).createDataEntity(storeId, 'category', category, tx);
             categories.push(category);
         }
 
         // Seed Products
         const seededProducts: any[] = [];
-        for (let i = 0; i < productCount; i++) {
-            const product = this.generateProduct(brands, categories);
+        for (let i = 0; i < normalizedProductCount; i++) {
+            const product = this.generateProduct(i, brands, categories, profile);
             await (this.simulationLogic as any).createDataEntity(storeId, 'product', product, tx);
             seededProducts.push(product);
         }
@@ -91,21 +162,23 @@ export class SeederService {
         );
 
         // Seed Blog Categories
-        const blogCategories = Array.from({ length: 4 }).map((_, index) => this.generateBlogCategory(index + 1));
+        const blogCategories = Array.from({ length: Math.max(4, profile.blogCategoryNames.length) })
+            .map((_, index) => this.generateBlogCategory(index + 1, profile));
         for (const category of blogCategories) {
             await this.simulationLogic.createDataEntity(storeId, 'blog_category', category, tx);
         }
 
         // Seed Blog Articles
-        const blogArticles = Array.from({ length: 8 }).map((_, index) =>
-            this.generateBlogArticle(index + 1, this.randomElement(blogCategories))
+        const blogArticles = Array.from({ length: Math.max(8, profile.blogArticleTitles.length) }).map((_, index) =>
+            this.generateBlogArticle(index + 1, this.randomElement(blogCategories), profile)
         );
         for (const article of blogArticles) {
             await this.simulationLogic.createDataEntity(storeId, 'blog_article', article, tx);
         }
 
         // Seed Special Offers
-        const offers = Array.from({ length: 4 }).map((_, index) => this.generateSpecialOffer(index + 1));
+        const offers = Array.from({ length: Math.max(4, profile.offerTitles.length) })
+            .map((_, index) => this.generateSpecialOffer(index + 1, profile, seededProducts, categories));
         for (const offer of offers) {
             await this.simulationLogic.createDataEntity(storeId, 'specialOffer', offer, tx);
         }
@@ -135,10 +208,11 @@ export class SeederService {
         return {
             success: true,
             stats: {
+                profile: profile.id,
                 store: 1,
-                brands: 5,
-                categories: 5,
-                products: productCount,
+                brands: brands.length,
+                categories: categories.length,
+                products: normalizedProductCount,
                 pages: pages.length,
                 menus: 2,
                 blogCategories: blogCategories.length,
@@ -150,11 +224,307 @@ export class SeederService {
         };
     }
 
-    private generateStoreSettings(): Partial<Salla.components['schemas']['Store']> {
+    /**
+     * Backfills only missing core entities without clearing existing store data.
+     * Used by preview runtime to self-heal legacy/incomplete stores.
+     */
+    public async ensureMinimumCoreData(
+        storeId: string,
+        tx?: any,
+        options?: SeedStoreOptions
+    ): Promise<EnsureCoreDataResult> {
+        const profile = getSeedProfileDefinition(options?.profile);
+        const added = {
+            store: 0,
+            brands: 0,
+            categories: 0,
+            products: 0,
+            pages: 0,
+            menus: 0,
+            blogCategories: 0,
+            blogArticles: 0
+        };
+
+        const [storeEntitiesRaw, brandEntitiesRaw, categoryEntitiesRaw, productEntitiesRaw, pageEntitiesRaw, menuEntitiesRaw, blogCategoryEntitiesRaw, blogArticleEntitiesRaw] = await Promise.all([
+            this.simulationLogic.getDataEntities(storeId, 'store', tx),
+            this.simulationLogic.getDataEntities(storeId, 'brand', tx),
+            this.simulationLogic.getDataEntities(storeId, 'category', tx),
+            this.simulationLogic.getDataEntities(storeId, 'product', tx),
+            this.simulationLogic.getDataEntities(storeId, 'page', tx),
+            this.simulationLogic.getDataEntities(storeId, 'menu', tx),
+            this.simulationLogic.getDataEntities(storeId, 'blog_category', tx),
+            this.simulationLogic.getDataEntities(storeId, 'blog_article', tx)
+        ]);
+
+        const storeEntities = Array.isArray(storeEntitiesRaw) ? storeEntitiesRaw : [];
+        const brands = Array.isArray(brandEntitiesRaw) ? [...brandEntitiesRaw] : [];
+        const categories = Array.isArray(categoryEntitiesRaw) ? [...categoryEntitiesRaw] : [];
+        const products = Array.isArray(productEntitiesRaw) ? productEntitiesRaw : [];
+        const pages = Array.isArray(pageEntitiesRaw) ? pageEntitiesRaw : [];
+        const menus = Array.isArray(menuEntitiesRaw) ? menuEntitiesRaw : [];
+        const blogCategories = Array.isArray(blogCategoryEntitiesRaw) ? [...blogCategoryEntitiesRaw] : [];
+        const blogArticles = Array.isArray(blogArticleEntitiesRaw) ? blogArticleEntitiesRaw : [];
+
+        if (storeEntities.length === 0) {
+            await this.simulationLogic.createDataEntity(storeId, 'store', this.generateStoreSettings(profile), tx);
+            added.store += 1;
+        }
+
+        if (brands.length === 0) {
+            for (let i = 0; i < Math.max(5, profile.brandNames.length); i++) {
+                const brand = this.generateBrand(i, profile);
+                await this.simulationLogic.createDataEntity(storeId, 'brand', brand, tx);
+                brands.push(brand);
+                added.brands += 1;
+            }
+        }
+
+        if (categories.length === 0) {
+            for (let i = 0; i < Math.max(5, profile.categoryNames.length); i++) {
+                const category = this.generateCategory(i, profile);
+                await this.simulationLogic.createDataEntity(storeId, 'category', category, tx);
+                categories.push(category);
+                added.categories += 1;
+            }
+        }
+
+        if (products.length === 0) {
+            const brandPool = brands.length > 0 ? brands : [this.generateBrand(0, profile)];
+            const categoryPool = categories.length > 0 ? categories : [this.generateCategory(0, profile)];
+            if (brands.length === 0) {
+                await this.simulationLogic.createDataEntity(storeId, 'brand', brandPool[0], tx);
+                brands.push(brandPool[0]);
+                added.brands += 1;
+            }
+            if (categories.length === 0) {
+                await this.simulationLogic.createDataEntity(storeId, 'category', categoryPool[0], tx);
+                categories.push(categoryPool[0]);
+                added.categories += 1;
+            }
+
+            for (let i = 0; i < 20; i++) {
+                const product = this.generateProduct(i, brandPool, categoryPool, profile);
+                await this.simulationLogic.createDataEntity(storeId, 'product', product, tx);
+                added.products += 1;
+            }
+        }
+
+        const defaultPages = [
+            { id: 'about-us', title: 'عن المتجر', slug: 'about-us', content: 'نحن متجر متميز يقدم أفضل المنتجات والخدمات لعملائنا الكرام. نسعى دائماً للتميز وتوفير تجربة تسوق فريدة.' },
+            { id: 'privacy-policy', title: 'سياسة الخصوصية', slug: 'privacy-policy', content: 'نحن نهتم بخصوصية بياناتك. نلتزم بحماية المعلومات الشخصية التي تشاركها معنا وفقاً لأعلى معايير الأمان.' },
+            { id: 'terms-of-use', title: 'شروط الاستخدام', slug: 'terms-of-use', content: 'باستخدامك لموقعنا، فإنك توافق على الالتزام بالشروط والأحكام التالية التي تنظم علاقتنا معك فيما يخص هذا المتجر.' }
+        ];
+        if (pages.length === 0) {
+            for (const page of defaultPages) {
+                await this.simulationLogic.createDataEntity(storeId, 'page', page, tx);
+                added.pages += 1;
+            }
+        }
+
+        const headerExists = menus.some((menu: any) => String(menu?.id || menu?.type || '').toLowerCase() === 'header');
+        if (!headerExists) {
+            await this.simulationLogic.upsertDataEntity(
+                storeId,
+                'menu',
+                'header',
+                this.generateHeaderMenu(categories),
+                tx
+            );
+            added.menus += 1;
+        }
+
+        const footerExists = menus.some((menu: any) => String(menu?.id || menu?.type || '').toLowerCase() === 'footer');
+        if (!footerExists) {
+            const pagesForFooter = pages.length > 0 ? pages : defaultPages;
+            await this.simulationLogic.upsertDataEntity(
+                storeId,
+                'menu',
+                'footer',
+                this.generateFooterMenu(pagesForFooter),
+                tx
+            );
+            added.menus += 1;
+        }
+
+        if (blogCategories.length === 0) {
+            const generatedBlogCategories = Array.from({ length: Math.max(4, profile.blogCategoryNames.length) })
+                .map((_, index) => this.generateBlogCategory(index + 1, profile));
+            for (const category of generatedBlogCategories) {
+                await this.simulationLogic.createDataEntity(storeId, 'blog_category', category, tx);
+                blogCategories.push(category);
+                added.blogCategories += 1;
+            }
+        }
+
+        if (blogArticles.length === 0) {
+            if (blogCategories.length === 0) {
+                const fallbackCategory = this.generateBlogCategory(1, profile);
+                await this.simulationLogic.createDataEntity(storeId, 'blog_category', fallbackCategory, tx);
+                blogCategories.push(fallbackCategory);
+                added.blogCategories += 1;
+            }
+
+            const pool = blogCategories.length > 0 ? blogCategories : [this.generateBlogCategory(1, profile)];
+            const totalArticles = Math.max(8, profile.blogArticleTitles.length);
+            for (let i = 0; i < totalArticles; i++) {
+                // Cycle across categories to avoid empty category pages in preview.
+                const category = pool[i % pool.length];
+                const article = this.generateBlogArticle(i + 1, category, profile);
+                await this.simulationLogic.createDataEntity(storeId, 'blog_article', article, tx);
+                added.blogArticles += 1;
+            }
+        }
+
+        // Hardening pass: keep existing stores coherent so theme pages do not render empty by broken relations.
+        const categoryById = new Map(
+            categories
+                .map((category: any) => [this.normalizeId(category?.id), category] as const)
+                .filter(([id]) => Boolean(id))
+        );
+        const brandById = new Map(
+            brands
+                .map((brand: any) => [this.normalizeId(brand?.id), brand] as const)
+                .filter(([id]) => Boolean(id))
+        );
+        const fallbackCategory = categories[0] || null;
+        const fallbackBrand = brands[0] || null;
+
+        for (const product of products) {
+            const productId = this.normalizeId(product?.id);
+            if (!productId) continue;
+
+            let changed = false;
+            const nextProduct: Record<string, any> = { ...(product || {}) };
+            const validCategoryIds = this.collectProductCategoryIds(nextProduct).filter((id) => categoryById.has(id));
+
+            if (validCategoryIds.length === 0 && fallbackCategory) {
+                validCategoryIds.push(this.normalizeId(fallbackCategory.id));
+                changed = true;
+            }
+
+            if (validCategoryIds.length > 0) {
+                const nextCategoryObjects = validCategoryIds
+                    .map((id) => categoryById.get(id))
+                    .filter(Boolean);
+                const primaryCategory = nextCategoryObjects[0];
+                const currentPrimaryCategoryId = this.normalizeId(nextProduct?.category?.id || nextProduct?.category_id);
+
+                nextProduct.category_ids = validCategoryIds;
+                nextProduct.categories = nextCategoryObjects;
+                nextProduct.category_id = validCategoryIds[0];
+                nextProduct.category = primaryCategory;
+
+                if (currentPrimaryCategoryId !== validCategoryIds[0]) {
+                    changed = true;
+                }
+            }
+
+            const currentBrandId = this.normalizeId(nextProduct?.brand?.id || nextProduct?.brand_id);
+            if ((!currentBrandId || !brandById.has(currentBrandId)) && fallbackBrand) {
+                nextProduct.brand = fallbackBrand;
+                nextProduct.brand_id = this.normalizeId(fallbackBrand.id);
+                changed = true;
+            }
+
+            const productSlug = this.slugify(String(nextProduct.slug || productId)) || productId;
+            if (!String(nextProduct.url || '').startsWith('/products/')) {
+                nextProduct.url = `/products/${productSlug}`;
+                changed = true;
+            }
+
+            if (changed) {
+                await this.simulationLogic.upsertDataEntity(storeId, 'product', productId, nextProduct, tx);
+            }
+        }
+
+        const blogCategoryById = new Map(
+            blogCategories
+                .map((category: any) => [this.normalizeId(category?.id), category] as const)
+                .filter(([id]) => Boolean(id))
+        );
+        const blogCategoryPool = blogCategories.length > 0 ? blogCategories : [this.generateBlogCategory(1, profile)];
+        const blogArticleCountByCategory = new Map<string, number>();
+
+        for (let index = 0; index < blogArticles.length; index += 1) {
+            const article = blogArticles[index];
+            const articleId = this.normalizeId(article?.id);
+            if (!articleId) continue;
+
+            const fallbackArticleCategory = blogCategoryPool[index % blogCategoryPool.length];
+            const fallbackArticleCategoryId = this.normalizeId(fallbackArticleCategory?.id);
+            const rawArticleCategoryId = this.normalizeId(article?.category_id || article?.category?.id || article?.category);
+            const effectiveCategoryId =
+                (rawArticleCategoryId && blogCategoryById.has(rawArticleCategoryId))
+                    ? rawArticleCategoryId
+                    : fallbackArticleCategoryId;
+
+            const categoryEntity = blogCategoryById.get(effectiveCategoryId) || fallbackArticleCategory;
+            let changed = false;
+            const nextArticle: Record<string, any> = { ...(article || {}) };
+
+            if (effectiveCategoryId && rawArticleCategoryId !== effectiveCategoryId) {
+                nextArticle.category_id = effectiveCategoryId;
+                changed = true;
+            }
+
+            const currentCategoryObjectId = this.normalizeId(nextArticle?.category?.id || nextArticle?.category);
+            if (!currentCategoryObjectId || currentCategoryObjectId !== effectiveCategoryId) {
+                nextArticle.category = {
+                    id: effectiveCategoryId,
+                    name: String(categoryEntity?.name || categoryEntity?.title || '')
+                };
+                changed = true;
+            }
+
+            const articleSlug = this.slugify(String(nextArticle.slug || articleId)) || articleId;
+            if (!String(nextArticle.url || '').startsWith('/blog/')) {
+                nextArticle.url = `/blog/${articleSlug}`;
+                changed = true;
+            }
+
+            if (changed) {
+                await this.simulationLogic.upsertDataEntity(storeId, 'blog_article', articleId, nextArticle, tx);
+            }
+
+            if (effectiveCategoryId) {
+                blogArticleCountByCategory.set(
+                    effectiveCategoryId,
+                    Number(blogArticleCountByCategory.get(effectiveCategoryId) || 0) + 1
+                );
+            }
+        }
+
+        for (let index = 0; index < blogCategories.length; index += 1) {
+            const category = blogCategories[index];
+            const categoryId = this.normalizeId(category?.id);
+            if (!categoryId) continue;
+
+            if (Number(blogArticleCountByCategory.get(categoryId) || 0) > 0) {
+                continue;
+            }
+
+            const article = this.generateBlogArticle(
+                Math.max(1, blogArticles.length + index + 1),
+                category,
+                profile
+            );
+            await this.simulationLogic.createDataEntity(storeId, 'blog_article', article, tx);
+            blogArticleCountByCategory.set(categoryId, 1);
+            added.blogArticles += 1;
+        }
+
+        return {
+            success: true,
+            profile: profile.id,
+            added
+        };
+    }
+
+    private generateStoreSettings(profile: ReturnType<typeof getSeedProfileDefinition>): Partial<Salla.components['schemas']['Store']> {
         return {
             id: 'store-1', // Fixed ID for context
-            name: 'متجر التجربة',
-            description: 'متجر تجريبي تم إنشاؤه بواسطة المحاكي',
+            name: profile.storeName,
+            description: profile.storeDescription,
             currency: 'SAR',
             contacts: {
                 mobile: '+966500000000',
@@ -168,43 +538,122 @@ export class SeederService {
         };
     }
 
-    private generateBrand(): Salla.components['schemas']['Brand'] {
+    private generateBrand(index: number, profile: ReturnType<typeof getSeedProfileDefinition>): Salla.components['schemas']['Brand'] {
+        const name = this.pickSeedValue(profile.brandNames, index, `Brand ${this.randomString(5)}`);
+        const id = `brand_${profile.id}_${index + 1}_${this.randomString(4)}`;
         return {
-            id: this.randomString(),
-            name: 'Brand ' + this.randomString(5),
-            url: 'https://demo.sa/brand',
-            description: 'Brand description',
+            id,
+            name,
+            url: `/brands/${id}`,
+            description: `${name} - ${profile.storeName}`,
             logo: SeederService.DEFAULT_LOCAL_IMAGE
         };
     }
 
-    private generateCategory(): Salla.components['schemas']['Category'] {
+    private generateCategory(index: number, profile: ReturnType<typeof getSeedProfileDefinition>): Salla.components['schemas']['Category'] {
+        const name = this.pickSeedValue(profile.categoryNames, index, `Category ${this.randomString(5)}`);
+        const id = `cat_${profile.id}_${index + 1}_${this.randomString(4)}`;
         return {
-            id: this.randomString(),
-            name: 'Category ' + this.randomString(5),
-            url: 'https://demo.sa/cat',
+            id,
+            name,
+            url: `/categories/${id}`,
             image: SeederService.DEFAULT_LOCAL_IMAGE,
-            description: 'Category description',
+            description: `${name} ضمن ${profile.storeName}`,
             parent_id: null
         };
     }
 
-    private generateProduct(brands: any[], categories: any[]): Salla.components['schemas']['Product'] {
+    private generateProduct(
+        index: number,
+        brands: any[],
+        categories: any[],
+        profile: ReturnType<typeof getSeedProfileDefinition>
+    ): Record<string, any> {
         const hasOptions = this.randomBoolean();
-        const price = this.randomNumber(50, 1000);
+        const price = this.randomNumber(profile.minPrice, profile.maxPrice);
+        const id = `prd_${profile.id}_${index + 1}_${this.randomString(4)}`;
+        const descriptor = this.pickSeedValue(profile.productDescriptors, index, 'مميز');
+        const noun = this.pickSeedValue(profile.productNouns, index, 'منتج');
+        const productName = `${noun} ${descriptor}`;
+        const isDonationProduct = (index + 1) % 9 === 0;
+        const isInfiniteQuantity = isDonationProduct ? true : this.randomNumber(1, 10) === 1;
+        const quantity = isDonationProduct ? null : (isInfiniteQuantity ? null : this.randomNumber(0, 40));
+        const isHiddenQuantity = this.randomNumber(1, 6) === 1;
+        const explicitAvailability = isInfiniteQuantity ? true : (quantity || 0) > 0;
+        const isAvailable = isDonationProduct
+            ? true
+            : (explicitAvailability ? this.randomNumber(1, 8) !== 1 : false);
+        const isOutOfStock = isDonationProduct
+            ? false
+            : (!isAvailable || (!isInfiniteQuantity && (quantity || 0) <= 0));
+        const status = isDonationProduct
+            ? 'sale'
+            : (isOutOfStock
+                ? (this.randomBoolean() ? 'out-and-notify' : 'out')
+                : 'sale');
+        const maxQuantity = isInfiniteQuantity
+            ? 99
+            : Math.max(1, Math.min(quantity || 1, this.randomNumber(1, 10)));
+        const soldQuantity = this.randomNumber(0, 300);
+        const donationTargetAmount = isDonationProduct ? this.randomNumber(3000, 30000) : 0;
+        const donationCollectedAmount = isDonationProduct ? this.randomNumber(0, donationTargetAmount) : 0;
+        const donationTargetPercent = isDonationProduct && donationTargetAmount > 0
+            ? Math.round((donationCollectedAmount / donationTargetAmount) * 100)
+            : 0;
+        const donationEndDate = isDonationProduct
+            ? new Date(Date.now() + this.randomNumber(7, 45) * 86400000).toISOString()
+            : '';
+        const minAmountDonating = isDonationProduct
+            ? Math.max(5, this.randomNumber(5, Math.max(5, Math.floor(price / 2))))
+            : undefined;
+        const maxAmountDonating = isDonationProduct
+            ? Math.max(minAmountDonating || 5, donationTargetAmount)
+            : undefined;
 
         return {
-            id: this.randomString(),
-            name: 'Product ' + this.randomString(5),
-            type: 'product',
+            id,
+            name: productName,
+            type: isDonationProduct ? 'donating' : 'product',
             price: { amount: price, currency: 'SAR' },
             regular_price: { amount: price * 1.2, currency: 'SAR' },
             sale_price: { amount: price, currency: 'SAR' }, // Currently on sale
-            description: 'Product description ' + this.randomString(20),
-            short_description: 'Short description',
-            url: 'https://demo.sa/product',
-            is_available: true,
+            description: `وصف ${productName} ضمن فئة ${this.pickSeedValue(profile.categoryNames, index, 'المنتجات')}`,
+            short_description: `${productName} - ${profile.storeName}`,
+            url: `/products/${id}`,
+            is_require_shipping: !isDonationProduct,
+            quantity,
+            stock: quantity as any,
+            max_quantity: maxQuantity,
+            sold_quantity: soldQuantity,
+            is_hidden_quantity: isHiddenQuantity,
+            is_infinite_quantity: isInfiniteQuantity,
+            is_available: isAvailable,
+            is_out_of_stock: isOutOfStock,
+            status,
             is_on_sale: true,
+            is_donation: isDonationProduct,
+            donation: isDonationProduct
+                ? {
+                    collected_amount: donationCollectedAmount,
+                    target_amount: donationTargetAmount,
+                    target_percent: donationTargetPercent,
+                    target_end_date: donationEndDate,
+                    can_donate: true
+                }
+                : undefined,
+            min_amount_donating: minAmountDonating,
+            max_amount_donating: maxAmountDonating,
+            add_to_cart_label: isOutOfStock ? 'نفد المخزون' : 'أضف للسلة',
+            can_show_remained_quantity: !isHiddenQuantity && !isInfiniteQuantity && (quantity || 0) > 0,
+            can_show_sold: soldQuantity > 0,
+            notify_availability: status === 'out-and-notify'
+                ? {
+                    channels: ['sms', 'email'],
+                    subscribed: false,
+                    subscribed_options: [],
+                    options: true
+                }
+                : undefined,
             rating: {
                 stars: this.randomNumber(1, 5),
                 count: this.randomNumber(0, 100)
@@ -246,12 +695,20 @@ export class SeederService {
                     name: 'Customer ' + this.randomString(5),
                     avatar: SeederService.DEFAULT_LOCAL_IMAGE
                 }
-            }))
+            })),
+            specs: [
+                { key: 'الخامة', value: this.randomElement(profile.materialValues) },
+                { key: 'بلد المنشأ', value: this.randomElement(profile.originValues) }
+            ],
+            custom_fields: [
+                { key: 'الضمان', value: this.randomElement(profile.warrantyValues) },
+                { key: 'رقم الموديل', value: `${this.randomElement(profile.modelPrefixes)}-${this.randomString(6).toUpperCase()}` }
+            ]
         };
     }
 
-    private generateBlogCategory(index: number) {
-        const title = `تصنيف المدونة ${index}`;
+    private generateBlogCategory(index: number, profile: ReturnType<typeof getSeedProfileDefinition>) {
+        const title = this.pickSeedValue(profile.blogCategoryNames, index - 1, `تصنيف المدونة ${index}`);
         const slug = this.slugify(`blog-category-${index}-${this.randomString(4)}`);
         return {
             id: `blog_cat_${this.randomString(8)}`,
@@ -263,8 +720,8 @@ export class SeederService {
         };
     }
 
-    private generateBlogArticle(index: number, category: any) {
-        const title = `مقالة تجريبية ${index}`;
+    private generateBlogArticle(index: number, category: any, profile: ReturnType<typeof getSeedProfileDefinition>) {
+        const title = this.pickSeedValue(profile.blogArticleTitles, index - 1, `مقالة تجريبية ${index}`);
         const slug = this.slugify(`blog-article-${index}-${this.randomString(4)}`);
         return {
             id: `blog_article_${this.randomString(10)}`,
@@ -272,7 +729,7 @@ export class SeederService {
             title,
             slug,
             summary: `ملخص ${title}`,
-            description: `هذا محتوى تجريبي للمقالة رقم ${index} لاستخدامها في معاينة الثيم.`,
+            description: `هذا محتوى تجريبي للمقالة رقم ${index} ضمن ${profile.storeName}.`,
             image: SeederService.DEFAULT_LOCAL_IMAGE,
             url: `/blog/${slug}`,
             category_id: String(category?.id || ''),
@@ -287,15 +744,78 @@ export class SeederService {
         };
     }
 
-    private generateSpecialOffer(index: number) {
-        const title = `عرض خاص ${index}`;
+    private generateSpecialOffer(
+        index: number,
+        profile: ReturnType<typeof getSeedProfileDefinition>,
+        products: any[],
+        categories: any[]
+    ) {
+        const title = this.pickSeedValue(profile.offerTitles, index - 1, `عرض خاص ${index}`);
         const slug = this.slugify(`special-offer-${index}-${this.randomString(4)}`);
+        const productPool = Array.isArray(products) ? products : [];
+        const categoryPool = Array.isArray(categories) ? categories : [];
+
+        const selectedProducts: any[] = [];
+        if (productPool.length > 0) {
+            const count = Math.min(6, Math.max(2, Math.min(productPool.length, 3 + (index % 3))));
+            const start = (index - 1) % productPool.length;
+            for (let offset = 0; offset < count; offset++) {
+                selectedProducts.push(productPool[(start + offset) % productPool.length]);
+            }
+        }
+
+        const selectedCategories: any[] = [];
+        if (categoryPool.length > 0) {
+            const count = Math.min(4, Math.max(1, Math.min(categoryPool.length, 2 + (index % 2))));
+            const start = (index - 1) % categoryPool.length;
+            for (let offset = 0; offset < count; offset++) {
+                selectedCategories.push(categoryPool[(start + offset) % categoryPool.length]);
+            }
+        }
+
+        const mappedProducts = selectedProducts.map((product: any) => ({
+            id: String(product?.id || ''),
+            name: String(product?.name || product?.title || ''),
+            description: String(product?.description || ''),
+            url: String(product?.url || `/products/${String(product?.id || '')}`),
+            type: String(product?.type || 'product'),
+            status: String(product?.status || 'sale'),
+            image: product?.image?.url
+                ? { ...product.image }
+                : {
+                    url: String(product?.main_image || product?.thumbnail || SeederService.DEFAULT_LOCAL_IMAGE),
+                    alt: String(product?.name || '')
+                },
+            price: product?.price || { amount: 0, currency: 'SAR' },
+            sale_price: product?.sale_price || product?.price || { amount: 0, currency: 'SAR' },
+            regular_price: product?.regular_price || product?.price || { amount: 0, currency: 'SAR' },
+            category_ids: Array.isArray(product?.category_ids)
+                ? product.category_ids.map((entry: any) => String(entry))
+                : Array.isArray(product?.categories)
+                    ? product.categories.map((entry: any) => String(entry?.id || entry))
+                    : []
+        }));
+
+        const mappedCategories = selectedCategories.map((category: any) => ({
+            id: String(category?.id || ''),
+            name: String(category?.name || category?.title || ''),
+            image: String(category?.image || SeederService.DEFAULT_LOCAL_IMAGE),
+            url: String(category?.url || `/categories/${String(category?.id || '')}`),
+            parent_id: category?.parent_id ?? null,
+            status: String(category?.status || 'active'),
+            sort_order: Number.isFinite(Number(category?.order)) ? Number(category.order) : 0
+        }));
+
         return {
             id: `offer_${this.randomString(10)}`,
             name: title,
             title,
             slug,
             description: `تفاصيل ${title}`,
+            products: mappedProducts,
+            product_ids: mappedProducts.map((product: any) => String(product.id)).filter(Boolean),
+            categories: mappedCategories,
+            category_ids: mappedCategories.map((category: any) => String(category.id)).filter(Boolean),
             discount_type: index % 2 === 0 ? 'fixed' : 'percentage',
             discount_value: index % 2 === 0 ? this.randomNumber(10, 40) : this.randomNumber(5, 30),
             starts_at: new Date(Date.now() - index * 86400000).toISOString(),

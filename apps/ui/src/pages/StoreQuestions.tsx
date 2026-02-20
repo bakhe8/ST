@@ -40,7 +40,7 @@ const StoreQuestions: React.FC = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<Partial<Question>>(emptyQuestion);
 
-  const headers = { 'Context-Store-Id': storeId || 'default' };
+  const headers = { 'X-VTDR-Store-Id': storeId || '' };
 
   const fetchAll = () => {
     setLoading(true);

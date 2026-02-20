@@ -22,18 +22,27 @@ export class PrismaStoreRepository implements IStoreRepository {
         });
     }
 
+    // FIX P0-1: include componentStates + pageCompositions so CompositionEngine.resolveComponents works correctly
     public async getById(id: string, tx?: any) {
         const client = tx || this.prisma;
         return client.store.findUnique({
             where: { id },
-            include: { themeVersion: true }
+            include: {
+                themeVersion: true,
+                componentStates: true,
+                pageCompositions: true
+            }
         });
     }
 
     public async listAll(tx?: any) {
         const client = tx || this.prisma;
         return client.store.findMany({
-            include: { themeVersion: true }
+            include: {
+                themeVersion: true,
+                componentStates: true,
+                pageCompositions: true
+            }
         });
     }
 

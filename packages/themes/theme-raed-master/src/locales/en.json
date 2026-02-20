@@ -3,11 +3,44 @@
     "header": {
       "cart": "Cart"
     },
+    "home": {
+      "display_all": "Display all",
+      "latest_products": "Latest products"
+    },
+    "footer": {
+      "pages_links": "Important links"
+    },
     "appBanner": {
       "download_now": "download now"
     }
   },
   "pages": {
+    "categories": {
+      "sorting": "Sorting"
+    },
+    "brands": {
+      "non_brands": "No brands available right now",
+      "try_again": "Please try again later"
+    },
+    "products": {
+      "price": "Price",
+      "quantity": "Quantity",
+      "sku": "SKU",
+      "availability": "Availability",
+      "out_of_stock": "Out of stock",
+      "similar_products": "Similar products",
+      "tax_included": "Tax included",
+      "starting_price": "Starting price",
+      "sold": "Sold",
+      "remained": "Remaining"
+    },
+    "blog_categories": {
+      "categories": "Categories",
+      "no_articles": "No articles available right now"
+    },
+    "blog_articles": {
+      "related": "Related articles"
+    },
     "cart": {
       "cart_options": "Cart Options"
     },

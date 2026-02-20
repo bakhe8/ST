@@ -30,7 +30,6 @@ const ThemeSettingsPanel: React.FC<ThemeSettingsPanelProps> = ({ onSave }) => {
     fetch(apiUrl('v1/theme/settings'), {
       headers: {
         'X-VTDR-Store-Id': storeId || '',
-        'Context-Store-Id': storeId || ''
       }
     })
       .then(res => res.json())
@@ -76,7 +75,6 @@ const ThemeSettingsPanel: React.FC<ThemeSettingsPanelProps> = ({ onSave }) => {
         headers: {
           'Content-Type': 'application/json',
           'X-VTDR-Store-Id': storeId || '',
-          'Context-Store-Id': storeId || ''
         },
         body: JSON.stringify(values)
       });

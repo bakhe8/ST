@@ -1,0 +1,547 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<!-- بسم الله الرحمن الرحيم -->
+<head><script>try{localStorage.clear();sessionStorage.clear();}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+
+    <script defer data-cfasync="false" crossorigin="anonymous" src="/themes/theme-raed-master/public/product-card.js"></script>
+    <script defer src="/themes/theme-raed-master/public/main-menu.js"></script>
+    
+        <script defer src="/themes/theme-raed-master/public/add-product-toast.js"></script>
+    
+
+    
+
+
+    <script data-cfasync="false">
+        window.header_is_sticky = "false"
+        window.imageZoom = "false"
+        window.can_access_wallet = false
+        window.enable_more_menu = "true"
+        window.enable_add_product_toast = "true"
+    </script>
+    
+    
+    
+    
+    <link rel="stylesheet" href="/themes/theme-raed-master/public/app.css">
+    <link rel="stylesheet" href="https://cdn.salla.sa/fonts/din-next-lt-arabic.css"/>
+    <link rel="stylesheet" href="fonts/sallaicons.css"/>
+    
+    <style>
+        :root {
+            --font-main: 'DINNextLTArabic-Regular';
+            --color-primary: #004d41;
+            --color-primary-dark: #00362e;
+            --color-primary-light: #016c5b;
+            --color-primary-reverse: #004d41;
+        }
+    </style>
+    
+    
+</head>
+<body id="app" class="theme-raed overflow-x-hidden 
+   footer-is-dark
+   topnav-is-dark
+   is-sticky-product-bar
+  ">
+<noscript>
+    To get full functionality of this site you need to enable JavaScript. Here is how
+    <a href="https://www.enable-javascript.com/" rel="noreferrer"
+       target="_blank">To enable JavaScript on webpage</a>.
+</noscript>
+<div class="app-inner flex flex-col min-h-full">
+    
+    
+
+<header class="store-header">
+  
+  <div class="top-navbar">
+    <div class="container flex justify-between">
+      <div class="flex-1 flex items-center gap-2">
+          
+          
+            <salla-menu source="footer" topnav></salla-menu>
+          
+
+          
+          <div class="header-buttons">
+              
+          </div>
+
+          
+          
+
+          
+          <div class="header-search flex-1">
+            <salla-search inline oval height="36"></salla-search>
+          </div>
+      </div>
+
+      <salla-contacts is-header></salla-contacts>
+    </div>
+  </div>
+
+  
+  <div id="mainnav" class="main-nav-container shadow-default bg-white flex items-center">
+      <div class="inner bg-inherit w-full">
+          <div class="container">
+              <div class="flex items-stretch justify-between relative">
+                  <div class="flex items-center">
+                      <a class="lg:hidden mburger mburger--collapse leading-none rtl:ml-4 ltr:mr-4" href="#mobile-menu" aria-label="Open-menu">
+                        <i class="sicon-menu text-primary text-2xl"></i>
+                      </a>
+                      <a class="navbar-brand" href="/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0">
+                          <img fetchpriority="high" width="100%" height="100%" loading="eager" src="/images/placeholder.png" alt="متجر التجربة logo">
+                          
+                            <h2 class="sr-only">متجر التجربة</h2>
+                          
+                      </a>
+                      <custom-main-menu></custom-main-menu>
+                  </div>
+                  <div class="flex items-center justify-end my-2.5">
+                      
+                          <button class="header-btn" aria-label="user-icon" onclick="salla.event.dispatch('login::open')">
+                            <i class="header-btn__icon sicon-user-circle"></i>
+                          </button>
+                      
+                      <salla-cart-summary class="ml-4 rtl:ml-[unset] rtl:mr-4">
+                        <i slot="icon" class="header-btn__icon icon sicon-shopping-bag"></i>
+                      </salla-cart-summary>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</header>
+
+    <main id="main-content" role="main">
+    
+    <div class="container px-2.5 ms:px-5 mb-10">
+        
+        <nav class="breadcrumbs w-full py-5">
+            <salla-breadcrumb></salla-breadcrumb>
+        </nav>
+        <div class="flex items-start flex-col md:flex-row">
+            
+                <button class="btn--close-sm close-filters sicon-cancel hidden"></button>
+                <salla-filters class="md:w-72 lg:sticky lg:top-20 flex-none" id="filters-menu"></salla-filters>
+            
+
+            <div class="main-content flex-1 w-full ltr:lg:ml-8 rtl:lg:mr-8">
+                <div class="mb-4 sm:mb-6 flex justify-between items-center">
+                    <h1 class="font-bold text-xl rtl:pl-3 ltr:pr-3" id="page-main-title">المنتجات</h1>
+                    <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                        
+                            <a href="#filters-menu"
+                               class="filters-trigger bg-border-color text-primary lg:hidden mt-2">
+                                <i class="sicon-filter text-gray-text text-2xl me-2.5"></i>
+                            </a>
+                        
+                        
+                            <div class="flex items-center">
+                                <label class="hidden sm:block rtl:ml-3 ltr:mr-3 whitespace-nowrap"
+                                       for="product-filter">الفرز</label>
+                                <select id="product-filter" class="form-input pt-0 pb-1 rtl:md:pl-10 ltr:md:pr-10">
+                                    
+                                        <option value="ourSuggest" selected>المقترح</option>
+                                    
+                                        <option value="bestSell" >الأكثر مبيعًا</option>
+                                    
+                                        <option value="topRated" >الأعلى تقييمًا</option>
+                                    
+                                        <option value="priceFromTopToLow" >السعر من الأعلى للأقل</option>
+                                    
+                                        <option value="priceFromLowToTop" >السعر من الأقل للأعلى</option>
+                                    
+                                </select>
+                            </div>
+                        
+                    </div>
+
+                </div>
+
+                
+                <div class="flex min-h-screen">
+                    <salla-products-list class="flex-1 min-w-0 overflow-auto "
+                        source="product.index"
+                        source-value="products"
+                        filters-Results>
+					          </salla-products-list>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+
+    
+
+    </main>
+    <footer class="store-footer">
+	<div aria-label="footer" class="store-footer__inner">
+		<div class="container grid grid-col-1 lg:grid-cols-6 gap-8 lg:gap-6">
+			<div class="lg:col-span-2 rtl:lg:pl-20 ltr:lg:pr-20">
+				<a href="/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0/" class="flex items-center m-0">
+					<h3>متجر التجربة</h3>
+				</a>
+				
+					<div class="max-w-sm leading-6 mb-6">
+						متجر تجريبي تم إنشاؤه بواسطة المحاكي
+          </div>
+				
+
+				<div class="hidden lg:block">
+					<salla-social class="block mb-6"></salla-social>
+				</div>
+
+		<div class="flex gap-4">
+		  
+		  <salla-trust-badges  dark ></salla-trust-badges>
+          
+          
+        </div>
+        </div>
+
+			<div>
+				<h3>روابط مهمة</h3>
+				<salla-menu source="footer"></salla-menu>
+			</div>
+
+			<div>
+				<salla-contacts></salla-contacts>
+
+				<div class="lg:hidden contact-social">
+					<salla-social></salla-social>
+				</div>
+			</div>
+
+			<salla-apps-icons class="lg:col-span-2 rtl:lg:pr-20 ltr:lg:pl-20"></salla-apps-icons>
+
+		</div>
+	</div>
+
+	<div class="md:flex items-center justify-between py-4 container text-center">
+		<span class="text-sm copyright-text"></span>
+		<salla-payments></salla-payments>
+	</div>
+</div>
+
+<span class="hidden bottom-2 rtl:pl-24 ltr:pr-24 md:grid-cols-3 opacity-40"></span></footer>
+
+</div>
+
+            <script>window.vtdr_context = { storeId: "1328d364-6058-4da9-8a93-7b9e5afeef27", pageId: "products", templatePageId: "product/index" };</script>
+            
+            <script>
+            (function () {
+                var previewBaseFallback = "/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0";
+                var viewportFallback = "desktop";
+                var refreshFallback = "";
+                var storeIdFallback = "1328d364-6058-4da9-8a93-7b9e5afeef27";
+                var nav = window.__VTDR_PREVIEW_NAV__ || {};
+
+                nav.resolvePreviewBasePath = function () {
+                    var match = window.location.pathname.match(/^\/preview\/[^/]+\/[^/]+\/[^/]+/);
+                    return match ? match[0] : previewBaseFallback;
+                };
+
+                nav.isResourcePath = function (pathname) {
+                    return pathname.startsWith('/themes') ||
+                        pathname.startsWith('/preview') ||
+                        /\.[a-z0-9]{2,8}$/i.test(pathname);
+                };
+
+                nav.isStoreLikeDomain = function (hostname) {
+                    return /(^|\.)salla\.sa$/i.test(hostname) || /(^|\.)demo\.sa$/i.test(hostname);
+                };
+
+                nav.isLocalDevHost = function (hostname) {
+                    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+                };
+
+                nav.resolveAnchorFromEvent = function (event) {
+                    var directTarget = event && event.target && event.target.closest ? event.target.closest('a[href]') : null;
+                    if (directTarget) return directTarget;
+                    if (!event || typeof event.composedPath !== 'function') return null;
+
+                    var eventPath = event.composedPath();
+                    for (var i = 0; i < eventPath.length; i += 1) {
+                        var node = eventPath[i];
+                        if (!node) continue;
+                        if (node.tagName && String(node.tagName).toLowerCase() === 'a') return node;
+                        if (node.closest) {
+                            var nested = node.closest('a[href]');
+                            if (nested) return nested;
+                        }
+                    }
+                    return null;
+                };
+
+                nav.toPreviewUrl = function (path, extraParams) {
+                    var previewBase = nav.resolvePreviewBasePath();
+                    if (!previewBase) return null;
+
+                    var currentUrl = new URL(window.location.href);
+                    var normalizedPath = String(path || '/').startsWith('/') ? String(path || '/') : '/' + String(path || '');
+                    var cleanPath = normalizedPath === '/' ? '' : normalizedPath;
+                    var nextUrl = new URL(window.location.origin + previewBase + cleanPath);
+
+                    var viewport = currentUrl.searchParams.get('viewport') || viewportFallback;
+                    if (viewport) nextUrl.searchParams.set('viewport', viewport);
+
+                    var refresh = currentUrl.searchParams.get('refresh') || refreshFallback;
+                    if (refresh) nextUrl.searchParams.set('refresh', refresh);
+
+                    if (extraParams && typeof extraParams === 'object') {
+                        Object.entries(extraParams).forEach(function (entry) {
+                            var key = entry[0];
+                            var value = entry[1];
+                            if (value == null) return;
+                            nextUrl.searchParams.set(String(key), String(value));
+                        });
+                    }
+
+                    return nextUrl;
+                };
+
+                nav.navigate = function (path, extraParams) {
+                    var nextUrl = nav.toPreviewUrl(path, extraParams);
+                    if (nextUrl) {
+                        window.location.href = nextUrl.toString();
+                        return true;
+                    }
+                    window.location.href = String(path || '/');
+                    return false;
+                };
+
+                window.__VTDR_PREVIEW_NAV__ = nav;
+
+                if (window.__VTDR_NAV_SHIM__) return;
+                window.__VTDR_NAV_SHIM__ = true;
+
+                if (!window.__VTDR_API_CONTEXT_SHIM__) {
+                    window.__VTDR_API_CONTEXT_SHIM__ = true;
+
+                    var isLocalDevHost = function (hostname) {
+                        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+                    };
+
+                    var resolveStoreId = function () {
+                        var fromContext = window.vtdr_context && window.vtdr_context.storeId
+                            ? String(window.vtdr_context.storeId)
+                            : '';
+                        return fromContext || storeIdFallback || '';
+                    };
+
+                    var shouldDecorateApiRequest = function (rawUrl) {
+                        try {
+                            var parsed = new URL(rawUrl, window.location.href);
+                            if (!parsed.pathname.startsWith('/api/v1/')) return false;
+                            if (parsed.origin === window.location.origin) return true;
+                            return isLocalDevHost(parsed.hostname);
+                        } catch (e) {
+                            return false;
+                        }
+                    };
+
+                    var normalizeApiUrl = function (rawUrl) {
+                        try {
+                            var parsed = new URL(rawUrl, window.location.href);
+                            var pathname = String(parsed.pathname || '');
+                            pathname = pathname.replace(/(\/api\/v1){2,}/g, '/api/v1');
+                            parsed.pathname = pathname;
+                            return parsed.toString();
+                        } catch (e) {
+                            return rawUrl;
+                        }
+                    };
+
+                    var isSameOriginApiRequest = function (rawUrl) {
+                        try {
+                            var parsed = new URL(rawUrl, window.location.href);
+                            return parsed.origin === window.location.origin;
+                        } catch (e) {
+                            return false;
+                        }
+                    };
+
+                    var addStoreIdToUrl = function (rawUrl, storeId) {
+                        try {
+                            var parsed = new URL(rawUrl, window.location.href);
+                            if (!parsed.searchParams.get('store_id')) {
+                                parsed.searchParams.set('store_id', storeId);
+                            }
+                            return parsed.toString();
+                        } catch (e) {
+                            return rawUrl;
+                        }
+                    };
+
+                    if (typeof window.fetch === 'function') {
+                        var originalFetch = window.fetch.bind(window);
+                        window.fetch = function (input, init) {
+                            var storeId = resolveStoreId();
+                            if (!storeId) return originalFetch(input, init);
+
+                            var rawUrl = '';
+                            if (typeof input === 'string' || input instanceof URL) {
+                                rawUrl = String(input);
+                            } else if (input && typeof input.url === 'string') {
+                                rawUrl = input.url;
+                            }
+                            rawUrl = normalizeApiUrl(rawUrl);
+
+                            if (!rawUrl || !shouldDecorateApiRequest(rawUrl)) {
+                                return originalFetch(input, init);
+                            }
+
+                            var nextUrl = addStoreIdToUrl(rawUrl, storeId);
+                            var sameOrigin = isSameOriginApiRequest(nextUrl);
+                            var headers = new Headers((init && init.headers) || (input && input.headers) || {});
+                            if (sameOrigin) {
+                                if (!headers.has('X-VTDR-Store-Id')) headers.set('X-VTDR-Store-Id', storeId);
+                            }
+
+                            var nextInit = Object.assign({}, init || {}, { headers: headers });
+                            var method = (init && init.method) || (input && input.method) || undefined;
+                            if (method && !nextInit.method) nextInit.method = method;
+
+                            if (typeof Request !== 'undefined' && input instanceof Request) {
+                                return originalFetch(new Request(nextUrl, input), nextInit);
+                            }
+
+                            return originalFetch(nextUrl, nextInit);
+                        };
+                    }
+
+                    if (typeof XMLHttpRequest !== 'undefined') {
+                        var xhrOpen = XMLHttpRequest.prototype.open;
+                        var xhrSend = XMLHttpRequest.prototype.send;
+
+                        XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+                            var storeId = resolveStoreId();
+                            var rawUrl = normalizeApiUrl(String(url || ''));
+                            var shouldDecorate = Boolean(storeId) && shouldDecorateApiRequest(rawUrl);
+                            var sameOrigin = shouldDecorate ? isSameOriginApiRequest(rawUrl) : false;
+
+                            this.__vtdrStoreId = storeId || '';
+                            this.__vtdrDecorate = shouldDecorate;
+                            this.__vtdrSameOrigin = sameOrigin;
+                            this.__vtdrDecoratedUrl = shouldDecorate ? addStoreIdToUrl(rawUrl, storeId) : rawUrl;
+
+                            return xhrOpen.call(
+                                this,
+                                method,
+                                this.__vtdrDecoratedUrl,
+                                async,
+                                user,
+                                password
+                            );
+                        };
+
+                        XMLHttpRequest.prototype.send = function (body) {
+                            try {
+                                if (this.__vtdrDecorate && this.__vtdrStoreId && this.__vtdrSameOrigin) {
+                                    this.setRequestHeader('X-VTDR-Store-Id', this.__vtdrStoreId);
+                                }
+                            } catch (e) {
+                                // Ignore header injection failures.
+                            }
+
+                            return xhrSend.call(this, body);
+                        };
+                    }
+                }
+
+                document.addEventListener('click', function (event) {
+                    var link = nav.resolveAnchorFromEvent(event);
+                    if (!link) return;
+
+                    var hrefAttr = link.getAttribute('href') || '';
+                    if (!hrefAttr || hrefAttr.startsWith('#') || hrefAttr.startsWith('javascript:')) return;
+                    if (hrefAttr.startsWith('mailto:') || hrefAttr.startsWith('tel:')) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+                    var url = new URL(link.href, window.location.href);
+                    var sameOrigin = url.origin === window.location.origin;
+                    var bridgeableExternal = nav.isStoreLikeDomain(url.hostname) || nav.isLocalDevHost(url.hostname);
+                    if (!sameOrigin && !bridgeableExternal) return;
+
+                    var routePath = url.pathname || '/';
+                    if (nav.isResourcePath(routePath)) return;
+
+                    var nextUrl = nav.toPreviewUrl(routePath);
+                    if (!nextUrl) return;
+
+                    url.searchParams.forEach(function (value, key) {
+                        nextUrl.searchParams.set(key, value);
+                    });
+                    if (url.hash) nextUrl.hash = url.hash;
+
+                    event.preventDefault();
+                    window.location.href = nextUrl.toString();
+                }, true);
+            })();
+            </script>
+    
+            
+            <script>
+            (function () {
+                if (window.__VTDR_CONSOLE_NOISE_GUARD__) return;
+                window.__VTDR_CONSOLE_NOISE_GUARD__ = true;
+
+                var originalError = console.error ? console.error.bind(console) : null;
+                var originalTrace = console.trace ? console.trace.bind(console) : null;
+                var suppressNextTrace = false;
+
+                console.error = function () {
+                    try {
+                        var message = Array.prototype.slice.call(arguments).join(' ');
+                        if (message.indexOf('possible EventEmitter memory leak detected') >= 0) {
+                            suppressNextTrace = true;
+                            return;
+                        }
+                    } catch (e) {}
+                    if (originalError) return originalError.apply(console, arguments);
+                };
+
+                console.trace = function () {
+                    if (suppressNextTrace) {
+                        suppressNextTrace = false;
+                        return;
+                    }
+                    if (originalTrace) return originalTrace.apply(console, arguments);
+                };
+            })();
+            </script>
+        
+            <script src="https://cdn.jsdelivr.net/npm/@salla.sa/twilight@latest/dist/@salla.sa/twilight.min.js"></script>
+            <script src="/sdk-components-fallback.js"></script>
+            <script src="/sdk-bridge.js"></script>
+            <script>document.addEventListener('DOMContentLoaded', function() { if (window.salla) { salla.init({ store: {"id":"1328d364-6058-4da9-8a93-7b9e5afeef27","name":"متجر التجربة","avatar":"/images/placeholder.png","description":"متجر تجريبي تم إنشاؤه بواسطة المحاكي","locale":"ar-SA","currency":"SAR","branding":{},"social":{"instagram":"https://instagram.com/salla","twitter":"https://twitter.com/salla"},"settings":{"cart":{"apply_coupon_enabled":true}},"themeId":"theme-raed-master","themeVersionId":"034c6700-eb98-4edd-a523-b6e171403c51","url":"http://localhost:3000/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0","api":"/api/v1","icon":"/images/placeholder.png","logo":"/images/placeholder.png","slogan":"سوقك في جيبك","username":"store_vtdr","contacts":{"mobile":"966500000000","email":"support@salla.sa","whatsapp":"966500000000"}}, user: {"id":"vtdr_guest_1","type":"guest","is_authenticated":false,"name":"ضيف المحاكي","avatar":"/images/placeholder.png","language":{"code":"ar","dir":"rtl"},"currency":{"code":"SAR","symbol":"ر.س"},"can_access_wallet":false,"points":0}, theme: {"id":"theme-raed-master","name":"رائد","version":"1.0.0","author":"Salla","is_rtl":true,"mode":"preview","preview_viewport":"desktop","color":{"primary":"#004d41","text":"#FFFFFF","reverse_primary":"#FFFFFF","reverse_text":"#004d41","is_dark":false},"font":{"name":"DINNextLTArabic-Regular","path":"https://cdn.salla.sa/fonts/din-next-lt-arabic.css","url":"https://cdn.salla.sa/fonts/din-next-lt-arabic.css"},"settings":{}} }); } });</script>
+        
+
+    <salla-add-product-toast></salla-add-product-toast>
+
+<script defer crossorigin="anonymous" src="/themes/theme-raed-master/public/app.js"></script>
+
+
+<salla-offer-modal></salla-offer-modal>
+<salla-search></salla-search>
+
+
+    <salla-login-modal></salla-login-modal>
+
+
+
+    <script defer src="/themes/theme-raed-master/public/product.js"></script>
+
+</body>
+</html>
+

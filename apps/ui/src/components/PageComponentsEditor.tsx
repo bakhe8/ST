@@ -1125,7 +1125,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     fetch(apiUrl('v1/theme/components'), {
       headers: {
         'X-VTDR-Store-Id': selectedStoreId,
-        'Context-Store-Id': selectedStoreId
       }
     })
       .then(res => res.json())
@@ -1158,7 +1157,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
     fetch(apiUrl('v1/theme/settings'), {
       headers: {
         'X-VTDR-Store-Id': selectedStoreId,
-        'Context-Store-Id': selectedStoreId
       }
     })
       .then(res => res.json())
@@ -1227,10 +1225,37 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   }, [editingElement, availableComponents]);
 
   // Filter components for the selected page only
-  const selectedPageObj = PAGES.find(p => p.id === selectedPage);
+  const supportedPageIds = new Set(
+    PAGES
+      .filter((page) => availableComponents.some((component) => (component.path || '').startsWith(page.path)))
+      .map((page) => page.id)
+  );
+  const pagesWithSavedEntries = new Set(
+    Object.entries(elementsMap)
+      .filter(([, pageElements]) => Array.isArray(pageElements) && pageElements.length > 0)
+      .map(([pageId]) => pageId)
+  );
+  const visiblePages = (() => {
+    const pages = PAGES.filter((page) => supportedPageIds.has(page.id) || pagesWithSavedEntries.has(page.id));
+    if (pages.length > 0) return pages;
+    const fallbackHome = PAGES.find((page) => page.id === 'home');
+    return fallbackHome ? [fallbackHome] : [PAGES[0]];
+  })();
+
+  useEffect(() => {
+    if (visiblePages.some((page) => page.id === selectedPage)) return;
+    if (visiblePages.length > 0) {
+      setSelectedPage(visiblePages[0].id);
+    }
+  }, [selectedPage, availableComponents, elementsMap]);
+
+  const selectedPageObj = visiblePages.find(p => p.id === selectedPage) || visiblePages[0];
   const pagePath = selectedPageObj?.path || '';
   const pageComponents = availableComponents.filter(c => (c.path || '').startsWith(pagePath));
   const elements = elementsMap[selectedPage] || [];
+  const runtimeHomeOnly =
+    availableComponents.length > 0 &&
+    availableComponents.every((component) => String(component.path || '').startsWith('home.'));
 
   const setElements = (els: PageElement[]) => setElementsMap(map => ({ ...map, [selectedPage]: els }));
 
@@ -1381,7 +1406,6 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
         headers: {
           'Content-Type': 'application/json',
           'X-VTDR-Store-Id': storeId,
-          'Context-Store-Id': storeId
         },
         body: JSON.stringify({
           page_compositions: normalizedPageCompositions
@@ -1394,12 +1418,29 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
   };
 
   return (
-    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', direction: 'rtl' }}>
+    <div style={{ direction: 'rtl' }}>
+      {runtimeHomeOnly && (
+        <div
+          style={{
+            marginBottom: 12,
+            border: '1px solid #99f6e4',
+            background: '#ecfeff',
+            color: '#0f766e',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 13,
+            lineHeight: 1.8
+          }}
+        >
+          الثيم الحالي يوفّر مكونات من نوع <code>home.*</code> فقط، لذلك تأثير هذه الشاشة يظهر في معاينة الصفحة الرئيسية.
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
       {/* Pages Sidebar */}
       <div style={{ minWidth: 180, background: '#f9f9f9', borderRadius: 12, boxShadow: '0 2px 16px #0001', padding: 16, height: '100%' }}>
         <h4 style={{ marginBottom: 16, fontSize: 16 }}>الصفحات</h4>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {PAGES.map(page => (
+          {visiblePages.map(page => (
             <li key={page.id}>
               <button
                 onClick={() => setSelectedPage(page.id)}
@@ -2085,6 +2126,7 @@ const PageComponentsEditor: React.FC<PageComponentsEditorProps> = ({ selectedSto
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

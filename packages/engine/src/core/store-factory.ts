@@ -1,6 +1,7 @@
 import { IStoreRepository, IDataEntityRepository, IThemeRepository, BrandingSchema } from '@vtdr/contracts';
 import { SeederService } from '../providers/seeder-service.js';
 import { SynchronizationService } from '../providers/synchronization-service.js';
+import { normalizeSeedProfile, type SeedProfileId } from '../providers/seed-profiles.js';
 
 
 // StoreFactory ينشئ متجر مستقل تلقائياً مع بيانات افتراضية
@@ -23,6 +24,7 @@ export class StoreFactory {
         brandingJson?: string;
         blueprintId?: string;
         autoSeed?: boolean;
+        seedProfile?: SeedProfileId | string;
         syncUrl?: string;
         parentStoreId?: string;
         isMaster?: boolean;
@@ -42,20 +44,21 @@ export class StoreFactory {
         brandingJson?: string;
         blueprintId?: string;
         autoSeed?: boolean;
+        seedProfile?: SeedProfileId | string;
         syncUrl?: string;
         parentStoreId?: string;
         isMaster?: boolean;
     }, tx: any) {
-        // 1. تحديد بيانات الثيم الأساسي (Dynamic resolution)
-        let defaultThemeId = 'theme-raed-master';
-        let defaultThemeVersionId = '8cb2d06c-e048-4cf0-886f-7311870812ce';
-
+        // 1. تحديد بيانات الثيم الأساسي من السجل الفعلي (بدون hardcode)
         const themes = await this.themeRepo.listAll();
-        if (themes.length > 0) {
-            defaultThemeId = themes[0].id;
-            if (themes[0].versions && themes[0].versions.length > 0) {
-                defaultThemeVersionId = themes[0].versions[0].id;
-            }
+        if (!themes.length) {
+            throw new Error('No registered themes available. Run theme sync/register before creating stores.');
+        }
+        const defaultTheme = themes[0] as any;
+        const defaultThemeId = String(defaultTheme?.id || '').trim();
+        const defaultThemeVersionId = String(defaultTheme?.versions?.[0]?.id || '').trim();
+        if (!defaultThemeId || !defaultThemeVersionId) {
+            throw new Error(`Theme "${defaultThemeId || 'unknown'}" has no registered versions. Run theme sync/register to add versions.`);
         }
 
         // 1.5 Validating branding if provided
@@ -78,12 +81,15 @@ export class StoreFactory {
         }, tx);
 
         // 4. Automatic Operations (Phase B)
+        const shouldAutoSeed = data.autoSeed !== false;
+        const seedProfile = normalizeSeedProfile(data.seedProfile);
+
         if (data.syncUrl && this.sync) {
             console.log(`[StoreFactory] Auto-Syncing from: ${data.syncUrl}`);
             await this.sync.syncStoreData(store.id, data.syncUrl, tx);
-        } else if (data.autoSeed && this.seeder) {
-            console.log(`[StoreFactory] Auto-Seeding store: ${store.id}`);
-            await this.seeder.seedStoreData(store.id, 20, tx);
+        } else if (shouldAutoSeed && this.seeder) {
+            console.log(`[StoreFactory] Auto-Seeding store: ${store.id} (profile=${seedProfile})`);
+            await this.seeder.seedStoreData(store.id, 20, tx, { profile: seedProfile });
         }
 
         return store;
@@ -132,6 +138,7 @@ export class StoreFactory {
             defaultLocale: original.defaultLocale,
             defaultCurrency: original.defaultCurrency,
             brandingJson: original.brandingJson,
+            autoSeed: false,
             parentStoreId: original.parentStoreId,
             isMaster: false // Clones are not masters by default
         }, tx);

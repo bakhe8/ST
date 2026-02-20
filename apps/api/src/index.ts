@@ -17,6 +17,7 @@ import {
     CompositionEngine,
     ThemeLoader,
     StoreFactory,
+    StoreManagementOrchestrator,
     SallaValidator,
     HookService,
     LocalizationService,
@@ -24,6 +25,9 @@ import {
     SynchronizationService,
     RendererService,
     SimulatorService,
+    SimulatorAuthOrchestrator,
+    ThemeManagementOrchestrator,
+    PreviewRenderOrchestrator,
     SchemaService,
     WebhookService,
     LocalFileSystem
@@ -41,7 +45,7 @@ import {
 // 3. Service/Middleware Imports
 import { ContextResolver } from './services/context-resolver.js';
 import { createContextMiddleware } from './middlewares/context.middleware.js';
-import { LocalThemeFileProvider } from './providers/local-theme-file-provider.js';
+import { LocalThemeRuntimeAdapter } from './providers/local-theme-runtime-adapter.js';
 
 // 4. Route Factories
 import { createStoreRoutes } from './routes/store.routes.js';
@@ -92,7 +96,7 @@ const contentManager = new ContentManager(dataEntityRepo, collectionRepo, dataBi
 const storeLogic = new StoreLogic(storeRepo, dataEntityRepo);
 
 // F. Provider Layer (Structural Hardening)
-const themeFileProvider = new LocalThemeFileProvider(themesBaseDir);
+const themeRuntimeAdapter = new LocalThemeRuntimeAdapter(themesBaseDir);
 const contextResolver = new ContextResolver(storeLogic);
 
 // G. Middleware Layer
@@ -110,9 +114,25 @@ const engine = new CompositionEngine(storeRepo, themeRegistry, contentManager, s
 const schemaService = new SchemaService();
 await schemaService.initialize();
 
-const renderer = new RendererService(themesBaseDir, fsAdapter, schemaService);
-const simulatorService = new SimulatorService(storeLogic, schemaService, themeFileProvider);
+const renderer = new RendererService(themesBaseDir, fsAdapter, schemaService, themeRuntimeAdapter);
+const simulatorService = new SimulatorService(storeLogic, schemaService, themeRuntimeAdapter);
 const webhookService = new WebhookService();
+const simulatorAuthOrchestrator = new SimulatorAuthOrchestrator(storeLogic, webhookService);
+const previewOrchestrator = new PreviewRenderOrchestrator(engine, renderer, storeLogic, themeRegistry, seeder);
+const themeManagementOrchestrator = new ThemeManagementOrchestrator(
+    themeRegistry,
+    themeLoader,
+    sallaValidator,
+    themesBaseDir
+);
+const storeManagementOrchestrator = new StoreManagementOrchestrator(
+    storeFactory,
+    storeLogic,
+    seeder,
+    synchronizer,
+    themeRepo,
+    sallaValidator
+);
 
 // --- ROUTING LAYER ---
 
@@ -134,13 +154,13 @@ app.use('/themes', express.static(themesBaseDir));
 // 3. API Sub-Router
 const apiRouter = express.Router();
 
-apiRouter.use('/system', createSystemRoutes(themesBaseDir));
-apiRouter.use('/themes', createThemeRoutes(themeRegistry, themeLoader, sallaValidator, themesBaseDir));
+apiRouter.use('/system', createSystemRoutes(themesBaseDir, previewOrchestrator));
+apiRouter.use('/themes', createThemeRoutes(themeManagementOrchestrator));
 
-const storeRoutes = createStoreRoutes(storeFactory, storeLogic, seeder, synchronizer, contextMiddleware);
+const storeRoutes = createStoreRoutes(storeManagementOrchestrator, contextMiddleware);
 apiRouter.use('/stores', storeRoutes);
 apiRouter.use('/v1/stores', storeRoutes);
-apiRouter.use('/v1', contextMiddleware, createSimulatorRoutes(simulatorService, storeLogic, webhookService, hookService));
+apiRouter.use('/v1', contextMiddleware, createSimulatorRoutes(simulatorService, simulatorAuthOrchestrator));
 
 app.use('/api', apiRouter);
 
@@ -150,7 +170,7 @@ app.use('/api', (req, res) => {
 });
 
 // 5. Runtime Renderer (Greedy Matcher)
-app.use('/', contextMiddleware, createRuntimeRoutes(engine, renderer, storeLogic, themeRegistry));
+app.use('/', contextMiddleware, createRuntimeRoutes(previewOrchestrator));
 
 // 6. Global Error Handler
 app.use((err: any, req: any, res: any, next: any) => {

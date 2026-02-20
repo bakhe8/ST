@@ -4,13 +4,44 @@
       "cart": "السلة"
     },
     "home": {
-      "testimonials": "آراء العملاء"
+      "testimonials": "آراء العملاء",
+      "display_all": "عرض الكل",
+      "latest_products": "أحدث المنتجات"
+    },
+    "footer": {
+      "pages_links": "روابط مهمة"
     },
     "appBanner": {
       "download_now": "حمله الان"
     }
   },
   "pages": {
+    "categories": {
+      "sorting": "الفرز"
+    },
+    "brands": {
+      "non_brands": "لا توجد ماركات متاحة حالياً",
+      "try_again": "حاول مرة أخرى لاحقاً"
+    },
+    "products": {
+      "price": "السعر",
+      "quantity": "الكمية",
+      "sku": "رمز المنتج",
+      "availability": "التوفر",
+      "out_of_stock": "نفد المخزون",
+      "similar_products": "منتجات مشابهة",
+      "tax_included": "شامل الضريبة",
+      "starting_price": "يبدأ من",
+      "sold": "تم بيع",
+      "remained": "المتبقي"
+    },
+    "blog_categories": {
+      "categories": "التصنيفات",
+      "no_articles": "لا توجد مقالات متاحة حالياً"
+    },
+    "blog_articles": {
+      "related": "مقالات ذات صلة"
+    },
     "cart": {
       "cart_options": "خيارات السلة"
     },

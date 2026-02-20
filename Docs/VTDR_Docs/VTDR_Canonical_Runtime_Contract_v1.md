@@ -43,6 +43,11 @@
   - `GET /preview/:storeId/:themeId/:version?page=index`
   - `GET /preview/:storeId/:themeId/:version/*`
   - دعم المسارات المحلية المسبوقة باللغة مثل `/ar/products`.
+  - دعم deep-links للمسارات المفردة مثل:
+    - `/products/<id-or-slug>`
+    - `/categories/<id-or-slug>`
+    - `/brands/<id-or-slug>`
+    - `/blog/<id-or-slug>`
 
 - Runtime bridge:
   - `GET /sdk-bridge.js`
@@ -64,6 +69,9 @@
   - `Render Error`
   - `Preview rendering failed`
 - وجود حقن `sdk-bridge.js` داخل صفحة المعاينة.
+- وجود API التنقل الموحد في الصفحة:
+  - `window.__VTDR_PREVIEW_NAV__`
+  - `window.__VTDR_NAV_SHIM__`
 
 ## 6) التحقق الآلي الرسمي (Source of Truth)
 
@@ -87,3 +95,20 @@
 - فصل منطق العرض عن منطق التشغيل.
 - قابلية توسع مباشرة عند إضافة ثيمات جديدة.
 - كشف أي انكسار توافق مبكرًا عبر الاختبار الآلي.
+
+## 8) Enforcement (إلزام تشغيلي)
+
+العقد لا يُعد فعالًا إلا مع الحواجز التالية:
+
+1. حارس حدود التشغيل:
+   - `npm run guard:runtime-boundaries`
+   - المرجع: `tools/architecture/runtime-boundary-guard.mjs`
+   - يمنع hardcode لثيم محدد داخل routes/UI preview ويمنع ربط routes مباشرة بملفات الثيم.
+
+2. اختبار عقد Runtime:
+   - `npm run test:contract:theme-runtime`
+   - المرجع: `apps/api/src/integration/theme-runtime-contract.integration.test.ts`
+
+3. خط التحقق الأساسي:
+   - `npm run validate`
+   - يتضمن drift check + runtime boundary guard + build/lint/test.

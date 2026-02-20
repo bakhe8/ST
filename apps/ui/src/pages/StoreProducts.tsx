@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { apiUrl } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { MoreHorizontal, Plus, Search } from 'lucide-react';
 
 interface Product {
     id: string;
     name: string;
-    price: { amount: number; currency: string };
+    price: { amount?: number; currency?: string } | number;
     sku?: string;
     status?: string;
     type?: string;
@@ -19,6 +19,20 @@ interface Product {
     options?: { id?: string; name?: string; type?: string; values?: any[] }[];
     variants?: { id?: string; sku?: string; quantity?: number }[];
     stock?: number;
+    quantity?: number | null;
+    available_quantity?: number | null;
+    reserved_quantity?: number;
+    max_quantity?: number;
+    low_stock_threshold?: number;
+    track_quantity?: boolean;
+    allow_backorder?: boolean;
+    inventory_status?: string;
+    is_available?: boolean;
+    is_infinite_quantity?: boolean;
+    is_out_of_stock?: boolean;
+    is_featured?: boolean;
+    weight?: number;
+    weight_unit?: string;
     properties?: { key: string; value: string }[];
 }
 
@@ -36,30 +50,58 @@ const StoreProducts = () => {
     const [loading, setLoading] = useState(true);
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('ourSuggest');
+    const [stockFilter, setStockFilter] = useState('');
 
     useEffect(() => {
-        fetch(apiUrl('v1/products'), {
-            headers: {
-                'Context-Store-Id': storeId || 'default'
-            }
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
+        const timeout = window.setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm.trim());
+        }, 300);
+        return () => window.clearTimeout(timeout);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        const headers = {
+            'X-VTDR-Store-Id': storeId || ''
+        };
+
+        const params = new URLSearchParams();
+        if (debouncedSearchTerm) params.set('search', debouncedSearchTerm);
+        if (selectedCategory) params.set('category_id', selectedCategory);
+        if (sortBy) params.set('sort', sortBy);
+        if (stockFilter) params.set('status', stockFilter);
+
+        const endpoint = params.toString()
+            ? `v1/products?${params.toString()}`
+            : 'v1/products';
+
+        setLoading(true);
+        fetch(apiUrl(endpoint), { headers })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.success && Array.isArray(data.data)) {
                     setProducts(data.data);
+                } else {
+                    setProducts([]);
                 }
                 setLoading(false);
             })
             .catch((err) => {
                 console.error(err);
+                setProducts([]);
                 setLoading(false);
             });
+    }, [storeId, debouncedSearchTerm, selectedCategory, sortBy, stockFilter]);
+
+    useEffect(() => {
         // جلب الأقسام لعرض أسمائها
         fetch(apiUrl('v1/categories'), {
-            headers: { 'Context-Store-Id': storeId || 'default' }
+            headers: { 'X-VTDR-Store-Id': storeId || '' }
         })
-            .then(res => res.json())
-            .then(data => {
+            .then((res) => res.json())
+            .then((data) => {
                 if (data.success) setCategories(data.data);
             });
     }, [storeId]);
@@ -71,7 +113,7 @@ const StoreProducts = () => {
     };
 
     // صورة افتراضية في حال فشل تحميل الصورة المحلية
-    const placeholderImg = '/images/products/placeholder.png';
+    const placeholderImg = '/images/placeholder.png';
     const getProductCategoryIds = (product: Product) => {
         if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
             return product.category_ids.map(String);
@@ -96,6 +138,39 @@ const StoreProducts = () => {
             target.src = placeholderImg;
         }
     };
+    const getPriceAmount = (price: Product['price']) => {
+        if (typeof price === 'number') return price;
+        const amount = Number(price?.amount ?? 0);
+        return Number.isFinite(amount) ? amount : 0;
+    };
+    const getPriceCurrency = (price: Product['price']) => {
+        if (price && typeof price === 'object' && typeof price.currency === 'string' && price.currency.trim()) {
+            return price.currency;
+        }
+        return 'SAR';
+    };
+    const getDisplayQuantity = (product: Product) => {
+        if (typeof product.available_quantity === 'number') return String(product.available_quantity);
+        if (product.is_infinite_quantity) return '∞';
+        if (typeof product.quantity === 'number') return String(product.quantity);
+        if (typeof product.stock === 'number') return String(product.stock);
+        return '-';
+    };
+    const getStatusView = (product: Product) => {
+        const inventoryStatus = String(product.inventory_status || '').toLowerCase();
+        const rawStatus = String(product.status || '').toLowerCase();
+        if (rawStatus === 'hidden') return { label: 'Hidden', bg: 'rgba(148,163,184,0.2)', color: '#94a3b8' };
+        if (inventoryStatus === 'backorder') return { label: 'Backorder', bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' };
+        if (inventoryStatus === 'low_stock') return { label: 'Low Stock', bg: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' };
+        const isOut =
+            product.is_out_of_stock === true ||
+            rawStatus === 'out' ||
+            rawStatus === 'out-of-stock' ||
+            rawStatus === 'out_of_stock' ||
+            rawStatus === 'out-and-notify';
+        if (isOut) return { label: rawStatus === 'out-and-notify' ? 'Out + Notify' : 'Out of Stock', bg: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' };
+        return { label: 'Active', bg: 'rgba(16, 185, 129, 0.2)', color: '#34d399' };
+    };
 
     return (
         <div>
@@ -114,6 +189,8 @@ const StoreProducts = () => {
                     <input
                         type="text"
                         placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ width: '100%', padding: '10px 10px 10px 36px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: 'white' }}
                     />
                 </div>
@@ -126,6 +203,33 @@ const StoreProducts = () => {
                     {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
+                </select>
+                <select
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value)}
+                    style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: 'white', padding: '0 16px', minWidth: 140 }}
+                >
+                    <option value="">كل الحالات</option>
+                    <option value="in-stock">متوفر</option>
+                    <option value="low-stock">مخزون منخفض</option>
+                    <option value="out-of-stock">غير متوفر</option>
+                    <option value="backorder">طلب مسبق</option>
+                    <option value="hidden">مخفي</option>
+                </select>
+                <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: 'white', padding: '0 16px', minWidth: 170 }}
+                >
+                    <option value="ourSuggest">الأفضل</option>
+                    <option value="bestSell">الأكثر مبيعاً</option>
+                    <option value="topRated">الأعلى تقييماً</option>
+                    <option value="priceFromLowToTop">السعر: الأقل للأعلى</option>
+                    <option value="priceFromTopToLow">السعر: الأعلى للأقل</option>
+                    <option value="latest">الأحدث</option>
+                    <option value="stockFromLowToTop">المخزون: الأقل للأعلى</option>
+                    <option value="stockFromTopToLow">المخزون: الأعلى للأقل</option>
+                    <option value="featured">المميزة أولاً</option>
                 </select>
             </div>
 
@@ -148,12 +252,12 @@ const StoreProducts = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Loading products...</td></tr>
+                            <tr><td colSpan={10} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Loading products...</td></tr>
                         ) : products.length === 0 ? (
-                            <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>No products found.</td></tr>
-                        ) : products
-                            .filter(product => !selectedCategory || getProductCategoryIds(product).includes(selectedCategory))
-                            .map(product => (
+                            <tr><td colSpan={10} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>No products found.</td></tr>
+                        ) : products.map(product => {
+                            const statusView = getStatusView(product);
+                            return (
                                 <tr key={product.id} style={{ borderBottom: '1px solid #334155' }}>
                                     <td style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <div style={{ width: 40, height: 40, background: '#334155', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -169,7 +273,22 @@ const StoreProducts = () => {
                                                 )
                                             )}
                                         </div>
-                                        <span style={{ fontWeight: 500 }}>{product.name}</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            <span style={{ fontWeight: 500 }}>{product.name}</span>
+                                            {product.is_featured && (
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    width: 'fit-content',
+                                                    background: 'rgba(59,130,246,0.25)',
+                                                    color: '#93c5fd',
+                                                    borderRadius: 8,
+                                                    padding: '2px 8px',
+                                                    fontSize: 11
+                                                }}>
+                                                    Featured
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td style={{ padding: 16 }}>
                                         <div style={{ display: 'flex', gap: 4 }}>
@@ -180,15 +299,29 @@ const StoreProducts = () => {
                                     </td>
                                     <td style={{ padding: 16, color: '#94a3b8', fontFamily: 'monospace' }}>{product.sku || '-'}</td>
                                     <td style={{ padding: 16 }}>
-                                        {product.price.amount} <span style={{ fontSize: 12, color: '#94a3b8' }}>{product.price.currency}</span>
+                                        {getPriceAmount(product.price)} <span style={{ fontSize: 12, color: '#94a3b8' }}>{getPriceCurrency(product.price)}</span>
                                     </td>
-                                    <td style={{ padding: 16 }}>{typeof product.stock === 'number' ? product.stock : '-'}</td>
+                                    <td style={{ padding: 16 }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            <span>{getDisplayQuantity(product)}</span>
+                                            {typeof product.low_stock_threshold === 'number' && product.low_stock_threshold > 0 && (
+                                                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                                    low {'<='} {product.low_stock_threshold}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td style={{ padding: 16 }}>
                                         {(product.properties && product.properties.length > 0)
                                             ? product.properties.map((prop, idx) => (
                                                 <span key={idx} style={{ display: 'inline-block', background: '#334155', color: '#fff', borderRadius: 8, padding: '2px 8px', fontSize: 12, marginRight: 4 }}>{prop.key}: {prop.value}</span>
                                             ))
                                             : <span style={{ color: '#94a3b8', fontSize: 12 }}>-</span>}
+                                        {typeof product.weight === 'number' && product.weight > 0 && (
+                                            <span style={{ display: 'inline-block', background: '#334155', color: '#fff', borderRadius: 8, padding: '2px 8px', fontSize: 12, marginLeft: 4 }}>
+                                                {product.weight} {product.weight_unit || 'kg'}
+                                            </span>
+                                        )}
                                     </td>
                                     <td style={{ padding: 16 }}>
                                         <span style={{ display: 'inline-block', background: '#334155', color: '#fff', borderRadius: 8, padding: '2px 8px', fontSize: 12, marginRight: 6 }}>
@@ -202,11 +335,11 @@ const StoreProducts = () => {
                                         <span style={{
                                             padding: '4px 10px',
                                             borderRadius: 12,
-                                            background: product.status === 'hidden' ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)',
-                                            color: product.status === 'hidden' ? '#94a3b8' : '#34d399',
+                                            background: statusView.bg,
+                                            color: statusView.color,
                                             fontSize: 12
                                         }}>
-                                            {product.status || 'Active'}
+                                            {statusView.label}
                                         </span>
                                     </td>
                                     <td style={{ padding: 16 }}>
@@ -262,7 +395,8 @@ const StoreProducts = () => {
                                         )}
                                     </td>
                                 </tr>
-                            ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

@@ -1,0 +1,4 @@
+data:image/svg+xml;utf8,<svg xmlns=
+https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_female.png
+https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_male.png
+https://cdn.salla.sa/images/logo/logo-dark-colored.png

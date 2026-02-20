@@ -37,16 +37,30 @@ export class CompositionEngine {
     /**
      * Merges Theme Files + Store State to produce the final Runtime Context
      */
-    public async buildContext(storeId: string, pageId?: string): Promise<RuntimeContext | null> {
+    public async buildContext(
+        storeId: string,
+        pageId?: string,
+        options?: {
+            themeId?: string;
+            themeVersionId?: string;
+        }
+    ): Promise<RuntimeContext | null> {
         // 1. Fetch Store with expanded relations
         const store = await this.storeRepo.getById(storeId);
         if (!store) return null;
 
         // 2. Resolve Theme Files
-        const theme = await this.themeRegistry.getTheme(store.themeId);
+        const requestedThemeId = String(options?.themeId || '').trim();
+        const requestedThemeVersionId = String(options?.themeVersionId || '').trim();
+        const effectiveThemeId = requestedThemeId || String(store.themeId || '');
+
+        const theme = await this.themeRegistry.getTheme(effectiveThemeId);
         if (!theme) return null;
 
-        const version = theme.versions.find((v: any) => v.id === store.themeVersionId) || theme.versions[0];
+        const version =
+            theme.versions.find((v: any) => v.id === (requestedThemeVersionId || store.themeVersionId)) ||
+            theme.versions[0];
+        if (!version) return null;
         const schema: TwilightSchema = version ? JSON.parse(version.contractJson) : { name: theme.nameAr || 'Unknown', version: '1.0.0' };
 
         // 3. Fetch Rich Data Entities
@@ -84,7 +98,7 @@ export class CompositionEngine {
         const context: RuntimeContext = {
             storeId: storeId,
             theme: {
-                id: theme.id,
+                id: effectiveThemeId,
                 name: theme.nameAr || 'Unknown',
                 version: version?.version || '1.0.0',
                 author: theme.authorEmail || 'Salla'
@@ -116,8 +130,8 @@ export class CompositionEngine {
                 currencies: storeData.currencies,
                 languages: storeData.languages,
                 settings: storeSettings,
-                themeId: store.themeId,
-                themeVersionId: store.themeVersionId
+                themeId: effectiveThemeId,
+                themeVersionId: version?.id || requestedThemeVersionId || store.themeVersionId
             },
             page: {
                 id: activePageId,

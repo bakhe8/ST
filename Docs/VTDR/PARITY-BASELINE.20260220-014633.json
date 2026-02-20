@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-02-20T01:46:33.219Z",
+  "thresholds": {
+    "minCoreRouteSuccessRatio": 1,
+    "minBrowserRouteSuccessRatio": 1,
+    "maxCriticalConsoleErrors": 0,
+    "maxPageErrors": 0
+  },
+  "runs": [
+    {
+      "label": "contract-gate",
+      "command": "npm run test --workspace=@vtdr/api -- --run src/integration/theme-runtime-contract.integration.test.ts",
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "label": "browser-gate",
+      "command": "npm run test:e2e:preview",
+      "exitCode": 0,
+      "ok": true
+    }
+  ],
+  "checks": [
+    {
+      "key": "contract-core-route-success-ratio",
+      "expected": ">= 1",
+      "actual": 1,
+      "pass": true
+    },
+    {
+      "key": "browser-route-success-ratio",
+      "expected": ">= 1",
+      "actual": 1,
+      "pass": true
+    },
+    {
+      "key": "critical-console-errors",
+      "expected": "<= 0",
+      "actual": 0,
+      "pass": true
+    },
+    {
+      "key": "page-errors",
+      "expected": "<= 0",
+      "actual": 0,
+      "pass": true
+    }
+  ],
+  "overallPass": true,
+  "contract": {
+    "generatedAt": "2026-02-20T01:46:15.902Z",
+    "suite": "theme-runtime-contract",
+    "summary": {
+      "themesDiscovered": 1,
+      "routesChecked": 5,
+      "routesPassed": 5,
+      "routesFailed": 0,
+      "successRatio": 1,
+      "totalFailures": 0,
+      "pass": true
+    },
+    "themes": [
+      {
+        "themeId": "theme-raed-master",
+        "themeVersion": "1.0.0",
+        "routesPassed": 5,
+        "routesFailed": 0,
+        "coreRoutes": {
+          "/": "pass",
+          "/products": "pass",
+          "/categories": "pass",
+          "/brands": "pass",
+          "/blog": "pass"
+        },
+        "failures": []
+      }
+    ]
+  },
+  "browser": {
+    "generatedAt": "2026-02-20T01:46:32.923Z",
+    "suite": "preview-browser-parity",
+    "storeId": "9d486651-23d6-4d4d-bf88-534f74fe536d",
+    "themeId": "theme-raed-master",
+    "themeVersion": "1.0.0",
+    "entityCounts": {
+      "products": 20,
+      "categories": 5,
+      "brands": 5,
+      "blogArticles": 8
+    },
+    "summary": {
+      "routesChecked": 5,
+      "routesPassed": 5,
+      "routesFailed": 0,
+      "successRatio": 1,
+      "criticalConsoleErrors": 0,
+      "pageErrors": 0,
+      "pass": true
+    },
+    "routes": [
+      {
+        "routePath": "/",
+        "status": "pass",
+        "failures": []
+      },
+      {
+        "routePath": "/products",
+        "status": "pass",
+        "failures": []
+      },
+      {
+        "routePath": "/categories",
+        "status": "pass",
+        "failures": []
+      },
+      {
+        "routePath": "/brands",
+        "status": "pass",
+        "failures": []
+      },
+      {
+        "routePath": "/blog",
+        "status": "pass",
+        "failures": []
+      }
+    ],
+    "diagnostics": {
+      "routeFailures": [],
+      "criticalConsoleErrors": [],
+      "pageErrors": []
+    }
+  }
+}

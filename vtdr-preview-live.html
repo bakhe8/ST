@@ -1,0 +1,694 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<!-- بسم الله الرحمن الرحيم -->
+<head><script>try{localStorage.clear();sessionStorage.clear();}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+
+    <script defer data-cfasync="false" crossorigin="anonymous" src="/themes/theme-raed-master/public/product-card.js"></script>
+    <script defer src="/themes/theme-raed-master/public/main-menu.js"></script>
+    
+        <script defer src="/themes/theme-raed-master/public/add-product-toast.js"></script>
+    
+
+    
+
+
+    <script data-cfasync="false">
+        window.header_is_sticky = "false"
+        window.imageZoom = "false"
+        window.can_access_wallet = false
+        window.enable_more_menu = "true"
+        window.enable_add_product_toast = "true"
+    </script>
+    
+    
+    
+    
+    <link rel="stylesheet" href="/themes/theme-raed-master/public/app.css">
+    <link rel="stylesheet" href="https://cdn.salla.sa/fonts/din-next-lt-arabic.css"/>
+    <link rel="stylesheet" href="fonts/sallaicons.css"/>
+    
+    <style>
+        :root {
+            --font-main: 'DINNextLTArabic-Regular';
+            --color-primary: #004d41;
+            --color-primary-dark: #00362e;
+            --color-primary-light: #016c5b;
+            --color-primary-reverse: #004d41;
+        }
+    </style>
+    
+    
+</head>
+<body id="app" class="theme-raed overflow-x-hidden 
+   footer-is-dark
+   topnav-is-dark
+   is-sticky-product-bar
+  ">
+<noscript>
+    To get full functionality of this site you need to enable JavaScript. Here is how
+    <a href="https://www.enable-javascript.com/" rel="noreferrer"
+       target="_blank">To enable JavaScript on webpage</a>.
+</noscript>
+<div class="app-inner flex flex-col min-h-full">
+    
+    
+
+<header class="store-header">
+  
+  <div class="top-navbar">
+    <div class="container flex justify-between">
+      <div class="flex-1 flex items-center gap-2">
+          
+          
+            <salla-menu source="footer" topnav></salla-menu>
+          
+
+          
+          <div class="header-buttons">
+              
+          </div>
+
+          
+          
+
+          
+          <div class="header-search flex-1">
+            <salla-search inline oval height="36"></salla-search>
+          </div>
+      </div>
+
+      <salla-contacts is-header></salla-contacts>
+    </div>
+  </div>
+
+  
+  <div id="mainnav" class="main-nav-container shadow-default bg-white flex items-center">
+      <div class="inner bg-inherit w-full">
+          <div class="container">
+              <div class="flex items-stretch justify-between relative">
+                  <div class="flex items-center">
+                      <a class="lg:hidden mburger mburger--collapse leading-none rtl:ml-4 ltr:mr-4" href="#mobile-menu" aria-label="Open-menu">
+                        <i class="sicon-menu text-primary text-2xl"></i>
+                      </a>
+                      <a class="navbar-brand" href="/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0">
+                          <img fetchpriority="high" width="100%" height="100%" loading="eager" src="https://cdn.salla.sa/images/logo/logo-dark-colored.png" alt="متجر التجربة logo">
+                          
+                            <h1 class="sr-only">متجر التجربة</h1>
+                          
+                      </a>
+                      <custom-main-menu></custom-main-menu>
+                  </div>
+                  <div class="flex items-center justify-end my-2.5">
+                      
+                          <button class="header-btn" aria-label="user-icon" onclick="salla.event.dispatch('login::open')">
+                            <i class="header-btn__icon sicon-user-circle"></i>
+                          </button>
+                      
+                      <salla-cart-summary class="ml-4 rtl:ml-[unset] rtl:mr-4">
+                        <i slot="icon" class="header-btn__icon icon sicon-shopping-bag"></i>
+                      </salla-cart-summary>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</header>
+
+    <main id="main-content" role="main">
+    
+    
+<section class="s-block s-block--hero-slider s-block--full-bg wide-placeholder"> 
+    <salla-slider 
+      id="main-slider-0"
+      auto-play
+      slider-config='{
+        "lazy": "false"
+      }'
+      
+      type="fullwidth">
+        <div slot="items">
+            
+                <div class="swiper-slide w-full min-h-[300px] lg:min-h-[528px] bg-dark relative">
+					<div style="background-image: url(https://cdn.salla.sa/ZrBEO/MopzhoqpTkDObcKc8Q8n77AuydanfsGXdZO7iinH.jpg);" class="overlay-bg bg-cover bg-center absolute inset-0"></div>
+                    
+                    <div class="flex-center container pb-16 sm:pb-0 home-slider__content relative h-full">
+                        <div class=" w-4/6 text-center md:w-7/12 lg:w-5/12 text-white">
+                            <h2 data-swiper-parallax="-500" class="lg:text-title-size font-bold leading-tight mb-4">روِّج لمنتجاتك كصور متحركة</h2>
+                            <p data-swiper-parallax="-300" class="line-clamp-2 description">اعرض المنتجات التي تود إبرازها لزوّار متجرك في هذه المساحة</p>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="swiper-slide w-full min-h-[300px] lg:min-h-[528px] bg-dark relative">
+					<div style="background-image: url(https://cdn.salla.sa/ZrBEO/3gOhYSaIhaHxhH2IHWxJYDl9JHwxP6dGKiZFSq4K.jpg);" class="overlay-bg bg-cover bg-center absolute inset-0"></div>
+                    
+                    <div class="flex-center container pb-16 sm:pb-0 home-slider__content relative h-full">
+                        <div class=" w-4/6 text-center md:w-7/12 lg:w-5/12 text-white">
+                            <h2 data-swiper-parallax="-500" class="lg:text-title-size font-bold leading-tight mb-4">شجّع زوار متجرك على الشراء عبر عروض خاصة</h2>
+                            <p data-swiper-parallax="-300" class="line-clamp-2 description">اعرض المنتجات التي تود إبرازها لزوّار متجرك في هذه المساحة</p>
+                        </div>
+                    </div>
+                </div>
+            
+        </div>
+    </salla-slider>
+</section> 
+
+
+<section class="s-block s-block--categories  ">
+    <div class="container">
+      <salla-slider  
+        type="carousel"
+        
+        controls-outer
+        show-controls="true" 
+        id="main-links-1">
+          <div slot="items">
+              
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-packed-box"></i>
+                            <h2>منتج جاهز</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-fabric-swatch"></i>
+                            <h2>خدمة حسب الطلب</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-cake"></i>
+                            <h2>أكل ومشروبات</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-game-controller-alt"></i>
+                            <h2>منتج رقمي</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-barcode-scan"></i>
+                            <h2>بطاقة رقمية</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-inbox-full"></i>
+                            <h2>مجموعة منتجات</h2>
+                        </a>
+                    </div>
+                  
+                
+                  
+                    <div class="swiper-slide slide--one-sixth">
+                        <a href="/offers" class="slide--cat-entry">
+                            <i class="sicon-calendar-date"></i>
+                            <h2>حجوزات</h2>
+                        </a>
+                    </div>
+                  
+                
+              
+          </div>
+      </salla-slider>
+    </div>
+</section> 
+
+
+<section class="s-block s-block--slider-with-bg s-block--full-bg">
+    <div class="slider-bg" style="background-image: url('https://cdn.salla.sa/form-builder/D7bG3pgSit43TheOejBOZV7LIfG1y1Cj0hWLmgIh.jpg');">
+        <div class="container pt-8 sm:pt-20 relative">
+            <div>
+                <h3 class="text-lg font-bold leading-12">
+                    
+                </h3>
+                <p class="text-sm mb-8 line-clamp-2 max-w-lg">
+                    
+                </p>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="container -mt-62 relative overflow-hidden">
+        <salla-products-slider  source="selected" source-value="[04s7044rht,0vx5pe8dd6,3sap7c74ni,3vztexp9bt,4vhcqbiict,5thlhwfdk3,7v2eh9oeeb,clr1u1rbde,eclzfvvpi4,fy8swj9msn,h5uw320g6t,n3bz2eryhq]" 
+            block-title=" " 
+            slider-id="slider-with-bg-2"
+        ></salla-products-slider>
+    </div>
+</section>
+ 
+
+
+
+<section class="s-block s-block--banners container">
+    <div class="grid md:grid-cols-3 two-row grid-flow-row gap-3 sm:gap-8">
+        
+            <a  href="#" aria-label="&#x062A;&#x0635;&#x0641;&#x0651;&#x064E;&#x062D;&#x20;&#x062D;&#x0633;&#x0628;&#x20;&#x0627;&#x0644;&#x062A;&#x0635;&#x0646;&#x064A;&#x0641;" class="banner-entry lazy has-overlay h-banner" data-bg="https://cdn.salla.sa/mQgZlG/pzOCEw10wCfXeVSpKnL0Ifd1O9ZkTfnZ17RkE14R.jpg">
+                <article class="banner-entry__text text-with-border">
+                    <h3 class="banner__title font-bold mb-1 leading-6">تصفَّح حسب التصنيف</h3>
+                    <p class="banner__description">سهِّل تجربة التسوُّق والوصول لمنتجاتك</p>
+                </article>
+            </a>
+        
+            <a  href="#" aria-label="&#x062A;&#x0635;&#x0641;&#x0651;&#x064E;&#x062D;&#x20;&#x062D;&#x0633;&#x0628;&#x20;&#x0627;&#x0644;&#x062A;&#x0635;&#x0646;&#x064A;&#x0641;" class="banner-entry lazy has-overlay h-banner" data-bg="https://cdn.salla.sa/mQgZlG/lkyDjYwvWJNmAQoGnLALLcUkm66rCCDbTyVlSGdH.jpg">
+                <article class="banner-entry__text text-with-border">
+                    <h3 class="banner__title font-bold mb-1 leading-6">تصفَّح حسب التصنيف</h3>
+                    <p class="banner__description">سهِّل تجربة التسوُّق والوصول لمنتجاتك</p>
+                </article>
+            </a>
+        
+            <a  href="#" aria-label="&#x062A;&#x0635;&#x0641;&#x0651;&#x064E;&#x062D;&#x20;&#x062D;&#x0633;&#x0628;&#x20;&#x0627;&#x0644;&#x062A;&#x0635;&#x0646;&#x064A;&#x0641;" class="banner-entry lazy has-overlay h-banner" data-bg="https://cdn.salla.sa/mQgZlG/lkyDjYwvWJNmAQoGnLALLcUkm66rCCDbTyVlSGdH.jpg">
+                <article class="banner-entry__text text-with-border">
+                    <h3 class="banner__title font-bold mb-1 leading-6">تصفَّح حسب التصنيف</h3>
+                    <p class="banner__description">سهِّل تجربة التسوُّق والوصول لمنتجاتك</p>
+                </article>
+            </a>
+        
+            <a  href="#" aria-label="&#x062A;&#x0635;&#x0641;&#x0651;&#x064E;&#x062D;&#x20;&#x062D;&#x0633;&#x0628;&#x20;&#x0627;&#x0644;&#x062A;&#x0635;&#x0646;&#x064A;&#x0641;" class="banner-entry lazy has-overlay h-banner" data-bg="https://cdn.salla.sa/mQgZlG/lkyDjYwvWJNmAQoGnLALLcUkm66rCCDbTyVlSGdH.jpg">
+                <article class="banner-entry__text text-with-border">
+                    <h3 class="banner__title font-bold mb-1 leading-6">تصفَّح حسب التصنيف</h3>
+                    <p class="banner__description">سهِّل تجربة التسوُّق والوصول لمنتجاتك</p>
+                </article>
+            </a>
+        
+            <a  href="#" aria-label="&#x062A;&#x0635;&#x0641;&#x0651;&#x064E;&#x062D;&#x20;&#x062D;&#x0633;&#x0628;&#x20;&#x0627;&#x0644;&#x062A;&#x0635;&#x0646;&#x064A;&#x0641;" class="banner-entry lazy has-overlay h-banner" data-bg="https://cdn.salla.sa/mQgZlG/lkyDjYwvWJNmAQoGnLALLcUkm66rCCDbTyVlSGdH.jpg">
+                <article class="banner-entry__text text-with-border">
+                    <h3 class="banner__title font-bold mb-1 leading-6">تصفَّح حسب التصنيف</h3>
+                    <p class="banner__description">سهِّل تجربة التسوُّق والوصول لمنتجاتك</p>
+                </article>
+            </a>
+        
+    </div>
+</section>
+
+
+
+<section class="s-block s-block--logos-slider s-block--full-bg bg-gray-100 pt-8 sm:pt-12 pb-8 sm:pb-20">
+    <div class="container">
+    
+        
+          <div class="s-block__title">
+            
+              <div class="right-side">
+                <h2>تصفح من خلال العلامات التجارية</h2>
+                
+              </div>
+            
+            
+          </div>
+        
+
+        <div class="grid grid-cols-2 md:grid-cols-5 grid-flow-row gap-4 lg:gap-8">
+            
+                
+                    <a href="/brands/brand-5adxq"
+                       class="brand-item ">
+                        <img class="max-h-full" width="400" height="300" src="data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239CA3AF" font-family="Arial" font-size="24">No Image</text></svg>" alt="Brand 5adxq"/>
+                    </a>
+                
+            
+                
+                    <a href="/brands/brand-8185p"
+                       class="brand-item">
+                        <img class="max-h-full" width="400" height="300" src="data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239CA3AF" font-family="Arial" font-size="24">No Image</text></svg>" alt="Brand 8185p"/>
+                    </a>
+                
+            
+                
+                    <a href="/brands/brand-gy4pj"
+                       class="brand-item">
+                        <img class="max-h-full" width="400" height="300" src="data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239CA3AF" font-family="Arial" font-size="24">No Image</text></svg>" alt="Brand gy4pj"/>
+                    </a>
+                
+            
+                
+                    <a href="/brands/brand-nq35h"
+                       class="brand-item ">
+                        <img class="max-h-full" width="400" height="300" src="data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239CA3AF" font-family="Arial" font-size="24">No Image</text></svg>" alt="Brand nq35h"/>
+                    </a>
+                
+            
+                
+                    <a href="/brands/brand-8pg0b"
+                       class="brand-item">
+                        <img class="max-h-full" width="400" height="300" src="data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239CA3AF" font-family="Arial" font-size="24">No Image</text></svg>" alt="Brand 8pg0b"/>
+                    </a>
+                
+            
+        </div>
+    </div>
+</section>
+
+<section class="s-block s-block--testimonials s-block--custom-testimonials container overflow-hidden">
+	<div class="s-reviews-container">
+		<div class="s-reviews-header-wrapper">
+			<h1 class="s-reviews-header">آراء العملاء</h1>
+		</div>
+		<salla-slider id="custom-testimonials-5-slider" centered slides-per-view="1" type="testimonials" class="testimonials-slider s-slider-wrapper" centered controls-outer auto-play>
+			<div slot="items">
+				
+				<div class="s-reviews-swiper-slide swiper-slide" style="width: 830px;">
+						<div class="s-reviews-testimonial">
+							<div class="s-reviews-testimonial__inner">
+								<div class="s-reviews-testimonial__avatar">
+									<img src="https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_female.png" loading="lazy" alt="ندى الحسيني" class="loaded" width="68" height="68">
+								</div>
+								<div class="s-reviews-testimonial__text">
+									<p class="">وصلتني اليوم  وطلعت جميلة متحمسة أجربها ❤️</p>
+									<div class="s-reviews-testimonial__name_wrapper items-center">
+										<div class="s-reviews-testimonial__info">
+											<h2 class="font-bold text-xs xs:text-sm">ندى الحسيني</h2>
+										</div>
+										<div class="s-reviews-testimonial__rating !mx-0">
+											<salla-rating-stars class="flex" size="small" value="5"></salla-rating-stars>
+										</div>
+									</div>
+								</div>
+								<span
+									class="s-reviews-testimonial__icon">
+									<!-- Generated by IcoMoon.io -->
+									<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewbox="0 0 32 32">
+										<title>quote-open</title>
+										<path d="M8 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM12 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4zM25.333 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM29.333 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4z"></path>
+									</svg>
+								</span>
+							</div>
+						</div>
+					</div>
+				
+				<div class="s-reviews-swiper-slide swiper-slide" style="width: 830px;">
+						<div class="s-reviews-testimonial">
+							<div class="s-reviews-testimonial__inner">
+								<div class="s-reviews-testimonial__avatar">
+									<img src="https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_male.png" loading="lazy" alt="خالد الأحمد" class="loaded" width="68" height="68">
+								</div>
+								<div class="s-reviews-testimonial__text">
+									<p class="">اشتريت من هنا لعيالي وصراحة شئ لا يعلى عليه 👏</p>
+									<div class="s-reviews-testimonial__name_wrapper items-center">
+										<div class="s-reviews-testimonial__info">
+											<h2 class="font-bold text-xs xs:text-sm">خالد الأحمد</h2>
+										</div>
+										<div class="s-reviews-testimonial__rating !mx-0">
+											<salla-rating-stars class="flex" size="small" value="5"></salla-rating-stars>
+										</div>
+									</div>
+								</div>
+								<span
+									class="s-reviews-testimonial__icon">
+									<!-- Generated by IcoMoon.io -->
+									<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewbox="0 0 32 32">
+										<title>quote-open</title>
+										<path d="M8 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM12 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4zM25.333 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM29.333 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4z"></path>
+									</svg>
+								</span>
+							</div>
+						</div>
+					</div>
+				
+				<div class="s-reviews-swiper-slide swiper-slide" style="width: 830px;">
+						<div class="s-reviews-testimonial">
+							<div class="s-reviews-testimonial__inner">
+								<div class="s-reviews-testimonial__avatar">
+									<img src="https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_male.png" loading="lazy" alt="خالد المسعودي" class="loaded" width="68" height="68">
+								</div>
+								<div class="s-reviews-testimonial__text">
+									<p class="">رهيبين يفكون أزمة. 👌</p>
+									<div class="s-reviews-testimonial__name_wrapper items-center">
+										<div class="s-reviews-testimonial__info">
+											<h2 class="font-bold text-xs xs:text-sm">خالد المسعودي</h2>
+										</div>
+										<div class="s-reviews-testimonial__rating !mx-0">
+											<salla-rating-stars class="flex" size="small" value="5"></salla-rating-stars>
+										</div>
+									</div>
+								</div>
+								<span
+									class="s-reviews-testimonial__icon">
+									<!-- Generated by IcoMoon.io -->
+									<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewbox="0 0 32 32">
+										<title>quote-open</title>
+										<path d="M8 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM12 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4zM25.333 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM29.333 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4z"></path>
+									</svg>
+								</span>
+							</div>
+						</div>
+					</div>
+				
+				<div class="s-reviews-swiper-slide swiper-slide" style="width: 830px;">
+						<div class="s-reviews-testimonial">
+							<div class="s-reviews-testimonial__inner">
+								<div class="s-reviews-testimonial__avatar">
+									<img src="https://cdn.assets.salla.network/prod/stores/themes/default/assets/images/avatar_male.png" loading="lazy" alt="عبدالعزيز اليامي" class="loaded" width="68" height="68">
+								</div>
+								<div class="s-reviews-testimonial__text">
+									<p class="">أحب هذا المتجر وتعاملهم الراقي مع العملاء ❤️</p>
+									<div class="s-reviews-testimonial__name_wrapper items-center">
+										<div class="s-reviews-testimonial__info">
+											<h2 class="font-bold text-xs xs:text-sm">عبدالعزيز اليامي</h2>
+										</div>
+										<div class="s-reviews-testimonial__rating !mx-0">
+											<salla-rating-stars class="flex" size="small" value="5"></salla-rating-stars>
+										</div>
+									</div>
+								</div>
+								<span
+									class="s-reviews-testimonial__icon">
+									<!-- Generated by IcoMoon.io -->
+									<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewbox="0 0 32 32">
+										<title>quote-open</title>
+										<path d="M8 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM12 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4zM25.333 12v-5.333c0-0.737-0.596-1.333-1.333-1.333-3.676 0-6.667 2.991-6.667 6.667v8c0 3.676 2.991 6.667 6.667 6.667h1.333c3.676 0 6.667-2.991 6.667-6.667v-1.333c0-3.676-2.991-6.667-6.667-6.667zM29.333 20c0 2.205-1.795 4-4 4h-1.333c-2.205 0-4-1.795-4-4v-8c0-1.739 1.115-3.221 2.667-3.772v5.105c0 0.737 0.596 1.333 1.333 1.333h1.333c2.205 0 4 1.795 4 4z"></path>
+									</svg>
+								</span>
+							</div>
+						</div>
+					</div>
+				
+			</div>
+		</salla-slider>
+	</div>
+</section>
+
+
+    </main>
+    <footer class="store-footer">
+	<div aria-label="footer" class="store-footer__inner">
+		<div class="container grid grid-col-1 lg:grid-cols-6 gap-8 lg:gap-6">
+			<div class="lg:col-span-2 rtl:lg:pl-20 ltr:lg:pr-20">
+				<a href="/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0/" class="flex items-center m-0">
+					<h3>متجر التجربة</h3>
+				</a>
+				
+					<div class="max-w-sm leading-6 mb-6">
+						متجر تجريبي تم إنشاؤه بواسطة المحاكي
+          </div>
+				
+
+				<div class="hidden lg:block">
+					<salla-social class="block mb-6"></salla-social>
+				</div>
+
+		<div class="flex gap-4">
+		  
+		  <salla-trust-badges  dark ></salla-trust-badges>
+          
+          
+        </div>
+        </div>
+
+			<div>
+				<h3>blocks.footer.pages_links</h3>
+				<salla-menu source="footer"></salla-menu>
+			</div>
+
+			<div>
+				<salla-contacts></salla-contacts>
+
+				<div class="lg:hidden contact-social">
+					<salla-social></salla-social>
+				</div>
+			</div>
+
+			<salla-apps-icons class="lg:col-span-2 rtl:lg:pr-20 ltr:lg:pl-20"></salla-apps-icons>
+
+		</div>
+	</div>
+
+	<div class="md:flex items-center justify-between py-4 container text-center">
+		<span class="text-sm copyright-text"></span>
+		<salla-payments></salla-payments>
+	</div>
+</div>
+
+<span class="hidden bottom-2 rtl:pl-24 ltr:pr-24 md:grid-cols-3 opacity-40"></span></footer>
+
+</div>
+
+            <script>window.vtdr_context = { storeId: "1328d364-6058-4da9-8a93-7b9e5afeef27", pageId: "index", templatePageId: "index" };</script>
+            
+            <script>
+            (function () {
+                var previewBaseFallback = "/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0";
+                var viewportFallback = "desktop";
+                var refreshFallback = "";
+                var nav = window.__VTDR_PREVIEW_NAV__ || {};
+
+                nav.resolvePreviewBasePath = function () {
+                    var match = window.location.pathname.match(/^\/preview\/[^/]+\/[^/]+\/[^/]+/);
+                    return match ? match[0] : previewBaseFallback;
+                };
+
+                nav.isResourcePath = function (pathname) {
+                    return pathname.startsWith('/themes') ||
+                        pathname.startsWith('/preview') ||
+                        /\.[a-z0-9]{2,8}$/i.test(pathname);
+                };
+
+                nav.isStoreLikeDomain = function (hostname) {
+                    return /(^|\.)salla\.sa$/i.test(hostname) || /(^|\.)demo\.sa$/i.test(hostname);
+                };
+
+                nav.isLocalDevHost = function (hostname) {
+                    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+                };
+
+                nav.resolveAnchorFromEvent = function (event) {
+                    var directTarget = event && event.target && event.target.closest ? event.target.closest('a[href]') : null;
+                    if (directTarget) return directTarget;
+                    if (!event || typeof event.composedPath !== 'function') return null;
+
+                    var eventPath = event.composedPath();
+                    for (var i = 0; i < eventPath.length; i += 1) {
+                        var node = eventPath[i];
+                        if (!node) continue;
+                        if (node.tagName && String(node.tagName).toLowerCase() === 'a') return node;
+                        if (node.closest) {
+                            var nested = node.closest('a[href]');
+                            if (nested) return nested;
+                        }
+                    }
+                    return null;
+                };
+
+                nav.toPreviewUrl = function (path, extraParams) {
+                    var previewBase = nav.resolvePreviewBasePath();
+                    if (!previewBase) return null;
+
+                    var currentUrl = new URL(window.location.href);
+                    var normalizedPath = String(path || '/').startsWith('/') ? String(path || '/') : '/' + String(path || '');
+                    var cleanPath = normalizedPath === '/' ? '' : normalizedPath;
+                    var nextUrl = new URL(window.location.origin + previewBase + cleanPath);
+
+                    var viewport = currentUrl.searchParams.get('viewport') || viewportFallback;
+                    if (viewport) nextUrl.searchParams.set('viewport', viewport);
+
+                    var refresh = currentUrl.searchParams.get('refresh') || refreshFallback;
+                    if (refresh) nextUrl.searchParams.set('refresh', refresh);
+
+                    if (extraParams && typeof extraParams === 'object') {
+                        Object.entries(extraParams).forEach(function (entry) {
+                            var key = entry[0];
+                            var value = entry[1];
+                            if (value == null) return;
+                            nextUrl.searchParams.set(String(key), String(value));
+                        });
+                    }
+
+                    return nextUrl;
+                };
+
+                nav.navigate = function (path, extraParams) {
+                    var nextUrl = nav.toPreviewUrl(path, extraParams);
+                    if (nextUrl) {
+                        window.location.href = nextUrl.toString();
+                        return true;
+                    }
+                    window.location.href = String(path || '/');
+                    return false;
+                };
+
+                window.__VTDR_PREVIEW_NAV__ = nav;
+
+                if (window.__VTDR_NAV_SHIM__) return;
+                window.__VTDR_NAV_SHIM__ = true;
+
+                document.addEventListener('click', function (event) {
+                    var link = nav.resolveAnchorFromEvent(event);
+                    if (!link) return;
+
+                    var hrefAttr = link.getAttribute('href') || '';
+                    if (!hrefAttr || hrefAttr.startsWith('#') || hrefAttr.startsWith('javascript:')) return;
+                    if (hrefAttr.startsWith('mailto:') || hrefAttr.startsWith('tel:')) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+                    var url = new URL(link.href, window.location.href);
+                    var sameOrigin = url.origin === window.location.origin;
+                    var bridgeableExternal = nav.isStoreLikeDomain(url.hostname) || nav.isLocalDevHost(url.hostname);
+                    if (!sameOrigin && !bridgeableExternal) return;
+
+                    var routePath = url.pathname || '/';
+                    if (nav.isResourcePath(routePath)) return;
+
+                    var nextUrl = nav.toPreviewUrl(routePath);
+                    if (!nextUrl) return;
+
+                    url.searchParams.forEach(function (value, key) {
+                        nextUrl.searchParams.set(key, value);
+                    });
+                    if (url.hash) nextUrl.hash = url.hash;
+
+                    event.preventDefault();
+                    window.location.href = nextUrl.toString();
+                }, true);
+            })();
+            </script>
+    
+            <script src="https://cdn.jsdelivr.net/npm/@salla.sa/twilight@latest/dist/@salla.sa/twilight.min.js"></script>
+            <script src="/sdk-bridge.js"></script>
+            <script>document.addEventListener('DOMContentLoaded', function() { if (window.salla) { salla.init({ store: {"id":"1328d364-6058-4da9-8a93-7b9e5afeef27","name":"متجر التجربة","avatar":"https://cdn.salla.sa/images/logo/logo-dark-colored.png","description":"متجر تجريبي تم إنشاؤه بواسطة المحاكي","locale":"ar-SA","currency":"SAR","branding":{},"social":{"instagram":"https://instagram.com/salla","twitter":"https://twitter.com/salla"},"settings":{"cart":{"apply_coupon_enabled":true}},"themeId":"theme-raed-master","themeVersionId":"034c6700-eb98-4edd-a523-b6e171403c51","url":"http://localhost:3000/preview/1328d364-6058-4da9-8a93-7b9e5afeef27/theme-raed-master/1.0.0","api":"http://localhost:3001/api/v1","icon":"https://cdn.salla.sa/images/logo/logo-dark-colored.png","logo":"https://cdn.salla.sa/images/logo/logo-dark-colored.png","slogan":"سوقك في جيبك","username":"store_vtdr","contacts":{"mobile":"966500000000","email":"support@salla.sa","whatsapp":"966500000000"}}, user: {"id":"vtdr_guest_1","type":"guest","is_authenticated":false,"name":"ضيف المحاكي","avatar":"https://cdn.salla.sa/images/customer/placeholder.png","language":{"code":"ar","dir":"rtl"},"currency":{"code":"SAR","symbol":"ر.س"},"can_access_wallet":false,"points":0}, theme: {"id":"theme-raed-master","name":"رائد","version":"1.0.0","author":"Salla","is_rtl":true,"mode":"preview","preview_viewport":"desktop","color":{"primary":"#004d41","text":"#FFFFFF","reverse_primary":"#FFFFFF","reverse_text":"#004d41","is_dark":false},"font":{"name":"DINNextLTArabic-Regular","path":"https://cdn.salla.sa/fonts/din-next-lt-arabic.css","url":"https://cdn.salla.sa/fonts/din-next-lt-arabic.css"},"settings":{}} }); } });</script>
+        
+
+    <salla-add-product-toast></salla-add-product-toast>
+
+<script defer crossorigin="anonymous" src="/themes/theme-raed-master/public/app.js"></script>
+
+
+<salla-offer-modal></salla-offer-modal>
+<salla-search></salla-search>
+
+
+    <salla-login-modal></salla-login-modal>
+
+
+
+    <script defer src="/themes/theme-raed-master/public/home.js"></script>
+
+</body>
+</html>

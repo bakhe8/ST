@@ -34,6 +34,29 @@ interface Product {
   sku?: string;
   status?: string;
   type?: string;
+  quantity?: number | null;
+  available_quantity?: number | null;
+  reserved_quantity?: number;
+  max_quantity?: number;
+  low_stock_threshold?: number;
+  track_quantity?: boolean;
+  allow_backorder?: boolean;
+  inventory_status?: string;
+  is_available?: boolean;
+  is_hidden_quantity?: boolean;
+  is_infinite_quantity?: boolean;
+  is_featured?: boolean;
+  weight?: number;
+  weight_unit?: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+    keywords?: string[];
+    image?: string;
+  };
+  custom_fields?: { id?: string; key?: string; value?: string; type?: string }[];
+  specs?: { id?: string; key?: string; value?: string }[];
+  attachments?: { id?: string; name?: string; file_url?: string; file_type?: string }[];
   images?: { url: string }[];
   main_image?: string;
   image?: { url: string };
@@ -77,19 +100,48 @@ const EditProduct = () => {
     if (!productId) return;
     // جلب بيانات المنتج
     fetch(apiUrl(`v1/products/${productId}`), {
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           const raw = data.data || {};
           const categoryIds = extractCategoryIds(raw);
+          const quantity =
+            typeof raw.quantity === 'number'
+              ? raw.quantity
+              : (typeof raw.stock === 'number' ? raw.stock : 0);
+          const trackQuantity = raw.track_quantity !== false;
           setProduct({
             ...raw,
             categories: categoryIds,
             category_ids: categoryIds,
             options: Array.isArray(raw.options) ? raw.options : [],
-            variants: Array.isArray(raw.variants) ? raw.variants : []
+            variants: Array.isArray(raw.variants) ? raw.variants : [],
+            quantity,
+            stock: quantity,
+            available_quantity:
+              typeof raw.available_quantity === 'number'
+                ? raw.available_quantity
+                : quantity,
+            reserved_quantity: typeof raw.reserved_quantity === 'number' ? raw.reserved_quantity : 0,
+            max_quantity:
+              typeof raw.max_quantity === 'number'
+                ? raw.max_quantity
+                : (typeof quantity === 'number' && quantity > 0 ? quantity : 1),
+            low_stock_threshold:
+              typeof raw.low_stock_threshold === 'number'
+                ? raw.low_stock_threshold
+                : 0,
+            track_quantity: trackQuantity,
+            allow_backorder: Boolean(raw.allow_backorder),
+            is_available: raw.is_available !== false,
+            is_hidden_quantity: Boolean(raw.is_hidden_quantity),
+            is_infinite_quantity: Boolean(raw.is_infinite_quantity),
+            status: raw.status || (raw.is_available === false ? 'out' : 'sale'),
+            is_featured: Boolean(raw.is_featured),
+            weight: typeof raw.weight === 'number' ? raw.weight : 0,
+            weight_unit: typeof raw.weight_unit === 'string' && raw.weight_unit.trim() ? raw.weight_unit : 'kg'
           });
         }
         else setError('Product not found');
@@ -101,7 +153,7 @@ const EditProduct = () => {
       });
     // جلب الأقسام
     fetch(apiUrl('v1/categories'), {
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(res => res.json())
       .then(data => {
@@ -122,6 +174,16 @@ const EditProduct = () => {
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (!product) return;
+    if (e.target.name === 'status') {
+      const value = e.target.value;
+      const nextAvailability = value === 'sale';
+      setProduct({
+        ...product,
+        status: value,
+        is_available: value === 'hidden' ? product.is_available : nextAvailability
+      });
+      return;
+    }
     setProduct({ ...product, [e.target.name]: e.target.value });
   };
 
@@ -167,7 +229,18 @@ const EditProduct = () => {
   // إدارة المخزون
   const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product) return;
-    setProduct({ ...product, stock: Number(e.target.value) });
+    if (product.track_quantity === false) return;
+    const quantity = Number(e.target.value);
+    const safeQuantity = Number.isFinite(quantity) ? Math.max(0, Math.floor(quantity)) : 0;
+    const reserved = Number(product.reserved_quantity || 0);
+    setProduct({
+      ...product,
+      quantity: safeQuantity,
+      stock: safeQuantity,
+      available_quantity: Math.max(0, safeQuantity - Math.max(0, reserved)),
+      max_quantity: Math.max(1, Math.min(product.max_quantity || safeQuantity || 1, safeQuantity || product.max_quantity || 1)),
+      is_available: product.is_infinite_quantity ? true : safeQuantity > 0
+    });
   };
 
   const handleSave = () => {
@@ -178,13 +251,25 @@ const EditProduct = () => {
       categories: categoryIds,
       category_ids: categoryIds,
       options: Array.isArray(product.options) ? product.options : [],
-      variants: Array.isArray(product.variants) ? product.variants : []
+      variants: Array.isArray(product.variants) ? product.variants : [],
+      quantity: product.is_infinite_quantity ? null : Number(product.quantity || product.stock || 0),
+      stock: product.is_infinite_quantity ? null : Number(product.quantity || product.stock || 0),
+      max_quantity: Number(product.max_quantity || 1),
+      low_stock_threshold: Math.max(0, Number(product.low_stock_threshold || 0)),
+      track_quantity: product.track_quantity !== false,
+      allow_backorder: Boolean(product.allow_backorder),
+      is_available: Boolean(product.is_available),
+      is_hidden_quantity: Boolean(product.is_hidden_quantity),
+      is_infinite_quantity: Boolean(product.is_infinite_quantity),
+      is_featured: Boolean(product.is_featured),
+      weight: Math.max(0, Number(product.weight || 0)),
+      weight_unit: product.weight_unit || 'kg'
     };
     fetch(apiUrl(`v1/products/${productId}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Context-Store-Id': storeId || 'default'
+        'X-VTDR-Store-Id': storeId || ''
       },
       body: JSON.stringify(payload)
     })
@@ -238,14 +323,54 @@ const EditProduct = () => {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label>الحالة</label>
-            <select name="status" value={product.status || ''} onChange={handleSelectChange} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}>
-              <option value="active">نشط</option>
+            <select name="status" value={product.status || 'sale'} onChange={handleSelectChange} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}>
+              <option value="sale">متوفر للبيع</option>
+              <option value="out">نفد المخزون</option>
+              <option value="out-and-notify">نفد + إشعار توفر</option>
               <option value="hidden">مخفي</option>
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label>النوع</label>
             <input name="type" value={product.type || ''} onChange={handleChange} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(product.is_featured)}
+                onChange={(e) => setProduct({ ...product, is_featured: e.target.checked })}
+              />
+              منتج مميز
+            </label>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label>الوزن</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={product.weight || 0}
+                onChange={(e) =>
+                  setProduct({
+                    ...product,
+                    weight: Math.max(0, Number(e.target.value) || 0)
+                  })
+                }
+                style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+              />
+              <select
+                value={product.weight_unit || 'kg'}
+                onChange={(e) => setProduct({ ...product, weight_unit: e.target.value })}
+                style={{ width: 90, padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+              >
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="lb">lb</option>
+                <option value="oz">oz</option>
+              </select>
+            </div>
           </div>
         </div>
         {/* RIGHT: IMAGES & PROPERTIES */}
@@ -353,7 +478,108 @@ const EditProduct = () => {
           </button>
 
           <div style={{ marginBottom: 12, fontWeight: 600 }}>المخزون</div>
-          <input type="number" min={0} value={product.stock || 0} onChange={handleStockChange} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', marginBottom: 8 }} />
+          <input
+            type="number"
+            min={0}
+            value={typeof product.quantity === 'number' ? product.quantity : (product.stock || 0)}
+            onChange={handleStockChange}
+            disabled={Boolean(product.is_infinite_quantity) || product.track_quantity === false}
+            style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', marginBottom: 8 }}
+          />
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={product.track_quantity !== false}
+                onChange={(e) => setProduct({
+                  ...product,
+                  track_quantity: e.target.checked,
+                  is_infinite_quantity: e.target.checked ? product.is_infinite_quantity : true,
+                  allow_backorder: e.target.checked ? product.allow_backorder : false
+                })}
+              />
+              تتبع المخزون
+            </label>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(product.is_infinite_quantity)}
+                onChange={(e) => setProduct({
+                  ...product,
+                  is_infinite_quantity: e.target.checked,
+                  track_quantity: e.target.checked ? product.track_quantity : (product.track_quantity !== false),
+                  is_available: e.target.checked ? true : Boolean((product.quantity || product.stock || 0) > 0),
+                  status: e.target.checked ? 'sale' : product.status
+                })}
+                disabled={product.track_quantity === false}
+              />
+              كمية غير محدودة
+            </label>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(product.allow_backorder)}
+                onChange={(e) => setProduct({ ...product, allow_backorder: e.target.checked })}
+                disabled={product.track_quantity === false || Boolean(product.is_infinite_quantity)}
+              />
+              السماح بالطلب المسبق عند نفاد المخزون
+            </label>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>حد المخزون المنخفض</label>
+            <input
+              type="number"
+              min={0}
+              value={Math.max(0, Number(product.low_stock_threshold || 0))}
+              onChange={(e) =>
+                setProduct({
+                  ...product,
+                  low_stock_threshold: Math.max(0, Number(e.target.value) || 0)
+                })
+              }
+              disabled={product.track_quantity === false || Boolean(product.is_infinite_quantity)}
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', marginTop: 6 }}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>الحد الأقصى لكل طلب</label>
+            <input
+              type="number"
+              min={1}
+              value={product.max_quantity || 1}
+              onChange={(e) => setProduct({ ...product, max_quantity: Math.max(1, Number(e.target.value) || 1) })}
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white', marginTop: 6 }}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(product.is_available)}
+                onChange={(e) => setProduct({
+                  ...product,
+                  is_available: e.target.checked,
+                  status: e.target.checked ? 'sale' : 'out'
+                })}
+              />
+              متاح للشراء
+            </label>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(product.is_hidden_quantity)}
+                onChange={(e) => setProduct({ ...product, is_hidden_quantity: e.target.checked })}
+                disabled={product.track_quantity === false}
+              />
+              إخفاء الكمية
+            </label>
+          </div>
         </div>
       </div>
       <button onClick={handleSave} style={{ background: '#3b82f6', color: 'white', padding: '10px 24px', border: 'none', borderRadius: 8, fontWeight: 600, marginTop: 24 }}>حفظ التعديلات</button>

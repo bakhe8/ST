@@ -1,318 +1,194 @@
 import { Router, Response } from 'express';
-import { SimulatorService, StoreLogic, WebhookService, HookService } from '@vtdr/engine';
+import { SimulatorAuthOrchestrator, SimulatorService } from '@vtdr/engine';
 import { StoreRequest } from '../middlewares/context.middleware.js';
 import { fail, ok } from '../utils/api-response.js';
 
+type ServiceResponse = { status?: number } | null | undefined;
+type RouteHandler = (req: StoreRequest) => Promise<ServiceResponse>;
+
+const sendResponse = (res: Response, response: ServiceResponse, fallbackStatus = 200) => {
+    return res.status((response as any)?.status || fallbackStatus).json(response);
+};
+
+const route = (handler: RouteHandler, fallbackStatus = 200) => {
+    return async (req: StoreRequest, res: Response) => {
+        const response = await handler(req);
+        return sendResponse(res, response, fallbackStatus);
+    };
+};
+
+const routeOr404 = (handler: RouteHandler, notFoundMessage: string, fallbackStatus = 200) => {
+    return async (req: StoreRequest, res: Response) => {
+        const response = await handler(req);
+        if (!response) return fail(res, 404, notFoundMessage);
+        return sendResponse(res, response, fallbackStatus);
+    };
+};
+
+const storeId = (req: StoreRequest) => req.storeId!;
+
 export function createSimulatorRoutes(
     simulatorService: SimulatorService,
-    storeLogic: StoreLogic,
-    webhookService: WebhookService,
-    hookService: HookService
+    simulatorAuthOrchestrator: SimulatorAuthOrchestrator
 ) {
     const router = Router();
 
-    router.get('/cart', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getCart(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/cart', route((req) => simulatorService.getCart(storeId(req))));
+    router.post('/cart/items', route((req) => simulatorService.addCartItem(storeId(req), req.body), 201));
+    router.patch('/cart/items/:itemId', routeOr404(
+        (req) => simulatorService.updateCartItem(storeId(req), req.params.itemId as string, req.body),
+        'Cart item not found'
+    ));
+    router.delete('/cart/items/:itemId', routeOr404(
+        (req) => simulatorService.deleteCartItem(storeId(req), req.params.itemId as string),
+        'Cart item not found'
+    ));
+    router.post('/cart/coupon', route((req) => simulatorService.addCartCoupon(
+        storeId(req),
+        String(req.body?.coupon || req.body?.code || '')
+    )));
+    router.delete('/cart/coupon', route((req) => simulatorService.deleteCartCoupon(storeId(req))));
+    router.post('/cart/submit', route((req) => simulatorService.submitCart(storeId(req))));
 
-    router.post('/cart/items', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.addCartItem(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
+    router.get('/wishlist', route((req) => simulatorService.getWishlist(storeId(req))));
+    router.post('/wishlist/items', route((req) => simulatorService.addWishlistItem(storeId(req), req.body || {}), 201));
+    router.delete('/wishlist/items/:itemId', route((req) => simulatorService.deleteWishlistItem(storeId(req), req.params.itemId as string)));
+    router.post('/wishlist/toggle', route((req) => simulatorService.toggleWishlistItem(storeId(req), req.body || {})));
 
-    router.patch('/cart/items/:itemId', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateCartItem(req.storeId!, req.params.itemId as string, req.body);
-        if (!response) return fail(res, 404, 'Cart item not found');
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/checkout', route((req) => simulatorService.getCheckoutSession(storeId(req))));
+    router.post('/checkout/start', route((req) => simulatorService.startCheckoutSession(storeId(req), req.body || {})));
+    router.patch('/checkout/address', route((req) => simulatorService.updateCheckoutAddress(storeId(req), req.body || {})));
+    router.patch('/checkout/shipping', route((req) => simulatorService.updateCheckoutShipping(storeId(req), req.body || {})));
+    router.patch('/checkout/payment', route((req) => simulatorService.updateCheckoutPayment(storeId(req), req.body || {})));
+    router.post('/checkout/confirm', route((req) => simulatorService.confirmCheckout(storeId(req), req.body || {})));
 
-    router.delete('/cart/items/:itemId', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteCartItem(req.storeId!, req.params.itemId as string);
-        if (!response) return fail(res, 404, 'Cart item not found');
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/products', route((req) => simulatorService.getProducts(storeId(req), req.query as any)));
+    router.get('/products/:id', routeOr404(
+        (req) => simulatorService.getProduct(storeId(req), req.params.id as string),
+        'Product not found'
+    ));
+    router.post('/products', route((req) => simulatorService.createProduct(storeId(req), req.body), 201));
+    router.put('/products/:id', route((req) => simulatorService.updateProduct(storeId(req), req.params.id as string, req.body)));
+    router.delete('/products/:id', route((req) => simulatorService.deleteProduct(storeId(req), req.params.id as string)));
 
-    router.get('/products', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getProducts(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/brands', route((req) => simulatorService.getBrands(storeId(req))));
+    router.get('/brands/:id', routeOr404(
+        (req) => simulatorService.getBrand(storeId(req), req.params.id as string),
+        'Brand not found'
+    ));
+    router.post('/brands', route((req) => simulatorService.createBrand(storeId(req), req.body), 201));
+    router.put('/brands/:id', route((req) => simulatorService.updateBrand(storeId(req), req.params.id as string, req.body)));
+    router.delete('/brands/:id', route((req) => simulatorService.deleteBrand(storeId(req), req.params.id as string)));
 
-    router.get('/products/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getProduct(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Product not found');
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/categories', route((req) => simulatorService.getCategories(storeId(req))));
+    router.get('/categories/:id', routeOr404(
+        (req) => simulatorService.getCategory(storeId(req), req.params.id as string),
+        'Category not found'
+    ));
+    router.post('/categories', route((req) => simulatorService.createCategory(storeId(req), req.body), 201));
+    router.put('/categories/:id', route((req) => simulatorService.updateCategory(storeId(req), req.params.id as string, req.body)));
+    router.delete('/categories/:id', route((req) => simulatorService.deleteCategory(storeId(req), req.params.id as string)));
 
-    router.post('/products', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createProduct(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
+    router.get('/offers', route((req) => simulatorService.getOffers(storeId(req))));
+    router.get('/offers/:id', routeOr404(
+        (req) => simulatorService.getOffer(storeId(req), req.params.id as string),
+        'Offer not found'
+    ));
+    router.post('/offers', route((req) => simulatorService.createOffer(storeId(req), req.body), 201));
+    router.put('/offers/:id', route((req) => simulatorService.updateOffer(storeId(req), req.params.id as string, req.body)));
+    router.delete('/offers/:id', route((req) => simulatorService.deleteOffer(storeId(req), req.params.id as string)));
 
-    router.put('/products/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateProduct(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/reviews', route((req) => simulatorService.getReviews(storeId(req), String(req.query.product_id || ''))));
+    router.get('/products/:id/reviews', route((req) => simulatorService.getReviews(storeId(req), req.params.id as string)));
+    router.get('/reviews/:id', routeOr404(
+        (req) => simulatorService.getReview(storeId(req), req.params.id as string),
+        'Review not found'
+    ));
+    router.post('/reviews', route((req) => simulatorService.createReview(storeId(req), req.body), 201));
+    router.put('/reviews/:id', routeOr404(
+        (req) => simulatorService.updateReview(storeId(req), req.params.id as string, req.body),
+        'Review not found'
+    ));
+    router.delete('/reviews/:id', route((req) => simulatorService.deleteReview(storeId(req), req.params.id as string)));
 
-    router.delete('/products/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteProduct(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/questions', route((req) => simulatorService.getQuestions(storeId(req), String(req.query.product_id || ''))));
+    router.get('/products/:id/questions', route((req) => simulatorService.getQuestions(storeId(req), req.params.id as string)));
+    router.get('/questions/:id', routeOr404(
+        (req) => simulatorService.getQuestion(storeId(req), req.params.id as string),
+        'Question not found'
+    ));
+    router.post('/questions', route((req) => simulatorService.createQuestion(storeId(req), req.body), 201));
+    router.put('/questions/:id', routeOr404(
+        (req) => simulatorService.updateQuestion(storeId(req), req.params.id as string, req.body),
+        'Question not found'
+    ));
+    router.delete('/questions/:id', route((req) => simulatorService.deleteQuestion(storeId(req), req.params.id as string)));
 
-    router.get('/brands', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBrands(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/static-pages', route((req) => simulatorService.getStaticPages(storeId(req))));
+    router.get('/pages', route((req) => simulatorService.getStaticPages(storeId(req))));
+    router.get('/pages/:id', routeOr404(
+        async (req) => {
+            const pagesResponse: any = await simulatorService.getStaticPages(storeId(req));
+            const pages = Array.isArray(pagesResponse?.data) ? pagesResponse.data : [];
+            const rawId = String(req.params.id || '').trim().toLowerCase();
+            const found = pages.find((page: any) => {
+                const id = String(page?.id || '').trim().toLowerCase();
+                const slug = String(page?.slug || '').trim().toLowerCase();
+                const urlTail = String(page?.url || '').split('/').filter(Boolean).pop()?.toLowerCase() || '';
+                return rawId === id || rawId === slug || rawId === urlTail;
+            });
+            if (!found) return null;
+            return { status: 200, success: true, data: found };
+        },
+        'Page not found'
+    ));
+    router.post('/static-pages', route((req) => simulatorService.createStaticPage(storeId(req), req.body), 201));
+    router.put('/static-pages/:id', route((req) => simulatorService.updateStaticPage(storeId(req), req.params.id as string, req.body)));
+    router.delete('/static-pages/:id', route((req) => simulatorService.deleteStaticPage(storeId(req), req.params.id as string)));
 
-    router.get('/brands/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBrand(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Brand not found');
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/blog/categories', route((req) => simulatorService.getBlogCategories(storeId(req))));
+    router.get('/blog/categories/:id', routeOr404(
+        (req) => simulatorService.getBlogCategory(storeId(req), req.params.id as string),
+        'Blog category not found'
+    ));
+    router.post('/blog/categories', route((req) => simulatorService.createBlogCategory(storeId(req), req.body), 201));
+    router.put('/blog/categories/:id', route((req) => simulatorService.updateBlogCategory(storeId(req), req.params.id as string, req.body)));
+    router.delete('/blog/categories/:id', route((req) => simulatorService.deleteBlogCategory(storeId(req), req.params.id as string)));
 
-    router.post('/brands', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createBrand(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
+    router.get('/blog/articles', route((req) => simulatorService.getBlogArticles(storeId(req), req.query as any)));
+    router.get('/blog/articles/:id', routeOr404(
+        (req) => simulatorService.getBlogArticle(storeId(req), req.params.id as string),
+        'Blog article not found'
+    ));
+    router.post('/blog/articles', route((req) => simulatorService.createBlogArticle(storeId(req), req.body), 201));
+    router.put('/blog/articles/:id', route((req) => simulatorService.updateBlogArticle(storeId(req), req.params.id as string, req.body)));
+    router.delete('/blog/articles/:id', route((req) => simulatorService.deleteBlogArticle(storeId(req), req.params.id as string)));
 
-    router.put('/brands/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateBrand(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/menus/:type', route((req) => simulatorService.getMenus(storeId(req), req.params.type as string)));
+    router.get('/footer', route((req) => simulatorService.getMenus(storeId(req), 'footer')));
+    router.put('/menus/:type', route((req) => simulatorService.updateMenus(storeId(req), req.params.type as string, req.body)));
 
-    router.delete('/brands/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteBrand(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/theme/settings', routeOr404(
+        (req) => simulatorService.getThemeSettings(storeId(req)),
+        'Theme settings not found'
+    ));
+    router.get('/theme/components', routeOr404(
+        (req) => simulatorService.getThemeComponents(storeId(req)),
+        'Theme components not found'
+    ));
+    router.put('/theme/settings', route((req) => simulatorService.updateThemeSettings(storeId(req), req.body)));
 
-    router.get('/categories', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getCategories(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
+    router.post('/orders/send-invoice', route((req) => simulatorService.sendOrderInvoice(storeId(req), req.body || {})));
+    router.get('/orders', route((req) => simulatorService.getOrders(storeId(req), req.query as any)));
+    router.get('/orders/:id', routeOr404(
+        (req) => simulatorService.getOrder(storeId(req), req.params.id as string),
+        'Order not found'
+    ));
 
-    router.get('/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getCategory(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Category not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/categories', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createCategory(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateCategory(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteCategory(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/offers', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getOffers(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/offers/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getOffer(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Offer not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/offers', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createOffer(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/offers/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateOffer(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/offers/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteOffer(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/reviews', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getReviews(req.storeId!, String(req.query.product_id || ''));
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/products/:id/reviews', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getReviews(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/reviews/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getReview(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Review not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/reviews', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createReview(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/reviews/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateReview(req.storeId!, req.params.id as string, req.body);
-        if (!response) return fail(res, 404, 'Review not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/reviews/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteReview(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/questions', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getQuestions(req.storeId!, String(req.query.product_id || ''));
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/products/:id/questions', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getQuestions(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/questions/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getQuestion(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Question not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/questions', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createQuestion(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/questions/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateQuestion(req.storeId!, req.params.id as string, req.body);
-        if (!response) return fail(res, 404, 'Question not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/questions/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteQuestion(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/static-pages', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getStaticPages(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/blog/categories', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBlogCategories(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBlogCategory(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Blog category not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/blog/categories', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createBlogCategory(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateBlogCategory(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/blog/categories/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteBlogCategory(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/blog/articles', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBlogArticles(req.storeId!);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getBlogArticle(req.storeId!, req.params.id as string);
-        if (!response) return fail(res, 404, 'Blog article not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/blog/articles', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createBlogArticle(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateBlogArticle(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/blog/articles/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteBlogArticle(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.post('/static-pages', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.createStaticPage(req.storeId!, req.body);
-        return res.status(response.status || 201).json(response);
-    });
-
-    router.put('/static-pages/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateStaticPage(req.storeId!, req.params.id as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.delete('/static-pages/:id', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.deleteStaticPage(req.storeId!, req.params.id as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/menus/:type', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getMenus(req.storeId!, req.params.type as string);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.put('/menus/:type', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateMenus(req.storeId!, req.params.type as string, req.body);
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/theme/settings', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getThemeSettings(req.storeId!);
-        if (!response) return fail(res, 404, 'Theme settings not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.get('/theme/components', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.getThemeComponents(req.storeId!);
-        if (!response) return fail(res, 404, 'Theme components not found');
-        return res.status(response.status || 200).json(response);
-    });
-
-    router.put('/theme/settings', async (req: StoreRequest, res: Response) => {
-        const response = await simulatorService.updateThemeSettings(req.storeId!, req.body);
-        return res.status(response.status || 200).json(response);
-    });
+    router.get('/notifications', route((req) => simulatorService.getNotifications(storeId(req), req.query as any)));
 
     router.post('/auth/login', async (req: StoreRequest, res: Response) => {
-        const storeId = req.storeId;
-        if (storeId) {
-            const webhooks = await storeLogic.getWebhooks(storeId);
-            const customer = {
-                id: 'cust_123',
-                first_name: 'Mock',
-                last_name: 'Customer',
-                email: req.body.email || 'user@example.com',
-                mobile: req.body.mobile || '+966500000000'
-            };
-            webhookService.dispatchEvent('customer.login', { customer }, webhooks);
-        }
+        await simulatorAuthOrchestrator.dispatchMockLogin(req.storeId, req.body || {});
         return ok(res, null, 200, { message: 'Mock login code sent' });
     });
 

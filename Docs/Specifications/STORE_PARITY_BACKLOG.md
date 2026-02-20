@@ -56,6 +56,41 @@ Each slice is closed only when all are done:
 ## Current Active Slice
 `Slice-07: Inventory + Merchandising Visual Parity`
 
+### Slice-07 Scope
+- Inventory semantics:
+  - دعم حالات `in_stock / low_stock / out_of_stock / backorder` داخل payload المنتج.
+  - إضافة حقول `track_quantity / allow_backorder / low_stock_threshold / available_quantity / reserved_quantity`.
+- Merchandising semantics:
+  - دعم `is_featured` + بيانات `weight / weight_unit`.
+  - دعم حقول المحتوى الموسعة للمنتج: `metadata`, `custom_fields`, `specs`, `attachments`.
+- API behavior:
+  - توسيع فلترة `GET /api/v1/products` لحالات `low-stock` و`backorder`.
+  - إضافة فلتر `featured=true|false`.
+  - إضافة فرز `stockFromLowToTop`, `stockFromTopToLow`, و`featured`.
+- UI authoring:
+  - تحديث شاشة المنتجات لإظهار حالات المخزون المتقدمة وفرز/تصفية جديدة.
+  - تحديث شاشة تحرير المنتج لإدارة `track_quantity`, `allow_backorder`, `low_stock_threshold`, `is_featured`, `weight`.
+- Tests:
+  - توسيع اختبار التكامل ليثبت سلوك `low-stock/backorder` وحدود السلة مع backorder.
+
+### Slice-07 Progress Notes
+- `SimulatorService` أصبح يحسب `inventory_status` بشكل حتمي ويربطه بقواعد السلة والتوفر.
+- `resolveProductCartLimit` يدعم الآن backorder بشكل صريح عند نفاد الكمية مع `allow_backorder=true`.
+- `GET /api/v1/products` يدعم الآن:
+  - `status=low-stock`
+  - `status=backorder`
+  - `featured=true|false`
+  - `sort=stockFromLowToTop|stockFromTopToLow|featured`
+- واجهة `StoreProducts` تعرض حالة المخزون الموسعة وتدعم الفلاتر/الفرز الجديدة.
+- واجهة `EditProduct` تدعم إعدادات المخزون المتقدمة ووسم المنتج المميز والوزن.
+- اختبار التكامل `supports inventory stock filters/sorting and enforces cart stock limits` يغطي الحالات الجديدة ويمر بنجاح.
+
+### Slice-07 Exit Criteria (Current Target)
+1. كل حالة مخزون (`in/low/out/backorder`) قابلة للتوليد والفلترة عبر API بشكل ثابت.
+2. قواعد السلة تتعامل مع backorder بشكل مقصود دون كسر حدود `max_quantity`.
+3. شاشة إدارة المنتجات تُمكّن إدارة حقول المخزون المتقدمة والـmerchandising الجديدة.
+4. اختبارات التكامل تبقى خضراء تحت `npm run validate`.
+
 ### Slice-01 Scope
 - Product shape unification:
   - `category_ids` + resolved `categories`

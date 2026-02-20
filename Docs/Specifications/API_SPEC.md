@@ -1,6 +1,6 @@
 # VTDR API Specification (As-Is)
 
-Last updated: 2026-02-18  
+Last updated: 2026-02-19  
 Cleanup pass: 2026-02-17 (Docs scope reduction)  
 Primary source: `apps/api/src/index.ts` + route files under `apps/api/src/routes/`.
 
@@ -30,6 +30,8 @@ If required context is missing or invalid:
 ### 4.1 System
 - `GET /api/system/info`
 - `GET /api/system/status`
+- `GET /api/system/preview/metrics?limit=<n>`
+  - يعيد baseline ونافذة metrics حديثة لمسار preview rendering من `PreviewRenderOrchestrator`.
 
 ### 4.2 Theme Management
 - `GET /api/themes`
@@ -57,9 +59,18 @@ Main operations:
   - `PATCH /api/v1/cart/items/:itemId`
   - `DELETE /api/v1/cart/items/:itemId`
 - Products: `/api/v1/products*`
+  - Query filters/sort (as-is):
+    - `status=in-stock|out-of-stock|low-stock|backorder|hidden`
+    - `featured=true|false`
+    - `sort=priceFromLowToTop|priceFromTopToLow|stockFromLowToTop|stockFromTopToLow|featured|latest|bestSell|topRated`
 - Categories: `/api/v1/categories*`
 - Static pages: `/api/v1/static-pages*`
+  - Compatibility aliases:
+    - `GET /api/v1/pages`
+    - `GET /api/v1/pages/:id`
 - Menus: `GET /api/v1/menus/:type`
+  - Compatibility alias:
+    - `GET /api/v1/footer` (maps to footer menu payload)
 - Theme settings:
   - `GET /api/v1/theme/settings`
   - `PUT /api/v1/theme/settings`

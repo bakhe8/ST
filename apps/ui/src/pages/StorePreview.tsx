@@ -31,7 +31,6 @@ const requestStorePreviewContext = async (storeId: string, force = false): Promi
     const pending = fetch(apiUrl(`stores/${storeId}`), {
         headers: {
             'X-VTDR-Store-Id': storeId,
-            'Context-Store-Id': storeId
         }
     })
         .then(res => res.json())

@@ -23,7 +23,17 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
             },
+            '/images': {
+                target: 'http://127.0.0.1:3001',
+                changeOrigin: true,
+                secure: false,
+            },
             '/sdk-bridge.js': {
+                target: 'http://127.0.0.1:3001',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/sdk-components-fallback.js': {
                 target: 'http://127.0.0.1:3001',
                 changeOrigin: true,
                 secure: false,

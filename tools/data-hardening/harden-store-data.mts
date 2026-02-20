@@ -1,6 +1,6 @@
 import { PrismaClient } from '@vtdr/data';
 
-const DEFAULT_PRODUCT_PLACEHOLDER = '/themes/theme-raed-master/public/images/placeholder.png';
+const DEFAULT_PRODUCT_PLACEHOLDER = '/images/placeholder.png';
 
 type Args = {
     write: boolean;
@@ -10,8 +10,10 @@ type Args = {
 type HardenSummary = {
     scannedStores: number;
     scannedCategories: number;
+    scannedBrands: number;
     scannedProducts: number;
     updatedCategories: number;
+    updatedBrands: number;
     updatedProducts: number;
     parseErrors: number;
     replacedExternalPlaceholders: number;
@@ -218,6 +220,23 @@ function normalizeProductVariants(raw: any, productId: string, fallbackCurrency:
     }));
 }
 
+function ensureProductSpecs(raw: any) {
+    const specs = Array.isArray(raw?.specs) ? raw.specs.filter(Boolean) : [];
+    if (specs.length > 0) return specs;
+    return [
+        { key: 'الخامة', value: 'قطن' },
+        { key: 'بلد المنشأ', value: 'السعودية' }
+    ];
+}
+
+function ensureProductCustomFields(raw: any) {
+    const customFields = Array.isArray(raw?.custom_fields) ? raw.custom_fields.filter(Boolean) : [];
+    if (customFields.length > 0) return customFields;
+    return [
+        { key: 'الضمان', value: 'سنة' }
+    ];
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     const prisma = new PrismaClient();
@@ -225,8 +244,10 @@ async function main() {
     const summary: HardenSummary = {
         scannedStores: 0,
         scannedCategories: 0,
+        scannedBrands: 0,
         scannedProducts: 0,
         updatedCategories: 0,
+        updatedBrands: 0,
         updatedProducts: 0,
         parseErrors: 0,
         replacedExternalPlaceholders: 0,
@@ -247,14 +268,16 @@ async function main() {
             const rows = await prisma.dataEntity.findMany({
                 where: {
                     storeId: store.id,
-                    entityType: { in: ['category', 'product'] }
+                    entityType: { in: ['category', 'brand', 'product'] }
                 },
                 orderBy: { createdAt: 'asc' }
             });
 
             const categoryRows = rows.filter((row) => row.entityType === 'category');
+            const brandRows = rows.filter((row) => row.entityType === 'brand');
             const productRows = rows.filter((row) => row.entityType === 'product');
             summary.scannedCategories += categoryRows.length;
+            summary.scannedBrands += brandRows.length;
             summary.scannedProducts += productRows.length;
 
             const parsedCategories: Array<{ row: (typeof categoryRows)[number]; payload: any; key: string }> = [];
@@ -303,6 +326,52 @@ async function main() {
                             where: { id: parsed.row.id },
                             data: {
                                 entityKey: parsed.key,
+                                payloadJson: nextPayloadJson
+                            }
+                        });
+                    }
+                }
+            }
+
+            for (const row of brandRows) {
+                let payload: any;
+                try {
+                    payload = JSON.parse(row.payloadJson);
+                } catch {
+                    summary.parseErrors += 1;
+                    continue;
+                }
+
+                const base = payload && typeof payload === 'object' ? payload : {};
+                const sanitizedBase = sanitizeLegacyPlaceholdersDeep(base, summary);
+                const key = String(base?.id || row.entityKey || row.id);
+                const logoCandidate = sanitizeImageUrl(
+                    sanitizedBase?.logo || sanitizedBase?.image?.url || '',
+                    summary
+                ) || DEFAULT_PRODUCT_PLACEHOLDER;
+
+                const normalizedBrand = {
+                    ...sanitizedBase,
+                    id: key,
+                    logo: logoCandidate,
+                    image: {
+                        ...(sanitizedBase?.image && typeof sanitizedBase.image === 'object' ? sanitizedBase.image : {}),
+                        url: logoCandidate
+                    }
+                };
+
+                const nextPayloadJson = JSON.stringify(normalizedBrand);
+                const needsEntityKeyUpdate = row.entityKey !== key;
+                if (row.payloadJson !== nextPayloadJson || needsEntityKeyUpdate) {
+                    if (needsEntityKeyUpdate) {
+                        summary.normalizedEntityKeys += 1;
+                    }
+                    summary.updatedBrands += 1;
+                    if (args.write) {
+                        await prisma.dataEntity.update({
+                            where: { id: row.id },
+                            data: {
+                                entityKey: key,
                                 payloadJson: nextPayloadJson
                             }
                         });
@@ -359,7 +428,9 @@ async function main() {
                     regular_price: normalizedRegularPrice,
                     sale_price: normalizedSalePrice,
                     options: normalizeProductOptions(sanitizedBase, key),
-                    variants: normalizeProductVariants(sanitizedBase, key, currency)
+                    variants: normalizeProductVariants(sanitizedBase, key, currency),
+                    specs: ensureProductSpecs(sanitizedBase),
+                    custom_fields: ensureProductCustomFields(sanitizedBase)
                 };
 
                 const nextPayloadJson = JSON.stringify(normalizedProduct);
@@ -382,7 +453,7 @@ async function main() {
             }
 
             console.log(
-                `[HARDEN] ${store.title} (${store.id}): categories=${categoryRows.length}, products=${productRows.length}`
+                `[HARDEN] ${store.title} (${store.id}): categories=${categoryRows.length}, brands=${brandRows.length}, products=${productRows.length}`
             );
         }
 

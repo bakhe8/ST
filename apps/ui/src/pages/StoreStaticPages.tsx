@@ -20,7 +20,7 @@ const StoreStaticPages = () => {
   const fetchPages = () => {
     setLoading(true);
     fetch(apiUrl('v1/static-pages'), {
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(res => res.json())
       .then(data => {
@@ -38,7 +38,7 @@ const StoreStaticPages = () => {
     if (!newPage.title || !newPage.slug) return;
     fetch(apiUrl('v1/static-pages'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Context-Store-Id': storeId || 'default' },
+      headers: { 'Content-Type': 'application/json', 'X-VTDR-Store-Id': storeId || '' },
       body: JSON.stringify({ ...newPage })
     })
       .then(() => {
@@ -55,7 +55,7 @@ const StoreStaticPages = () => {
   const handleSaveEdit = (id: string) => {
     fetch(apiUrl(`v1/static-pages/${id}`), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Context-Store-Id': storeId || 'default' },
+      headers: { 'Content-Type': 'application/json', 'X-VTDR-Store-Id': storeId || '' },
       body: JSON.stringify({ ...editPage })
     })
       .then(() => {
@@ -67,7 +67,7 @@ const StoreStaticPages = () => {
   const handleDelete = (id: string) => {
     fetch(apiUrl(`v1/static-pages/${id}`), {
       method: 'DELETE',
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(() => fetchPages());
   };

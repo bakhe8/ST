@@ -22,7 +22,7 @@ const StoreCategories: React.FC = () => {
   const fetchCategories = () => {
     setLoading(true);
     fetch(apiUrl('v1/categories'), {
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(res => res.json())
       .then(data => {
@@ -51,7 +51,7 @@ const StoreCategories: React.FC = () => {
   const handleSaveEdit = (id: string) => {
     fetch(apiUrl(`v1/categories/${id}`), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Context-Store-Id': storeId || 'default' },
+      headers: { 'Content-Type': 'application/json', 'X-VTDR-Store-Id': storeId || '' },
       body: JSON.stringify({
         ...editCat,
         parentId: editCat.parentId ? String(editCat.parentId) : ''
@@ -66,7 +66,7 @@ const StoreCategories: React.FC = () => {
   const handleDelete = (id: string) => {
     fetch(apiUrl(`v1/categories/${id}`), {
       method: 'DELETE',
-      headers: { 'Context-Store-Id': storeId || 'default' }
+      headers: { 'X-VTDR-Store-Id': storeId || '' }
     })
       .then(() => fetchCategories());
   };
@@ -75,7 +75,7 @@ const StoreCategories: React.FC = () => {
     if (!newCat.name) return;
     fetch(apiUrl('v1/categories'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Context-Store-Id': storeId || 'default' },
+      headers: { 'Content-Type': 'application/json', 'X-VTDR-Store-Id': storeId || '' },
       body: JSON.stringify({
         ...newCat,
         parentId: newCat.parentId ? String(newCat.parentId) : ''

@@ -1,9 +1,16 @@
 import { createRequire } from 'module';
 import { RuntimeContext } from '@vtdr/contracts';
 import * as path from 'path';
+import * as os from 'os';
+import { createHash } from 'crypto';
+import * as fsPromises from 'fs/promises';
 import { AsyncLocalStorage } from 'async_hooks';
 import { SchemaService } from '../core/schema-service.js';
 import { IFileSystem } from '../infra/file-system.interface.js';
+import type { IThemeRuntimeAdapter } from '../infra/theme-runtime-adapter.interface.js';
+import { buildPreviewNavigationShimScript } from './preview-navigation-shim.js';
+import { HomeComponentsResolver } from './home-components-resolver.js';
+import { buildRenderScope } from './render-scope.js';
 
 
 const require = createRequire(import.meta.url);
@@ -11,6 +18,8 @@ const Twig = require('twig');
 
 export class RendererService {
     private isInitialized = false;
+    private normalizedViewsCache = new Map<string, { signature: string; viewsPath: string }>();
+    private homeComponentsResolver = new HomeComponentsResolver();
     private storage = new AsyncLocalStorage<{
         translations: Record<string, string>,
         themeFolder: string,
@@ -19,17 +28,33 @@ export class RendererService {
         renderContext?: any
     }>();
 
-    constructor(private themesBaseDir: string, private fs: IFileSystem, private schemaService: SchemaService) {
+    constructor(
+        private themesBaseDir: string,
+        private fs: IFileSystem,
+        private schemaService: SchemaService,
+        private themeRuntimeAdapter: IThemeRuntimeAdapter
+    ) {
         this.initializeTwigOnce();
+    }
+
+    private async getThemeSchema(themeFolder: string): Promise<any | null> {
+        const normalizedThemeFolder = String(themeFolder || '').trim();
+        if (!normalizedThemeFolder) return null;
+
+        try {
+            const schema = await this.themeRuntimeAdapter.getThemeSchema(normalizedThemeFolder);
+            return schema || null;
+        } catch (error) {
+            console.error('[Renderer] Failed to load theme schema via adapter:', error);
+            return null;
+        }
     }
 
     private initializeTwigOnce() {
         if (this.isInitialized) return;
-        (Twig as any).cache(false);
 
-        // ... [OMITTING FILTERS FOR BREVITY IN TargetContent BUT REPLACING IN REPLACEMENTCONTENT]
-        // Actually, I should probably keep the filters and just change the file usage.
-        // Let's use multi_replace to target specifically the FS usage.
+        const twigCacheEnabled = process.env.VTDR_TWIG_CACHE === '1';
+        (Twig as any).cache(twigCacheEnabled);
 
         // --- SCHEMATIC FILTERS ---
         Twig.extendFilter('number', (val: any) => {
@@ -43,18 +68,38 @@ export class RendererService {
             return symbols[code] || code;
         };
 
+        const resolveMoneyAmount = (value: any): number => {
+            if (typeof value === 'number' && Number.isFinite(value)) return value;
+            if (typeof value === 'string') {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            }
+            if (value && typeof value === 'object') {
+                if (typeof value.getMoney === 'function') {
+                    const money = value.getMoney();
+                    const amount = Number(money?.amount);
+                    if (Number.isFinite(amount)) return amount;
+                }
+                const amount = Number(value.amount ?? value.value);
+                if (Number.isFinite(amount)) return amount;
+            }
+            return 0;
+        };
+
         Twig.extendFilter('currency', (val: any) => {
             const store = this.storage.getStore();
             const currencyCode = store?.context?.store?.currency || 'SAR';
             const symbol = getCurrencySymbol(currencyCode);
-            return currencyCode === 'SAR' ? `${val} ${symbol}` : `${symbol}${val}`;
+            const amount = resolveMoneyAmount(val);
+            return currencyCode === 'SAR' ? `${amount} ${symbol}` : `${symbol}${amount}`;
         });
 
         Twig.extendFilter('money', (val: any) => {
             const store = this.storage.getStore();
             const currencyCode = store?.context?.store?.currency || 'SAR';
             const symbol = getCurrencySymbol(currencyCode);
-            return currencyCode === 'SAR' ? `${val} ${symbol}` : `${symbol}${val}`;
+            const amount = resolveMoneyAmount(val);
+            return currencyCode === 'SAR' ? `${amount} ${symbol}` : `${symbol}${amount}`;
         });
 
         Twig.extendFilter('snake_case', (val: string) => {
@@ -71,7 +116,23 @@ export class RendererService {
             return val?.replace(/\s+/g, '-').toLowerCase() || '';
         });
 
-        Twig.extendFilter('time_ago', (val: any) => 'منذ وقت قصير');
+        Twig.extendFilter('time_ago', (val: any) => {
+            if (!val) return '';
+            const date = val instanceof Date ? val : new Date(String(val));
+            if (isNaN(date.getTime())) return String(val);
+            const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (diffSeconds < 60) return 'منذ لحظات';
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
+            const diffHours = Math.floor(diffMinutes / 60);
+            if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays < 30) return `منذ ${diffDays} يوم`;
+            const diffMonths = Math.floor(diffDays / 30);
+            if (diffMonths < 12) return `منذ ${diffMonths} شهر`;
+            const diffYears = Math.floor(diffMonths / 12);
+            return `منذ ${diffYears} سنة`;
+        });
 
         Twig.extendFilter('map', (arr: any[], callback: any) => {
             if (!Array.isArray(arr)) return [];
@@ -87,6 +148,16 @@ export class RendererService {
             return `/themes/${themeFolder}/public/${value}`;
         });
         Twig.extendFilter('cdn', (value: any) => value);
+        Twig.extendFilter('is_placeholder', (value: any) => {
+            const url = String(value || '').trim().toLowerCase();
+            if (!url) return true;
+            return (
+                url.includes('/placeholder') ||
+                url.includes('placeholder.com') ||
+                url.includes('no-image') ||
+                url.includes('default')
+            );
+        });
         Twig.extendFilter('trans', (value: any) => {
             const store = this.storage.getStore();
             const translations = (store?.translations || {}) as Record<string, string>;
@@ -94,11 +165,22 @@ export class RendererService {
         });
 
         (Twig as any).extendFunction('salla_url', (path: string) => `/${path}`);
+        (Twig as any).extendFunction('trans', (value: any) => {
+            const store = this.storage.getStore();
+            const translations = (store?.translations || {}) as Record<string, string>;
+            const key = String(value || '');
+            return translations[key] || key;
+        });
         (Twig as any).extendFunction('is_page', (name: string) => {
             const store = this.storage.getStore();
             return store?.context?.page?.id === name;
         });
-        (Twig as any).extendFunction('link', (val: string) => `/${val}`);
+        (Twig as any).extendFunction('link', (val: string) => {
+            const store = this.storage.getStore();
+            const baseUrl = (store?.context?.store as any)?.url || '';
+            const p = String(val || '').replace(/^\/+/, '');
+            return baseUrl ? `${baseUrl}/${p}` : `/${p}`;
+        });
 
         (Twig as any).extendFunction('pluralize', (key: string, count: number) => {
             const store = this.storage.getStore();
@@ -124,7 +206,8 @@ export class RendererService {
             return pageId.includes(pattern);
         });
 
-        (Twig as any).extendFunction('old', (key: string) => '');
+        // old() returns previously submitted form value — in simulator context always returns empty string
+        (Twig as any).extendFunction('old', (_key: string) => '');
 
         const renderComponent = (val: any) => {
             const store = this.storage.getStore();
@@ -259,431 +342,425 @@ export class RendererService {
         this.isInitialized = true;
     }
 
-    public async renderPage(context: RuntimeContext, themeFolder: string): Promise<string> {
-        const themePath = path.join(this.themesBaseDir, themeFolder);
-        const viewsPath = path.join(themePath, 'src', 'views');
-        let pageName = context.page.id;
-        let templatePath = path.join(viewsPath, 'pages', `${pageName}.twig`);
-        const twilightPath = path.join(themePath, 'twilight.json');
+    private toPosixPath(value: string) {
+        return String(value || '').replace(/\\/g, '/');
+    }
 
-        // Salla standard: Home page can be home.twig or index.twig
-        if ((pageName === 'home' || pageName === 'index') && !this.fs.existsSync(templatePath)) {
-            const alternative = pageName === 'home' ? 'index' : 'home';
-            const alternativePath = path.join(viewsPath, 'pages', `${alternative}.twig`);
-            if (this.fs.existsSync(alternativePath)) {
-                templatePath = alternativePath;
-                pageName = alternative;
+    private normalizeTemplateToken(value: string) {
+        return String(value || '')
+            .trim()
+            .replace(/^\/+|\/+$/g, '')
+            .replace(/\\/g, '/');
+    }
+
+    private resolvePreviewOrigin() {
+        const explicitOrigin = String(
+            process.env.VTDR_PREVIEW_ORIGIN ||
+            process.env.VTDR_UI_ORIGIN ||
+            process.env.PUBLIC_ORIGIN ||
+            ''
+        )
+            .trim()
+            .replace(/\/+$/g, '');
+        if (explicitOrigin) return explicitOrigin;
+
+        const uiPort = String(process.env.VTDR_UI_PORT || process.env.UI_PORT || '3000').trim() || '3000';
+        return `http://localhost:${uiPort}`;
+    }
+
+    private toAbsolutePreviewUrl(origin: string, previewPath: string) {
+        const normalizedOrigin = String(origin || '').trim().replace(/\/+$/g, '');
+        const normalizedPath = String(previewPath || '').startsWith('/')
+            ? String(previewPath || '')
+            : `/${String(previewPath || '')}`;
+        return `${normalizedOrigin}${normalizedPath}`;
+    }
+
+    private resolveTemplatePath(viewsPath: string, requestedTemplateId: string) {
+        const token = this.normalizeTemplateToken(requestedTemplateId || 'index') || 'index';
+        const aliasMap: Record<string, string[]> = {
+            'index': ['home'],
+            'home': ['index'],
+            'product/index': ['products', 'category/index', 'shop/index', 'catalog/index'],
+            'product/single': ['product', 'products/single', 'item'],
+            'blog/index': ['blog'],
+            'blog/single': ['blog/post', 'post', 'article'],
+            'brands/index': ['brands'],
+            'brands/single': ['brand', 'brand/single'],
+            'checkout': ['cart'],
+            'thank-you': ['thanks', 'order/success', 'checkout/success'],
+            'page-single': ['page', 'pages/single'],
+            'customer/profile': ['customer/account', 'account/profile', 'profile'],
+            'customer/wishlist': ['wishlist'],
+            'customer/notifications': ['notifications'],
+            'customer/wallet': ['wallet'],
+            'customer/orders/index': ['customer/orders', 'orders/index', 'orders'],
+            'customer/orders/single': ['customer/orders/order', 'orders/single', 'orders/order']
+        };
+
+        const candidates = Array.from(
+            new Set([
+                token,
+                token.includes('.') ? token.replace(/\./g, '/') : token,
+                ...(aliasMap[token] || []),
+                'page-single',
+                'index',
+                'home'
+            ].map((entry) => this.normalizeTemplateToken(entry)).filter(Boolean))
+        );
+
+        for (const candidate of candidates) {
+            const filePath = path.join(viewsPath, 'pages', `${candidate}.twig`);
+            if (this.fs.existsSync(filePath)) {
+                return {
+                    templatePath: filePath,
+                    pageName: candidate
+                };
             }
         }
 
+        return {
+            templatePath: path.join(viewsPath, 'pages', `${token}.twig`),
+            pageName: token
+        };
+    }
+
+    private normalizeTwigRefTarget(rawTarget: string, currentFilePath: string, viewsPath: string) {
+        const original = String(rawTarget || '').trim();
+        if (!original) return original;
+
+        if (
+            original.startsWith('@') ||
+            original.startsWith('http://') ||
+            original.startsWith('https://') ||
+            original.startsWith('//') ||
+            original.startsWith('#') ||
+            original.startsWith('mailto:') ||
+            original.startsWith('tel:')
+        ) {
+            return original;
+        }
+
+        const knownAssetExt = /\.(js|css|json|svg|png|jpe?g|webp|gif|ico|woff2?|ttf)$/i;
+        let target = this.toPosixPath(original);
+
+        if (!target.includes('/') && target.includes('.') && !target.endsWith('.twig') && !knownAssetExt.test(target)) {
+            target = target.replace(/\./g, '/');
+        }
+
+        if (!target.endsWith('.twig') && !knownAssetExt.test(target)) {
+            target += '.twig';
+        }
+
+        const currentDir = path.dirname(currentFilePath);
+        const toRelativeFromCurrent = (absolutePath: string) =>
+            this.toPosixPath(path.relative(currentDir, absolutePath));
+
+        const tryResolve = (absolutePath: string) => {
+            if (!this.fs.existsSync(absolutePath)) return null;
+            const rel = toRelativeFromCurrent(absolutePath);
+            return rel || './';
+        };
+
+        if (target.startsWith('/')) {
+            const fromRoot = path.join(viewsPath, target.replace(/^\/+/, ''));
+            const resolved = tryResolve(fromRoot);
+            return resolved || target;
+        }
+
+        if (target.startsWith('./') || target.startsWith('../')) {
+            const absolute = path.resolve(currentDir, target);
+            const resolved = tryResolve(absolute);
+            return resolved || target;
+        }
+
+        const currentCandidate = path.resolve(currentDir, target);
+        const currentResolved = tryResolve(currentCandidate);
+        if (currentResolved) return currentResolved;
+
+        const rootCandidate = path.resolve(viewsPath, target);
+        const rootResolved = tryResolve(rootCandidate);
+        if (rootResolved) return rootResolved;
+
+        const normalizedTarget = target.replace(/^\/+/, '');
+        return normalizedTarget || original;
+    }
+
+    private rewriteTwigTemplateReferences(content: string, currentFilePath: string, viewsPath: string) {
+        if (!content) return content;
+        return content.replace(
+            /\{%\s+(extends|include|import|from)\s+["'](.+?)["'](.*?)\s+%\}/g,
+            (match: string, tag: string, target: string, rest: string) => {
+                const mapped = this.normalizeTwigRefTarget(target, currentFilePath, viewsPath);
+                return `{% ${tag} "${mapped}"${rest} %}`;
+            }
+        );
+    }
+
+    private ensurePreviewRuntimeInjected(html: string, sdkInitScript: string) {
+        if (!sdkInitScript) return html;
+        if (html.includes('/sdk-bridge.js')) return html;
+        if (/<\/body>/i.test(html)) {
+            return html.replace(/<\/body>/i, `${sdkInitScript}</body>`);
+        }
+        return `${html}\n${sdkInitScript}`;
+    }
+
+    private async collectFilesRecursive(rootDir: string, currentDir = rootDir): Promise<string[]> {
+        const entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
+        const files: string[] = [];
+        for (const entry of entries) {
+            const absolutePath = path.join(currentDir, entry.name);
+            if (entry.isDirectory()) {
+                files.push(...(await this.collectFilesRecursive(rootDir, absolutePath)));
+                continue;
+            }
+            files.push(absolutePath);
+        }
+        return files;
+    }
+
+    private async copyDirectoryRecursive(sourceDir: string, targetDir: string): Promise<void> {
+        await fsPromises.mkdir(targetDir, { recursive: true });
+        const entries = await fsPromises.readdir(sourceDir, { withFileTypes: true });
+        for (const entry of entries) {
+            const sourcePath = path.join(sourceDir, entry.name);
+            const targetPath = path.join(targetDir, entry.name);
+            if (entry.isDirectory()) {
+                await this.copyDirectoryRecursive(sourcePath, targetPath);
+                continue;
+            }
+            await fsPromises.copyFile(sourcePath, targetPath);
+        }
+    }
+
+    private async getRuntimeViewsPath(themePath: string): Promise<string> {
+        const sourceViewsPath = path.join(themePath, 'src', 'views');
+        const files = await this.collectFilesRecursive(sourceViewsPath);
+        const fileSignatures = await Promise.all(
+            files.map(async (absolutePath) => {
+                const stat = await fsPromises.stat(absolutePath);
+                const relativePath = this.toPosixPath(path.relative(sourceViewsPath, absolutePath));
+                return `${relativePath}:${stat.mtimeMs}:${stat.size}`;
+            })
+        );
+
+        const signature = createHash('sha1')
+            .update(fileSignatures.sort().join('|'))
+            .digest('hex')
+            .slice(0, 16);
+        const cacheKey = this.toPosixPath(themePath);
+        const cached = this.normalizedViewsCache.get(cacheKey);
+        if (cached && cached.signature === signature && this.fs.existsSync(cached.viewsPath)) {
+            return cached.viewsPath;
+        }
+
+        const runtimeRoot = path.join(os.tmpdir(), 'vtdr-runtime-views');
+        const runtimeViewsPath = path.join(runtimeRoot, `${path.basename(themePath)}-${signature}`);
+        if (
+            this.fs.existsSync(runtimeViewsPath) &&
+            this.fs.existsSync(path.join(runtimeViewsPath, 'pages'))
+        ) {
+            this.normalizedViewsCache.set(cacheKey, {
+                signature,
+                viewsPath: runtimeViewsPath
+            });
+            return runtimeViewsPath;
+        }
+
+        await this.copyDirectoryRecursive(sourceViewsPath, runtimeViewsPath);
+
+        const runtimeFiles = await this.collectFilesRecursive(runtimeViewsPath);
+        const twigFiles = runtimeFiles.filter((entry) => entry.toLowerCase().endsWith('.twig'));
+        await Promise.all(
+            twigFiles.map(async (twigPath) => {
+                const content = await fsPromises.readFile(twigPath, 'utf8');
+                const normalized = this.rewriteTwigTemplateReferences(content, twigPath, runtimeViewsPath);
+                if (normalized !== content) {
+                    await fsPromises.writeFile(twigPath, normalized, 'utf8');
+                }
+            })
+        );
+
+        this.normalizedViewsCache.set(cacheKey, {
+            signature,
+            viewsPath: runtimeViewsPath
+        });
+
+        return runtimeViewsPath;
+    }
+
+    private resolveComponentBindingPaths(templatePageIdRaw: string): string[] {
+        const templatePageId = String(templatePageIdRaw || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\\/g, '/');
+        const bindings: string[] = [];
+        const push = (value: string) => {
+            const normalized = String(value || '').trim();
+            if (!normalized) return;
+            if (!bindings.includes(normalized)) bindings.push(normalized);
+        };
+
+        switch (templatePageId) {
+            case '':
+            case 'index':
+            case 'home':
+                push('home');
+                break;
+            case 'product/single':
+                push('product.single');
+                break;
+            case 'product/index':
+                push('product');
+                push('category');
+                break;
+            case 'category/index':
+                push('category');
+                break;
+            case 'cart':
+            case 'checkout':
+                push('cart');
+                break;
+            case 'customer/profile':
+                push('customer.profile');
+                break;
+            case 'customer/orders/index':
+                push('customer.orders');
+                break;
+            case 'customer/orders/single':
+                push('customer.orders.single');
+                break;
+            case 'customer/wishlist':
+                push('customer.wishlist');
+                break;
+            case 'customer/notifications':
+                push('customer.notifications');
+                break;
+            case 'customer/wallet':
+                push('customer.wallet');
+                break;
+            case 'blog/index':
+                push('blog');
+                break;
+            case 'blog/single':
+                push('blog.single');
+                break;
+            case 'brands/index':
+                push('brands');
+                break;
+            case 'brands/single':
+                push('brands.single');
+                break;
+            case 'thank-you':
+                push('thank_you');
+                break;
+            case 'landing-page':
+                push('landing_page');
+                break;
+            case 'page-single':
+                push('page_single');
+                break;
+            default:
+                break;
+        }
+
+        return bindings;
+    }
+
+    private assignComponentsByPath(target: any, bindingPath: string, components: any[]) {
+        if (!target || typeof target !== 'object') return;
+        const parts = String(bindingPath || '')
+            .split('.')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+        if (parts.length === 0) return;
+
+        let cursor: any = target;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const key = parts[i];
+            const current = cursor[key];
+            if (current == null) {
+                cursor[key] = {};
+            } else if (typeof current !== 'object' || Array.isArray(current)) {
+                return;
+            }
+            cursor = cursor[key];
+        }
+
+        const leafKey = parts[parts.length - 1];
+        const currentLeaf = cursor[leafKey];
+        if (typeof currentLeaf === 'undefined') {
+            cursor[leafKey] = components;
+            return;
+        }
+        if (Array.isArray(currentLeaf)) {
+            cursor[leafKey] = components;
+            return;
+        }
+        if (currentLeaf && typeof currentLeaf === 'object') {
+            if (!Array.isArray((currentLeaf as any).components)) {
+                (currentLeaf as any).components = components;
+            } else {
+                (currentLeaf as any).__components = components;
+            }
+        }
+    }
+
+    private injectResolvedPageComponents(
+        renderContext: any,
+        templatePageId: string,
+        resolvedComponents: any[]
+    ) {
+        const components = Array.isArray(resolvedComponents) ? resolvedComponents : [];
+        if (!renderContext || typeof renderContext !== 'object') return;
+
+        if (!renderContext.page || typeof renderContext.page !== 'object') {
+            renderContext.page = {};
+        }
+        (renderContext.page as any).components = components;
+        (renderContext as any).__vtdr_page_components = components;
+
+        const bindingPaths = this.resolveComponentBindingPaths(templatePageId);
+        bindingPaths.forEach((bindingPath) => {
+            this.assignComponentsByPath(renderContext, bindingPath, components);
+        });
+    }
+
+    public async renderPage(context: RuntimeContext, themeFolder: string): Promise<string> {
+        const themePath = path.join(this.themesBaseDir, themeFolder);
+        const viewsPath = await this.getRuntimeViewsPath(themePath);
+        const templatePageId = String((context.page as any)?.template_id || context.page.id || 'index');
+        const resolvedTemplate = this.resolveTemplatePath(viewsPath, templatePageId);
+        let templatePath = resolvedTemplate.templatePath;
+        const previewViewport =
+            String((context as any)?.__preview?.viewport || context.settings?.__preview_viewport || 'desktop').toLowerCase() === 'mobile'
+                ? 'mobile'
+                : 'desktop';
+        const renderScope = buildRenderScope({
+            storeId: context.store?.id || context.storeId,
+            themeId: context.theme?.id,
+            themeVersion: context.theme?.version,
+            themeFolder,
+            templateId: templatePageId,
+            templatePath,
+            viewsPath,
+            viewport: previewViewport
+        });
+        const themeSchema = await this.getThemeSchema(themeFolder);
+
         try {
             const templateContent = await this.fs.readFile(templatePath, 'utf8');
-
-            const isHomePage = context.page.id === 'index' || context.page.id === 'home';
-            if (isHomePage && !(context as any)['home']) {
-                try {
-                    const twilightContent = await this.fs.readFile(twilightPath, 'utf8');
-                    const twilight = JSON.parse(twilightContent);
-                    if (twilight.components) {
-                        const homeComponents = twilight.components
-                            .filter((c: any) => c.path && c.path.startsWith('home.'));
-
-                        const pickLocalizedText = (value: any) => {
-                            if (value == null) return '';
-                            if (typeof value === 'string') return value;
-                            if (typeof value === 'object' && !Array.isArray(value)) {
-                                const preferredLocale = context.store?.locale?.startsWith('ar') ? 'ar' : 'en';
-                                if (typeof value[preferredLocale] === 'string' && value[preferredLocale].trim()) {
-                                    return value[preferredLocale];
-                                }
-                                if (typeof value.ar === 'string' && value.ar.trim()) return value.ar;
-                                if (typeof value.en === 'string' && value.en.trim()) return value.en;
-                                const firstString = Object.values(value).find((entry: any) =>
-                                    typeof entry === 'string' && entry.trim()
-                                );
-                                if (typeof firstString === 'string') return firstString;
-                            }
-                            return String(value);
-                        };
-
-                        const flattenCollectionItems = (value: any) => {
-                            if (!Array.isArray(value)) return [];
-                            return value.map((item: any) => {
-                                if (!item || typeof item !== 'object') return item;
-                                const normalized: Record<string, any> = {};
-                                for (const key in item) {
-                                    const cleanKey = key.includes('.') ? key.split('.').pop() : key;
-                                    normalized[cleanKey!] = item[key];
-                                }
-                                return normalized;
-                            });
-                        };
-
-                        const ensureProductMockList = (items: any[]) => {
-                            const normalized = Array.isArray(items) ? [...items] : [];
-                            (normalized as any).product_ids_mock_str = normalized
-                                .map((item: any) => item?.id)
-                                .filter(Boolean)
-                                .join(',');
-                            return normalized;
-                        };
-
-                        const extractSelectionIds = (rawValue: any): string[] => {
-                            const source = Array.isArray(rawValue) ? rawValue : [rawValue];
-                            return Array.from(
-                                new Set(
-                                    source
-                                        .map((entry: any) => {
-                                            if (typeof entry === 'string' || typeof entry === 'number') return String(entry);
-                                            if (entry && typeof entry === 'object') {
-                                                if (entry.id != null) return String(entry.id);
-                                                if (entry.value != null) return String(entry.value);
-                                            }
-                                            return '';
-                                        })
-                                        .map((id) => id.trim())
-                                        .filter(Boolean)
-                                )
-                            );
-                        };
-
-                        const normalizeLinkUrl = (value: any): string => {
-                            const raw = String(value || '').trim();
-                            if (!raw) return '#';
-                            if (/^(https?:|mailto:|tel:|#)/i.test(raw)) return raw;
-                            if (raw.startsWith('/')) return raw;
-                            if (raw.startsWith('//')) return raw;
-                            return `/${raw.replace(/^\/+/, '')}`;
-                        };
-
-                        const getSourcePool = (sourceKey: string): any[] => {
-                            const source = String(sourceKey || '').toLowerCase();
-                            if (source === 'products') return (context as any).products || [];
-                            if (source === 'categories') return (context as any).categories || [];
-                            if (source === 'brands') return (context as any).brands || [];
-                            if (source === 'pages') return (context as any).pages || [];
-                            if (source === 'blog_articles') return (context as any).blog_articles || [];
-                            if (source === 'blog_categories') return (context as any).blog_categories || [];
-                            return [];
-                        };
-
-                        const resolveSourceEntityUrl = (sourceKey: string, rawId: any) => {
-                            const source = String(sourceKey || '').toLowerCase();
-                            const id = String(rawId || '').trim();
-                            if (!id) return '';
-
-                            const staticMap: Record<string, string> = {
-                                offers_link: '/offers',
-                                brands_link: '/brands',
-                                blog_link: '/blog'
-                            };
-                            if (staticMap[source]) return staticMap[source];
-
-                            const pool = getSourcePool(source);
-                            const entry = pool.find((item: any) => String(item?.id || item?.slug || '') === id);
-
-                            if (source === 'products') return entry?.url || `/products/${id}`;
-                            if (source === 'categories') return entry?.url || `/categories/${id}`;
-                            if (source === 'brands') return entry?.url || `/brands/${id}`;
-                            if (source === 'pages') return entry?.url || `/pages/${id}`;
-                            if (source === 'blog_articles') return entry?.url || `/blog/${id}`;
-                            if (source === 'blog_categories') return entry?.url || `/blog/categories/${id}`;
-                            return entry?.url || '';
-                        };
-
-                        const resolveVariableListValue = (
-                            rawValue: any,
-                            fallbackSource = '',
-                            fallbackValue = ''
-                        ): string => {
-                            const sourceHint = String(fallbackSource || '').trim().toLowerCase();
-                            const valueHint = String(fallbackValue || '').trim();
-
-                            const staticSourceMap: Record<string, string> = {
-                                offers_link: '/offers',
-                                brands_link: '/brands',
-                                blog_link: '/blog'
-                            };
-
-                            if (typeof rawValue === 'string') {
-                                if (sourceHint === 'custom') return normalizeLinkUrl(rawValue);
-                                if (staticSourceMap[sourceHint]) return staticSourceMap[sourceHint];
-                                if (sourceHint && valueHint) {
-                                    const fromSource = resolveSourceEntityUrl(sourceHint, valueHint);
-                                    if (fromSource) return normalizeLinkUrl(fromSource);
-                                }
-                                return normalizeLinkUrl(rawValue);
-                            }
-                            if (Array.isArray(rawValue)) {
-                                const first = rawValue.find((entry) => entry != null);
-                                return resolveVariableListValue(first, sourceHint, valueHint);
-                            }
-                            if (rawValue && typeof rawValue === 'object') {
-                                const source =
-                                    String(rawValue.type ?? rawValue.source ?? rawValue.__type ?? sourceHint ?? '')
-                                        .trim()
-                                        .toLowerCase();
-                                const typedValue =
-                                    String(
-                                        rawValue.value ??
-                                        rawValue.id ??
-                                        rawValue.key ??
-                                        rawValue.__value ??
-                                        valueHint ??
-                                        ''
-                                    ).trim();
-
-                                const candidate = rawValue.url ?? rawValue.path ?? rawValue.link ?? '';
-                                if (typeof candidate === 'string' && candidate.trim()) {
-                                    return normalizeLinkUrl(candidate);
-                                }
-                                if (source === 'custom') {
-                                    return normalizeLinkUrl(typedValue);
-                                }
-                                if (staticSourceMap[source]) {
-                                    return staticSourceMap[source];
-                                }
-                                if (source && typedValue) {
-                                    const resolved = resolveSourceEntityUrl(source, typedValue);
-                                    if (resolved) return normalizeLinkUrl(resolved);
-                                }
-                                if (typedValue) {
-                                    return normalizeLinkUrl(typedValue);
-                                }
-                                if (sourceHint && valueHint) {
-                                    const resolved = resolveSourceEntityUrl(sourceHint, valueHint);
-                                    if (resolved) return normalizeLinkUrl(resolved);
-                                }
-                                if (staticSourceMap[sourceHint]) {
-                                    return staticSourceMap[sourceHint];
-                                }
-                            }
-                            if (sourceHint === 'custom' && valueHint) {
-                                return normalizeLinkUrl(valueHint);
-                            }
-                            if (staticSourceMap[sourceHint]) {
-                                return staticSourceMap[sourceHint];
-                            }
-                            if (sourceHint && valueHint) {
-                                const resolved = resolveSourceEntityUrl(sourceHint, valueHint);
-                                if (resolved) return normalizeLinkUrl(resolved);
-                            }
-                            return '#';
-                        };
-
-                        const resolveItemsBySource = (
-                            sourceKey: string,
-                            rawValue: any,
-                            explicitOverride: boolean
-                        ) => {
-                            const source = String(sourceKey || '').toLowerCase();
-                            const pool =
-                                source === 'products'
-                                    ? ((context as any).products || [])
-                                    : source === 'categories'
-                                        ? ((context as any).categories || [])
-                                        : source === 'brands'
-                                            ? ((context as any).brands || [])
-                                            : [];
-
-                            if (!Array.isArray(pool) || pool.length === 0) {
-                                return source === 'products' ? ensureProductMockList([]) : [];
-                            }
-
-                            const ids = extractSelectionIds(rawValue);
-                            const byId = new Map(
-                                pool
-                                    .filter((item: any) => item?.id != null)
-                                    .map((item: any) => [String(item.id), item])
-                            );
-
-                            let resolved: any[] = [];
-                            if (ids.length > 0) {
-                                resolved = ids
-                                    .map((id) => byId.get(id))
-                                    .filter(Boolean);
-                            } else if (!explicitOverride) {
-                                const fallbackCount = source === 'products' ? 12 : 8;
-                                resolved = pool.slice(0, fallbackCount);
-                            }
-
-                            return source === 'products'
-                                ? ensureProductMockList(resolved)
-                                : resolved;
-                        };
-
-                        const mapHomeComponent = (
-                            component: any,
-                            position: number,
-                            overrideProps?: Record<string, any>
-                        ) => {
-                            const data: any = {};
-                            component.fields?.forEach((f: any) => {
-                                if (!f.id) return;
-                                let val = f.value;
-                                if (f.type === 'collection' && Array.isArray(val)) {
-                                    val = flattenCollectionItems(val);
-                                } else if (
-                                    val &&
-                                    typeof val === 'object' &&
-                                    !Array.isArray(val) &&
-                                    f.type !== 'items' &&
-                                    f.type !== 'boolean'
-                                ) {
-                                    val = pickLocalizedText(val);
-                                }
-                                data[f.id] = val;
-                            });
-
-                            const mergedData: any = {
-                                ...data,
-                                ...(overrideProps && typeof overrideProps === 'object' ? overrideProps : {})
-                            };
-
-                            component.fields?.forEach((f: any) => {
-                                if (!f?.id) return;
-
-                                if (f.type === 'collection') {
-                                    const flattenedCollection = flattenCollectionItems(mergedData[f.id]);
-                                    if (!Array.isArray(flattenedCollection)) {
-                                        mergedData[f.id] = [];
-                                        return;
-                                    }
-
-                                    const variableSubFields = (f.fields || []).filter((subField: any) =>
-                                        subField?.type === 'items' && String(subField?.format || '') === 'variable-list'
-                                    );
-
-                                    if (variableSubFields.length === 0) {
-                                        mergedData[f.id] = flattenedCollection;
-                                        return;
-                                    }
-
-                                    mergedData[f.id] = flattenedCollection.map((item: any) => {
-                                        if (!item || typeof item !== 'object') return item;
-                                        const nextItem = { ...item };
-
-                                        variableSubFields.forEach((subField: any) => {
-                                            const subId = String(subField?.id || '');
-                                            if (!subId) return;
-                                            const tail = subId.includes('.') ? subId.split('.').pop() || subId : subId;
-
-                                            const rawFieldValue = nextItem[tail] ?? nextItem[subId];
-                                            const typedSource =
-                                                nextItem[`${tail}__type`] ??
-                                                nextItem[`${subId}__type`] ??
-                                                '';
-                                            const typedValue =
-                                                nextItem[`${tail}__value`] ??
-                                                nextItem[`${subId}__value`] ??
-                                                '';
-
-                                            nextItem[tail] = resolveVariableListValue(rawFieldValue, typedSource, typedValue);
-                                        });
-
-                                        return nextItem;
-                                    });
-                                    return;
-                                }
-
-                                if (String(f.format || '') === 'variable-list') {
-                                    mergedData[f.id] = resolveVariableListValue(mergedData[f.id]);
-                                    return;
-                                }
-
-                                if (f.type === 'items' && String(f.format || '') === 'dropdown-list') {
-                                    const explicitOverride = Boolean(
-                                        overrideProps &&
-                                        Object.prototype.hasOwnProperty.call(overrideProps, f.id)
-                                    );
-                                    mergedData[f.id] = resolveItemsBySource(f.source, mergedData[f.id], explicitOverride);
-                                    return;
-                                }
-
-                                if (
-                                    mergedData[f.id] &&
-                                    typeof mergedData[f.id] === 'object' &&
-                                    !Array.isArray(mergedData[f.id]) &&
-                                    f.type !== 'boolean'
-                                ) {
-                                    mergedData[f.id] = pickLocalizedText(mergedData[f.id]);
-                                }
-                            });
-
-                            const fallbackProducts = (component.path.includes('product') || component.path.includes('slider') || component.path.includes('banner'))
-                                ? (context as any).products
-                                : [];
-                            const componentProducts = Array.isArray(mergedData.products)
-                                ? ensureProductMockList(mergedData.products)
-                                : ensureProductMockList(fallbackProducts);
-
-                            return {
-                                path: component.path,
-                                name: component.path,
-                                data: {
-                                    ...component,
-                                    ...mergedData,
-                                    position,
-                                    products: componentProducts,
-                                    product_ids_mock: componentProducts.map((p: any) => p.id),
-                                    product_ids_mock_str: (componentProducts as any).product_ids_mock_str
-                                }
-                            };
-                        };
-
-                        const savedCompositions = (context as any)?.settings?.page_compositions?.home;
-                        const resolvePreviewViewport = (raw: any): 'desktop' | 'mobile' => {
-                            const normalized = String(raw || 'desktop').toLowerCase();
-                            return normalized === 'mobile' ? 'mobile' : 'desktop';
-                        };
-                        const previewViewport = resolvePreviewViewport(
-                            (context as any)?.__preview?.viewport ?? (context as any)?.settings?.__preview_viewport
-                        );
-                        const shouldRenderCompositionEntry = (entry: any): boolean => {
-                            if (!entry || typeof entry !== 'object') return false;
-
-                            const visibility =
-                                entry.visibility && typeof entry.visibility === 'object' ? entry.visibility : {};
-                            const enabled =
-                                typeof visibility.enabled === 'boolean'
-                                    ? visibility.enabled
-                                    : (typeof entry.enabled === 'boolean' ? entry.enabled : true);
-                            if (!enabled) return false;
-
-                            const viewportRule = String(visibility.viewport ?? entry.viewport ?? 'all').toLowerCase();
-                            if (!viewportRule || viewportRule === 'all') return true;
-                            if (viewportRule === 'mobile') return previewViewport === 'mobile';
-                            if (viewportRule === 'desktop') return previewViewport === 'desktop';
-                            return true;
-                        };
-
-                        if (Array.isArray(savedCompositions)) {
-                            const byKey = new Map<string, any>();
-                            const byPath = new Map<string, any>();
-                            homeComponents.forEach((component: any) => {
-                                byKey.set(String(component.key), component);
-                                byPath.set(String(component.path), component);
-                            });
-
-                            (context as any)['home'] = savedCompositions
-                                .filter((entry: any) => shouldRenderCompositionEntry(entry))
-                                .map((entry: any, index: number) => {
-                                    const componentId = String(entry?.componentId || entry?.id || '');
-                                    if (!componentId) return null;
-                                    const component = byKey.get(componentId) || byPath.get(componentId);
-                                    if (!component) return null;
-                                    const props = entry?.props && typeof entry.props === 'object' ? entry.props : {};
-                                    return mapHomeComponent(component, index, props);
-                                })
-                                .filter(Boolean);
-                        } else {
-                            (context as any)['home'] = homeComponents.map((component: any, index: number) =>
-                                mapHomeComponent(component, index)
-                            );
-                        }
-                    }
-                    console.log(`[Renderer] Injected ${(context as any)['home'].length} home components.`);
-                } catch (err) {
+            let resolvedPageComponents: any[] = [];
+            try {
+                resolvedPageComponents = this.homeComponentsResolver.resolve(context, themeSchema, templatePageId);
+                if (templatePageId === 'index' || templatePageId === 'home') {
+                    (context as any)['home'] = resolvedPageComponents;
+                }
+                console.log(`[Renderer] Injected ${resolvedPageComponents.length} components for ${templatePageId}.`);
+            } catch (err) {
+                resolvedPageComponents = [];
+                if (templatePageId === 'index' || templatePageId === 'home') {
                     (context as any)['home'] = [];
                 }
             }
@@ -699,21 +776,19 @@ export class RendererService {
                 }
             } catch (err) { }
 
-            if (context.store) (context.store as any).url = 'http://localhost:3001';
+            if (context.store) {
+                const previewBasePath = `/preview/${context.store.id}/${themeFolder}/${context.theme.version}`;
+                (context.store as any).url = previewBasePath;
+            }
 
             const renderContext = this.prepareRenderContext(context, themeFolder);
-            if ((context as any)['home']) (renderContext as any)['home'] = (context as any)['home'];
+            (renderContext as any).__vtdr_render_scope = {
+                key: renderScope.rawKey,
+                hash: renderScope.hash
+            };
+            this.injectResolvedPageComponents(renderContext, templatePageId, resolvedPageComponents);
 
-            let processedContent = templateContent.replace(/\{%\s+(extends|include|import|from)\s+["'](.+?)["'](.*?)\s+%\}/g, (match: string, tag: string, p1: string, rest: string) => {
-                let mapped = p1;
-                if (mapped.includes('.') && !mapped.endsWith('.twig') && !mapped.endsWith('.js') && !mapped.endsWith('.css')) mapped = mapped.replace(/\./g, '/');
-                if (!mapped.endsWith('.twig')) mapped += '.twig';
-                if (!mapped.startsWith('.') && !mapped.startsWith('/')) {
-                    const relativeToRoot = path.relative(path.dirname(templatePath), viewsPath);
-                    if (relativeToRoot) mapped = path.join(relativeToRoot, mapped).replace(/\\/g, '/');
-                }
-                return `{% ${tag} "${mapped}"${rest} %}`;
-            });
+            let processedContent = this.rewriteTwigTemplateReferences(templateContent, templatePath, viewsPath);
 
             // Replace custom component tag with our unique one to avoid collisions
             processedContent = processedContent.replace(/\{%\s*component\s+/g, '{% salla_component ');
@@ -725,7 +800,7 @@ export class RendererService {
             return new Promise((resolve, reject) => {
                 try {
                     const template = (Twig as any).twig({
-                        id: `pages/${context.page.id}-${Date.now()}.twig`,
+                        id: renderScope.templateCacheId,
                         path: templatePath,
                         data: processedContent,
                         async: false,
@@ -747,7 +822,7 @@ export class RendererService {
                     };
 
                     this.storage.run(storeData, () => {
-                        console.log(`[Renderer] Starting render for ${context.page.id}...`);
+                        console.log(`[Renderer] Starting render for ${templatePageId}...`);
                         let html = template.render(renderContext);
                         console.log(`[Renderer] Render complete. HTML length: ${html.length}`);
 
@@ -755,6 +830,10 @@ export class RendererService {
                         html = html.replace(regex, (match: string) => match.includes('\\/') ? 'http:\\/\\/localhost:3001' : (match.startsWith('http') ? 'http://localhost:3001' : 'localhost:3001'));
                         const clearScript = '<script>try{localStorage.clear();sessionStorage.clear();}catch(e){}</script>';
                         html = html.replace('<head>', '<head>' + clearScript);
+                        html = this.ensurePreviewRuntimeInjected(
+                            html,
+                            String((renderContext as any).__vtdr_sdk_init_script || '')
+                        );
                         resolve(html);
                     });
                 } catch (e) {
@@ -773,13 +852,22 @@ export class RendererService {
             String((context as any)?.__preview?.viewport || context.settings?.__preview_viewport || 'desktop').toLowerCase() === 'mobile'
                 ? 'mobile'
                 : 'desktop';
+        const previewOrigin = this.resolvePreviewOrigin();
+        const previewBasePath = `/preview/${context.store.id}/${themeFolder}/${context.theme.version}`;
+        const previewStoreUrl = this.toAbsolutePreviewUrl(previewOrigin, previewBasePath);
+        const localDefaultImage = '/images/placeholder.png';
+        const themeTranslationsHashRaw = Number((context.theme as any)?.translations_hash ?? 0);
+        const themeTranslationsHash =
+            Number.isFinite(themeTranslationsHashRaw) && themeTranslationsHashRaw > 0
+                ? Math.floor(themeTranslationsHashRaw)
+                : 0;
         const store = {
             ...context.store,
-            api: 'http://localhost:3001/api/v1',
-            url: `http://localhost:3001`,
-            icon: 'https://cdn.salla.sa/images/logo/logo-dark-colored.png',
-            avatar: 'https://cdn.salla.sa/images/logo/logo-dark-colored.png',
-            logo: 'https://cdn.salla.sa/images/logo/logo-dark-colored.png',
+            api: '/api/v1',
+            url: previewBasePath,
+            icon: localDefaultImage,
+            avatar: localDefaultImage,
+            logo: localDefaultImage,
             slogan: 'سوقك في جيبك',
             username: 'store_vtdr',
             contacts: { mobile: '966500000000', email: 'support@salla.sa', whatsapp: '966500000000' },
@@ -791,7 +879,6 @@ export class RendererService {
             is_rtl: true,
             mode: 'preview',
             preview_viewport: previewViewport,
-            translations_hash: Date.now(),
             color: {
                 primary: context.settings?.primary_color || '#004d41',
                 text: '#FFFFFF',
@@ -811,10 +898,17 @@ export class RendererService {
                 set: (key: string, val: any) => ''
             }
         };
+        if (themeTranslationsHash > 0) {
+            (theme as any).translations_hash = themeTranslationsHash;
+        }
+        const sdkStore = {
+            ...store,
+            url: previewStoreUrl
+        };
 
-        const user = {
+        const defaultUser = {
             id: 'vtdr_guest_1', type: 'guest', is_authenticated: false, name: 'ضيف المحاكي',
-            avatar: 'https://cdn.salla.sa/images/customer/placeholder.png',
+            avatar: localDefaultImage,
             language: {
                 code: context.store?.locale?.split('-')[0] || 'ar',
                 dir: (context.store?.locale?.startsWith('ar') || !context.store?.locale) ? 'rtl' : 'ltr'
@@ -825,6 +919,27 @@ export class RendererService {
             },
             can_access_wallet: false, points: 0
         };
+        const runtimeUser = (context as any)?.user && typeof (context as any).user === 'object'
+            ? ((context as any).user as Record<string, any>)
+            : {};
+        const user = {
+            ...defaultUser,
+            ...runtimeUser,
+            language: {
+                ...defaultUser.language,
+                ...(runtimeUser.language && typeof runtimeUser.language === 'object' ? runtimeUser.language : {})
+            },
+            currency: {
+                ...defaultUser.currency,
+                ...(runtimeUser.currency && typeof runtimeUser.currency === 'object' ? runtimeUser.currency : {})
+            }
+        };
+        if (typeof user.is_authenticated !== 'boolean') {
+            user.is_authenticated = user.type !== 'guest';
+        }
+        if (!user.type) {
+            user.type = user.is_authenticated ? 'user' : 'guest';
+        }
 
         const sallaContext = {
             products: context.products || [],
@@ -840,11 +955,56 @@ export class RendererService {
             config: (key: string) => context.settings?.[key]
         };
 
+        const templatePageId = String((context.page as any)?.template_id || context.page.id || '');
+        const previewRefresh = String((context as any)?.__preview?.refresh || '');
+        const previewNavigationShimScript = buildPreviewNavigationShimScript({
+            previewBasePath,
+            viewport: previewViewport,
+            refresh: previewRefresh,
+            storeId: String(context.store?.id || '')
+        });
+        const previewConsoleNoiseGuardScript = `
+            <script>
+            (function () {
+                if (window.__VTDR_CONSOLE_NOISE_GUARD__) return;
+                window.__VTDR_CONSOLE_NOISE_GUARD__ = true;
+
+                var originalError = console.error ? console.error.bind(console) : null;
+                var originalTrace = console.trace ? console.trace.bind(console) : null;
+                var suppressNextTrace = false;
+
+                console.error = function () {
+                    try {
+                        var message = Array.prototype.slice.call(arguments).join(' ');
+                        if (message.indexOf('possible EventEmitter memory leak detected') >= 0) {
+                            suppressNextTrace = true;
+                            return;
+                        }
+                    } catch (e) {}
+                    if (originalError) return originalError.apply(console, arguments);
+                };
+
+                console.trace = function () {
+                    if (suppressNextTrace) {
+                        suppressNextTrace = false;
+                        return;
+                    }
+                    if (originalTrace) return originalTrace.apply(console, arguments);
+                };
+            })();
+            </script>
+        `;
+        const runtimeAssetVersion = encodeURIComponent(
+            `${String(context.store?.id || '')}:${String(context.theme?.id || '')}:${String(context.theme?.version || '')}:${Date.now()}`
+        );
         const sdkInitScript = `
-            <script>window.vtdr_context = { storeId: ${JSON.stringify(context.store.id)}, pageId: ${JSON.stringify(context.page.id)} };</script>
+            <script>window.vtdr_context = { storeId: ${JSON.stringify(context.store.id)}, pageId: ${JSON.stringify(context.page.id)}, templatePageId: ${JSON.stringify(templatePageId)} };</script>
+            ${previewNavigationShimScript}
+            ${previewConsoleNoiseGuardScript}
             <script src="https://cdn.jsdelivr.net/npm/@salla.sa/twilight@latest/dist/@salla.sa/twilight.min.js"></script>
-            <script src="/sdk-bridge.js"></script>
-            <script>document.addEventListener('DOMContentLoaded', function() { if (window.salla) { salla.init({ store: ${JSON.stringify(store)}, user: ${JSON.stringify(user)}, theme: ${JSON.stringify(theme)} }); } });</script>
+            <script src="/sdk-components-fallback.js?v=${runtimeAssetVersion}"></script>
+            <script src="/sdk-bridge.js?v=${runtimeAssetVersion}"></script>
+            <script>document.addEventListener('DOMContentLoaded', function() { if (window.salla) { salla.init({ store: ${JSON.stringify(sdkStore)}, user: ${JSON.stringify(user)}, theme: ${JSON.stringify(theme)} }); } });</script>
         `;
 
         return {
@@ -855,6 +1015,7 @@ export class RendererService {
             user,
             settings: context.settings,
             hooks: { 'body:end': sdkInitScript },
+            __vtdr_sdk_init_script: sdkInitScript,
             theme_url: (p: string) => `/themes/${themeFolder}/${p}`,
             asset: (p: string) => `/themes/${themeFolder}/public/${p}`,
         };

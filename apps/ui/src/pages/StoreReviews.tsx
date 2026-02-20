@@ -37,7 +37,7 @@ const StoreReviews: React.FC = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<Partial<Review>>(emptyReview);
 
-  const headers = { 'Context-Store-Id': storeId || 'default' };
+  const headers = { 'X-VTDR-Store-Id': storeId || '' };
 
   const fetchAll = () => {
     setLoading(true);

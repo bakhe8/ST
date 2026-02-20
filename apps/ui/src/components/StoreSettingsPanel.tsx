@@ -22,12 +22,10 @@ const StoreSettingsPanel: React.FC<StoreSettingsPanelProps> = ({ storeId: propSt
       setLoading(true);
       try {
         // In a real multi-tenant setup, we would pass storeId in header or query param
-        // For now, we mock the retrieval by just calling the info endpoint
-        // TODO: Update backend to support Context-Store-Id header
-        const res = await fetch(apiUrl('stores/' + (storeId || 'default')), {
+        // For now, we mock the retrieval by just calling the info endpoint
+        const res = await fetch(apiUrl('stores/' + (storeId || '')), {
           headers: {
             'X-VTDR-Store-Id': storeId || '',
-            'Context-Store-Id': storeId || '' // Legacy fallback
           }
         });
         const data = await res.json();
@@ -44,12 +42,11 @@ const StoreSettingsPanel: React.FC<StoreSettingsPanelProps> = ({ storeId: propSt
 
   const handleSave = async () => {
     try {
-      const res = await fetch(apiUrl('stores/' + (storeId || 'default')), {
+      const res = await fetch(apiUrl('stores/' + (storeId || '')), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-VTDR-Store-Id': storeId || '',
-          'Context-Store-Id': storeId || ''
         },
         body: JSON.stringify(formData)
       });

@@ -39,7 +39,7 @@ const StoreBlogArticles: React.FC = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editArticle, setEditArticle] = useState<Partial<BlogArticle>>(emptyArticle);
 
-  const headers = { 'Context-Store-Id': storeId || 'default' };
+  const headers = { 'X-VTDR-Store-Id': storeId || '' };
 
   const fetchAll = () => {
     setLoading(true);

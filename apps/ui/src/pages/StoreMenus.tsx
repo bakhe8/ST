@@ -72,7 +72,6 @@ const StoreMenus = () => {
         () => ({
             'Content-Type': 'application/json',
             'X-VTDR-Store-Id': storeId || '',
-            'Context-Store-Id': storeId || ''
         }),
         [storeId]
     );
