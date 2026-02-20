@@ -305,7 +305,8 @@ const normalizeCustomerAliasFromUser = (user: EntityRecord): EntityRecord => {
         name: asString(user.name) || 'عميل المتجر',
         email: asString(user.email) || 'customer@example.com',
         mobile: asString(user.mobile) || '+966500000000',
-        avatar: sanitizePublicImageUrl(user.avatar || DEFAULT_IMAGE)
+        avatar: sanitizePublicImageUrl(user.avatar || DEFAULT_IMAGE),
+        is_profile_completed: true
     };
 };
 
@@ -1452,6 +1453,129 @@ const normalizeCheckoutForTemplate = (
     };
 };
 
+const normalizeLoyaltyForTemplate = (
+    loyaltyRaw: EntityRecord,
+    products: EntityRecord[]
+): EntityRecord => {
+    const mappedProducts = products
+        .slice(0, 6)
+        .map((product, index) => ({
+            id: Number(product.id || index + 1),
+            name: asString(product.name) || `منتج ${index + 1}`,
+            description: asString(product.short_description || product.description || ''),
+            image: sanitizePublicImageUrl(product.main_image || product.thumbnail || product.image || DEFAULT_IMAGE),
+            url: asString(product.url) || `/products/${asString(product.id || index + 1)}`,
+            cost_points: 150 + (index * 25)
+        }));
+
+    const defaultPoints = [
+        {
+            name: 'مشاركة رابط المتجر',
+            description: 'شارك رابط المتجر واكسب نقاطًا إضافية',
+            type: 'share',
+            url: '/',
+            points: 20,
+            icon: 'sicon-share',
+            color: '#0ea5e9'
+        },
+        {
+            name: 'إكمال الملف الشخصي',
+            description: 'أكمل بيانات ملفك الشخصي لتحصل على نقاط ترحيبية',
+            type: 'profile',
+            url: '/customer/profile',
+            points: 50,
+            icon: 'sicon-user-circle',
+            color: '#10b981'
+        },
+        {
+            name: 'كل طلب مكتمل',
+            description: 'كل عملية شراء مكتملة تمنحك نقاط ولاء',
+            type: 'order',
+            url: '/products',
+            points: 15,
+            icon: 'sicon-packed-box',
+            color: '#f59e0b'
+        }
+    ];
+
+    const points = asArray(loyaltyRaw.points);
+    const prizes = asArray(loyaltyRaw.prizes);
+    const firstPrizeGroup = prizes[0] && typeof prizes[0] === 'object'
+        ? (prizes[0] as EntityRecord)
+        : null;
+    const firstPrizeItem = firstPrizeGroup
+        ? asArray(firstPrizeGroup.items)[0] as EntityRecord | undefined
+        : undefined;
+
+    return {
+        ...loyaltyRaw,
+        id: asString(loyaltyRaw.id) || 'loyalty-default',
+        name: asString(loyaltyRaw.name) || 'برنامج الولاء',
+        description: asString(loyaltyRaw.description) || 'اجمع النقاط مع كل تفاعل واستبدلها بمزايا داخل المتجر.',
+        image: sanitizePublicImageUrl(loyaltyRaw.image || DEFAULT_IMAGE),
+        promotion_title: asString(loyaltyRaw.promotion_title) || 'استبدل نقاطك بمكافآت فورية',
+        promotion_description: asString(loyaltyRaw.promotion_description) || 'كلما زادت نقاطك زادت خيارات الاستبدال المتاحة لك.',
+        points: points.length > 0 ? points : defaultPoints,
+        prizes: prizes.length > 0
+            ? prizes
+            : [
+                {
+                    title: 'منتجات مجانية',
+                    type: 'free_product',
+                    items: mappedProducts
+                },
+                {
+                    title: 'قسائم خصم',
+                    type: 'coupon_discount',
+                    items: [
+                        {
+                            id: 9001,
+                            name: 'قسيمة خصم 10%',
+                            description: 'خصم مباشر على سلة الشراء',
+                            image: DEFAULT_IMAGE,
+                            url: '/cart',
+                            cost_points: 100
+                        }
+                    ]
+                }
+            ],
+        prize: firstPrizeItem
+            ? firstPrizeItem
+            : {
+                title: mappedProducts[0]?.name || 'قسيمة خصم',
+                points: Number(mappedProducts[0]?.cost_points || 100)
+            }
+    };
+};
+
+const normalizeLandingForTemplate = (
+    landingRaw: EntityRecord,
+    products: EntityRecord[]
+): EntityRecord => {
+    const mappedProducts = products
+        .slice(0, 8)
+        .map((product, index) => ({
+            id: asString(product.id) || `landing-product-${index + 1}`,
+            name: asString(product.name) || `منتج ${index + 1}`,
+            url: asString(product.url) || `/products/${asString(product.id || index + 1)}`,
+            image: sanitizePublicImageUrl(product.main_image || product.thumbnail || product.image || DEFAULT_IMAGE)
+        }));
+
+    return {
+        ...landingRaw,
+        id: asString(landingRaw.id) || 'landing-default',
+        title: asString(landingRaw.title) || 'عروض المتجر المميزة',
+        content: asString(landingRaw.content) || 'تجربة تسوق مركزة تعرض أبرز المنتجات والعروض في صفحة واحدة.',
+        products: mappedProducts,
+        offer_ends_at: asString(landingRaw.offer_ends_at) || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        testimonials_type: asString(landingRaw.testimonials_type || ''),
+        show_quantity: typeof landingRaw.show_quantity === 'boolean' ? landingRaw.show_quantity : false,
+        is_slider: typeof landingRaw.is_slider === 'boolean' ? landingRaw.is_slider : true,
+        is_expired: Boolean(landingRaw.is_expired),
+        show_store_features: typeof landingRaw.show_store_features === 'boolean' ? landingRaw.show_store_features : true
+    };
+};
+
 export const applyPreviewContext = (context: Record<string, unknown>, target: ResolvedPreviewTarget, query: Record<string, unknown>) => {
     const page = (context.page && typeof context.page === 'object') ? (context.page as EntityRecord) : {};
     const defaultCurrency = asString((context.store as EntityRecord | undefined)?.currency) || 'SAR';
@@ -1499,6 +1623,14 @@ export const applyPreviewContext = (context: Record<string, unknown>, target: Re
     );
     const normalizedUser = normalizeRuntimeUser(storeEntity, context.user);
     const customerAlias = normalizeCustomerAliasFromUser(normalizedUser);
+    const loyaltyRaw = (context.loyalty && typeof context.loyalty === 'object')
+        ? (context.loyalty as EntityRecord)
+        : {};
+    const landingRaw = (context.landing && typeof context.landing === 'object')
+        ? (context.landing as EntityRecord)
+        : {};
+    const normalizedLoyalty = normalizeLoyaltyForTemplate(loyaltyRaw, products);
+    const normalizedLanding = normalizeLandingForTemplate(landingRaw, products);
 
     context.store = storeEntity;
     context.orders = normalizedOrders;
@@ -1507,6 +1639,8 @@ export const applyPreviewContext = (context: Record<string, unknown>, target: Re
     context.gift = normalizedCart.gift;
     context.user = normalizedUser;
     context.customer = customerAlias;
+    context.loyalty = normalizedLoyalty;
+    context.landing = normalizedLanding;
     context.notifications = Array.isArray(context.notifications) ? context.notifications : [];
     context.translations = {
         ...PREVIEW_TRANSLATION_DEFAULTS,
@@ -1578,6 +1712,33 @@ export const applyPreviewContext = (context: Record<string, unknown>, target: Re
             title: asString((context as any).thank_you_title) || 'شكرا لك',
             slug: 'thank-you',
             url: '/thank-you'
+        };
+        return;
+    }
+
+    if (target.pageId === 'loyalty') {
+        const user = normalizeUserForCustomerPages(storeEntity, normalizedOrders[0] || null);
+        context.user = user;
+        context.customer = normalizeCustomerAliasFromUser(user);
+        context.page = {
+            ...page,
+            id: 'loyalty',
+            template_id: 'loyalty',
+            title: asString((context.loyalty as EntityRecord | undefined)?.name) || 'برنامج الولاء',
+            slug: 'loyalty',
+            url: '/loyalty'
+        };
+        return;
+    }
+
+    if (target.pageId === 'landing-page') {
+        context.page = {
+            ...page,
+            id: asString((context.landing as EntityRecord | undefined)?.id) || 'landing-page',
+            template_id: 'landing-page',
+            title: asString((context.landing as EntityRecord | undefined)?.title) || 'الصفحة المقصودة',
+            slug: 'landing-page',
+            url: '/landing-page'
         };
         return;
     }
