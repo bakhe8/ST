@@ -1,2 +1,58 @@
-<h1>Hello World</h1>
-<p>Store: {{ store.name }}</p>
+<!DOCTYPE html>
+<html dir="{{ store.locale|slice(0, 2) == 'ar' ? 'rtl' : 'ltr' }}" lang="{{ store.locale|slice(0, 2) }}">
+<head>
+    <meta charset="UTF-8">
+    <title>VTDR Context Debugger - {{ store.name }}</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; line-height: 1.5; }
+        h1 { color: #569cd6; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        h2 { color: #4ec9b0; margin-top: 30px; }
+        .block { background: #252526; padding: 15px; border-radius: 5px; border: 1px solid #333; overflow-x: auto; margin-bottom: 20px; }
+        pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+        .key { color: #9cdcfe; }
+        .string { color: #ce9178; }
+        .number { color: #b5cea8; }
+        .boolean { color: #569cd6; }
+        .null { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <h1>VTDR Runtime Context Debugger</h1>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+            <h2>Store Context (store)</h2>
+            <div class="block"><pre>{{ store | json_encode(128) }}</pre></div>
+
+            <h2>Theme Context (theme)</h2>
+            <div class="block"><pre>{{ theme | json_encode(128) }}</pre></div>
+
+            <h2>Theme Settings (settings)</h2>
+            <div class="block"><pre>{{ settings | json_encode(128) }}</pre></div>
+        </div>
+
+        <div>
+            <h2>Page Context (page)</h2>
+            <div class="block"><pre>{{ page | json_encode(128) }}</pre></div>
+
+            <h2>Available Variables Keys</h2>
+            <div class="block">
+                <ul>
+                    <li>store</li>
+                    <li>theme</li>
+                    <li>settings</li>
+                    <li>page</li>
+                    <li>products ({{ products|length }})</li>
+                    <li>categories ({{ categories|length }})</li>
+                    <li>brands ({{ brands|length }})</li>
+                    <li>blog_articles ({{ blog_articles|length }})</li>
+                    <li>_all_context_keys (Internal View, might not map 1:1 to JSON encode)</li>
+                </ul>
+            </div>
+
+            <h2>Current Translations (translations)</h2>
+            <div class="block" style="max-height: 400px; overflow-y: scroll;"><pre>{{ translations | json_encode(128) }}</pre></div>
+        </div>
+    </div>
+</body>
+</html>

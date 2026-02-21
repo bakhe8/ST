@@ -279,7 +279,16 @@
       "id": "page.products.single",
       "group": "storefront-pages",
       "title": "Single product page",
-      "milestone": "S-10"
+      "status": "PASS",
+      "milestone": "S-10",
+      "implementationRefs": [
+        "packages/engine/src/providers/simulator.service.ts",
+        "packages/engine/src/rendering/preview-context-service.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.listing-source-resolution.test.ts",
+        "packages/engine/src/rendering/preview-context-service.test.ts"
+      ]
     },
     {
       "id": "page.customer.profile",
@@ -335,7 +344,16 @@
       "id": "page.blog.single",
       "group": "storefront-pages",
       "title": "Single blog page",
-      "milestone": "S-10"
+      "status": "PASS",
+      "milestone": "S-10",
+      "implementationRefs": [
+        "packages/engine/src/providers/simulator.service.ts",
+        "packages/engine/src/rendering/preview-context-service.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.listing-source-resolution.test.ts",
+        "packages/engine/src/rendering/preview-context-service.test.ts"
+      ]
     },
     {
       "id": "page.brands.listing",

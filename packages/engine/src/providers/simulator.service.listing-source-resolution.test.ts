@@ -156,4 +156,75 @@ describe("SimulatorService listing source resolution parity", () => {
     expect(byUrlTail.success).toBe(true);
     expect(byUrlTail.data.map((entry: any) => entry.id)).toEqual(["ba-1"]);
   });
+
+  it("resolves single product and single blog article by slug and url tail", async () => {
+    const service = createService({
+      category: [],
+      product: [
+        {
+          id: "p-1",
+          name: "One Product",
+          slug: "one-product",
+          url: "/products/one-product",
+          price: { amount: 100, currency: "SAR" },
+        },
+      ],
+      blog_category: [{ id: "bc-1", name: "Tips", slug: "tips" }],
+      blog_article: [
+        {
+          id: "ba-1",
+          title: "One Article",
+          slug: "one-article",
+          url: "/blog/one-article",
+          category_id: "bc-1",
+        },
+      ],
+    });
+
+    const productBySlug: any = await service.getProduct("store-1", "one-product");
+    expect(productBySlug?.success).toBe(true);
+    expect(productBySlug?.data?.id).toBe("p-1");
+
+    const productByUrlTail: any = await service.getProduct(
+      "store-1",
+      "one-product",
+    );
+    expect(productByUrlTail?.success).toBe(true);
+    expect(productByUrlTail?.data?.id).toBe("p-1");
+
+    const articleBySlug: any = await service.getBlogArticle(
+      "store-1",
+      "one-article",
+    );
+    expect(articleBySlug?.success).toBe(true);
+    expect(articleBySlug?.data?.id).toBe("ba-1");
+
+    const articleByUrlTail: any = await service.getBlogArticle(
+      "store-1",
+      "one-article",
+    );
+    expect(articleByUrlTail?.success).toBe(true);
+    expect(articleByUrlTail?.data?.id).toBe("ba-1");
+  });
+
+  it("resolves single brand by slug and url tail", async () => {
+    const service = createService({
+      brand: [
+        {
+          id: "b-1",
+          name: "Acme Brand",
+          slug: "acme-brand",
+          url: "/brands/acme-brand",
+        },
+      ],
+    });
+
+    const bySlug: any = await service.getBrand("store-1", "acme-brand");
+    expect(bySlug?.success).toBe(true);
+    expect(bySlug?.data?.id).toBe("b-1");
+
+    const byUrlTail: any = await service.getBrand("store-1", "acme-brand");
+    expect(byUrlTail?.success).toBe(true);
+    expect(byUrlTail?.data?.id).toBe("b-1");
+  });
 });

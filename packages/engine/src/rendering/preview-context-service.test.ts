@@ -42,6 +42,15 @@ describe("resolvePreviewTarget", () => {
     });
   });
 
+  it("maps blog deep-link to blog/single target", () => {
+    const target = resolvePreviewTarget(undefined, "blog/my-article");
+    expect(target).toEqual({
+      pageId: "blog/single",
+      routePath: "/blog/my-article",
+      entityRef: "my-article",
+    });
+  });
+
   it("strips locale prefix before resolving route semantics", () => {
     const target = resolvePreviewTarget(undefined, "ar/blog/category/news");
     expect(target).toEqual({
@@ -383,5 +392,51 @@ describe("bindPreviewContext", () => {
       (context as any).categories.find((entry: any) => entry.id === "bc-1")
         ?.is_current,
     ).toBe(true);
+  });
+
+  it("builds blog/single context with selected article and related entries", () => {
+    const context = baseContext();
+    (context as any).blog_articles = [
+      {
+        id: "ba-1",
+        title: "Selected Article",
+        slug: "selected-article",
+        category_id: "bc-1",
+        url: "/blog/selected-article",
+      },
+      {
+        id: "ba-2",
+        title: "Related Article",
+        slug: "related-article",
+        category_id: "bc-1",
+        url: "/blog/related-article",
+      },
+    ];
+
+    bindPreviewContext({
+      context,
+      target: {
+        pageId: "blog/single",
+        routePath: "/blog/selected-article",
+        entityRef: "selected-article",
+      },
+      query: {},
+      viewport: "desktop",
+      theme: {
+        themeId: "theme-a",
+        themeVersionId: "tv-1",
+        themeVersion: "1.0.0",
+      },
+    });
+
+    expect((context as any).page.template_id).toBe("blog/single");
+    expect((context as any).article.id).toBe("ba-1");
+    expect(Array.isArray((context as any).related)).toBe(true);
+    expect(
+      (context as any).related.map((entry: any) => String(entry.id)),
+    ).toContain("ba-2");
+    expect(
+      (context as any).related.map((entry: any) => String(entry.id)),
+    ).not.toContain("ba-1");
   });
 });

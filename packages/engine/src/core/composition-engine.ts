@@ -89,7 +89,6 @@ export class CompositionEngine {
     const pages = await this.simulationLogic.getDataEntities(storeId, "page");
     const blogArticles = [
       ...(await this.simulationLogic.getDataEntities(storeId, "blog_article")),
-      ...(await this.simulationLogic.getDataEntities(storeId, "blog_articles")),
     ];
     const blogCategories = [
       ...(await this.simulationLogic.getDataEntities(storeId, "blog_category")),
@@ -168,7 +167,7 @@ export class CompositionEngine {
         status: storeData.status,
         verified: storeData.verified,
         domain: storeData.domain,
-        description: storeData.description || storeData.description,
+        description: storeData.description || store.title || "",
         locale: store.defaultLocale || "ar-SA",
         currency: storeData.currency || store.defaultCurrency || "SAR",
         branding: JSON.parse((store as any).brandingJson || "{}"),
