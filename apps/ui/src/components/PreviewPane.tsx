@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 interface PreviewPaneProps {
   url: string;
@@ -15,11 +15,18 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({ url, style }) => {
   }, [url]);
 
   return (
-    <div style={{ border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', ...style }}>
+    <div
+      style={{
+        border: "1px solid #eee",
+        borderRadius: 8,
+        overflow: "hidden",
+        ...style,
+      }}
+    >
       <iframe
         ref={iframeRef}
         src={url}
-        style={{ width: '100%', height: '100%', border: 'none' }}
+        style={{ width: "100%", height: "100%", border: "none" }}
         title="Live Preview"
       />
     </div>

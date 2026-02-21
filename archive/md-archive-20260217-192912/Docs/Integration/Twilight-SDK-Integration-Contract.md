@@ -11,6 +11,7 @@
 Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storefront APIs والأحداث داخل الثيم.
 
 في مشروع VTDR:
+
 - **الـ SDK ليس بديلًا عن Runtime Context Builder**.
 - **الـ SDK يُستخدم كطبقة تفاعل داخل المعاينة/الثيم** بعد تجهيز السياق.
 
@@ -30,12 +31,14 @@ Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storef
 ## 3) حدود المسؤولية بين VTDR وSDK
 
 ### VTDR مسؤول عن:
+
 - بناء Runtime Context
 - إدارة Store State
 - Validation/Export
 - محاكاة السيناريوهات
 
 ### Twilight SDK مسؤول عن:
+
 - عمليات الواجهة التفاعلية (Cart, Wishlist, Auth, ...)
 - الاشتراك بالأحداث event-driven behavior
 - استدعاءات storefront endpoints من داخل الثيم
@@ -45,6 +48,7 @@ Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storef
 ## 4) سطح APIs المهم لمشروعك
 
 بحسب Overview، المجالات الأساسية:
+
 - Auth
 - Cart
 - Comments
@@ -58,6 +62,7 @@ Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storef
 - Booking
 
 تطبيق MVP:
+
 - ابدأ بـ Cart + Product + Wishlist + Auth events فقط.
 - باقي المجالات تدخل تدريجيًا بعد ثبات Runtime Core.
 
@@ -86,6 +91,7 @@ Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storef
 ## 7) أثر مباشر على API_SPEC الداخلي
 
 للتوافق مع SDK usage patterns، يوصى في VTDR APIs بـ:
+
 - Endpoint لحالة runtime الحالية
 - Endpoint لتسجيل أحداث المعاينة (event log)
 - Endpoint لربط event بفشل/نجاح التحقق
@@ -95,6 +101,7 @@ Twilight JS SDK هو طبقة واجهات JavaScript للتعامل مع Storef
 ## 8) Gate فحص قبل التصدير
 
 قبل Export:
+
 - [ ] لا يوجد تحميل SDK يدوي مكرر داخل الثيم
 - [ ] لا يوجد `salla.init()` مكرر في Twilight runtime
 - [ ] كل عمليات SDK الحرجة لديها معالجة نجاح/فشل

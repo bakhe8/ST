@@ -144,7 +144,8 @@ DB ليست لتخزين “منتجات متجر”
 تركيبات
 
 5️⃣ ماذا يُخزَّن في قاعدة البيانات بالضبط؟
-1) Data Library (محتوى عام)
+
+1. Data Library (محتوى عام)
 
 Products (كنماذج واقعية)
 
@@ -160,7 +161,7 @@ Categories
 
 “مواد خام للعرض”
 
-2) Components (منطقية)
+2. Components (منطقية)
 
 featured_products
 
@@ -176,7 +177,7 @@ product_details
 
 ليس قالب عرض
 
-3) Component Parts (أجزاء داخلية)
+3. Component Parts (أجزاء داخلية)
 
 لكل كومبوننت:
 
@@ -203,7 +204,7 @@ actions
 قد تتغير داتها
 حسب الثيم
 
-4) Theme Constraints
+4. Theme Constraints
 
 لكل ثيم:
 
@@ -217,7 +218,7 @@ actions
 
 “نفس الكومبوننت يتغير حسب الثيم”
 
-5) Component Policies (المنطق المفقود سابقًا)
+5. Component Policies (المنطق المفقود سابقًا)
 
 هنا تُحسم الأمور مثل:
 
@@ -237,7 +238,7 @@ actions
 
 وليست قرار UI
 
-6) Composition Instance
+6. Composition Instance
 
 هذا ما تنشئه أنت من الواجهة.
 
@@ -285,17 +286,16 @@ minimal / rich / specs-heavy
 التسلسل الحقيقي:
 
 UI (اختياراتك)
-   ↓
+↓
 Composition Engine
-   ├─ يجلب السياسات
-   ├─ يطبّق قيود الثيم
-   ├─ يركّب الداتا
-   ├─ يبني ViewModel
-   ↓
+├─ يجلب السياسات
+├─ يطبّق قيود الثيم
+├─ يركّب الداتا
+├─ يبني ViewModel
+↓
 Context مطابق لسلة
-   ↓
+↓
 Theme (Twig)
-
 
 الثيم يرى:
 
@@ -335,29 +335,7 @@ Profile كفكرة سقطت → استبدلت بـ Composition Engine
 
 الواجهة لا تفكر → تختار فقط
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ==========================================
-
-
-
-
 
 الخلاصة السريعة (قبل التفصيل)
 
@@ -377,11 +355,10 @@ Profile كفكرة سقطت → استبدلت بـ Composition Engine
 سلة تقبل ثيمًا خامًا يتكوّن من:
 
 theme/
- ├─ views/        (Twig)
- ├─ assets/       (CSS / JS / Images)
- ├─ twilight.json
- └─ config files (إن وجدت)
-
+├─ views/ (Twig)
+├─ assets/ (CSS / JS / Images)
+├─ twilight.json
+└─ config files (إن وجدت)
 
 ولا تقبل:
 
@@ -436,9 +413,8 @@ Runtime logic
 أنت تكتب الثيم بهذه الطريقة:
 
 {% if product.price.discount %}
-  {{ product.price.discounted_value }}
+{{ product.price.discounted_value }}
 {% endif %}
-
 
 ❌ بدون أي افتراض أن الداتا جاءت من منصتك
 ✔️ فقط وفق عقد سلة
@@ -466,10 +442,10 @@ Runtime logic
 التصدير يعني حرفيًا:
 
 Export Theme =
-  Copy theme folder
-  + Validate twilight.json
-  + Zip
+Copy theme folder
 
+- Validate twilight.json
+- Zip
 
 ولا شيء أكثر.
 
@@ -597,21 +573,7 @@ Export Theme =
 
 وقابلة للبيع
 
-
-
-
-
-
-
-
-
 =============================================================
-
-
-
-
-
-
 
 1️⃣ ما الذي تبنيه فعليًا؟ (تعريف واحد فقط)
 

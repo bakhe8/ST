@@ -28,12 +28,11 @@ Dual-Control Theme Development Model
 النظام يربط الاثنين لإنتاج سياق تشغيل ومعاينة متطابق.
 
 التكامل التشغيلي
-Theme Files (Code)
-        +
+Theme Files (Code) +
 Virtual Store (Settings + Content)
-        ↓
+↓
 Runtime Context
-        ↓
+↓
 Live Preview
 
 الأثر على التنفيذ

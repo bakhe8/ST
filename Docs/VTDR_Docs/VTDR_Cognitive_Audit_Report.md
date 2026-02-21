@@ -87,7 +87,7 @@ description: storeData.description || storeData.description,
 **الملف**: `packages/engine/src/core/schema-service.ts:18`
 
 ```typescript
-this.dataDir = path.join(process.cwd(), 'temp_twilight_ext', 'data');
+this.dataDir = path.join(process.cwd(), "temp_twilight_ext", "data");
 ```
 
 **المشكلة**: `temp_twilight_ext/data/` غير موجود في monorepo. إذا لم يُنشأ يدوياً، يُعيد `SchemaService` empty defaults بصمت.
@@ -226,14 +226,14 @@ this.dataDir = path.join(process.cwd(), 'temp_twilight_ext', 'data');
 
 ## B3) Orphaned Modules / Files
 
-| الملف | الحالة |
-|-------|--------|
-| `packages/contracts/content.ts` | مُصدَّر من index.ts، يُستورد في content-manager.ts فقط |
-| `packages/contracts/component.ts` | مُصدَّر من index.ts، يُستخدم في composition-engine وrenderer |
-| `packages/contracts/src/salla.generated.ts` | types فقط، لا runtime validation |
-| `apps/api/src/providers/local-theme-file-provider.ts` | مُنشأ في index.ts، لم يُفحص استخدامه الفعلي |
-| `packages/engine/seed-store.js` | ملف .js في جذر packages/engine، قد يكون script قديم |
-| `apps/api/audit-db.ts` و`check-store.ts` | scripts تشخيصية يدوية في جذر apps/api |
+| الملف                                                 | الحالة                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| `packages/contracts/content.ts`                       | مُصدَّر من index.ts، يُستورد في content-manager.ts فقط       |
+| `packages/contracts/component.ts`                     | مُصدَّر من index.ts، يُستخدم في composition-engine وrenderer |
+| `packages/contracts/src/salla.generated.ts`           | types فقط، لا runtime validation                             |
+| `apps/api/src/providers/local-theme-file-provider.ts` | مُنشأ في index.ts، لم يُفحص استخدامه الفعلي                  |
+| `packages/engine/seed-store.js`                       | ملف .js في جذر packages/engine، قد يكون script قديم          |
+| `apps/api/audit-db.ts` و`check-store.ts`              | scripts تشخيصية يدوية في جذر apps/api                        |
 
 ---
 
@@ -303,27 +303,27 @@ this.dataDir = path.join(process.cwd(), 'temp_twilight_ext', 'data');
 
 ## B6) النواقص التصميمية
 
-| الرقم | النقص | التأثير |
-|-------|-------|---------|
-| B6-01 | لا يوجد Error Boundary في Rendering Pipeline | HTML جزئي أو فارغ عند فشل Twig |
-| B6-02 | لا يوجد Validation لـ DataEntity payload | أي JSON يُقبل بدون schema validation |
-| B6-03 | لا يوجد Rate Limiting أو Auth على Simulator endpoints | `/api/v1/*` مفتوحة بالكامل |
-| B6-04 | `SynchronizationService` يجلب بيانات بدون Authentication | يعمل فقط مع Salla APIs العامة |
-| B6-05 | لا يوجد Pagination فعلي في Simulator responses | جميع البيانات تُعاد دفعة واحدة |
-| B6-06 | `temp_twilight_ext` — dependency خارجية غير مُدارة | لا script لإنشائها، لا توثيق |
-| B6-07 | Cart لا يدعم cleanup عند تعدد المتاجر | تراكم Cart في memory |
+| الرقم | النقص                                                    | التأثير                              |
+| ----- | -------------------------------------------------------- | ------------------------------------ |
+| B6-01 | لا يوجد Error Boundary في Rendering Pipeline             | HTML جزئي أو فارغ عند فشل Twig       |
+| B6-02 | لا يوجد Validation لـ DataEntity payload                 | أي JSON يُقبل بدون schema validation |
+| B6-03 | لا يوجد Rate Limiting أو Auth على Simulator endpoints    | `/api/v1/*` مفتوحة بالكامل           |
+| B6-04 | `SynchronizationService` يجلب بيانات بدون Authentication | يعمل فقط مع Salla APIs العامة        |
+| B6-05 | لا يوجد Pagination فعلي في Simulator responses           | جميع البيانات تُعاد دفعة واحدة       |
+| B6-06 | `temp_twilight_ext` — dependency خارجية غير مُدارة       | لا script لإنشائها، لا توثيق         |
+| B6-07 | Cart لا يدعم cleanup عند تعدد المتاجر                    | تراكم Cart في memory                 |
 
 ---
 
 ## B7) المخاطر المستقبلية
 
-| الرقم | الخطر | الخطورة |
-|-------|-------|---------|
-| B7-01 | SQLite لا يدعم concurrent writes | لا يمكن scale horizontally |
-| B7-02 | Twig.js `cache: false` — أداء | تدهور عند زيادة الثيمات |
-| B7-03 | `AsyncLocalStorage` كـ Context Carrier | صعوبة اختبار filters بشكل معزول |
-| B7-04 | `themeSettingsJson` كـ Blob JSON | صعوبة الاستعلام والـ migration |
-| B7-05 | `SeederService` يُولّد بيانات عشوائية | لا reproducibility في الاختبارات |
+| الرقم | الخطر                                                   | الخطورة                           |
+| ----- | ------------------------------------------------------- | --------------------------------- |
+| B7-01 | SQLite لا يدعم concurrent writes                        | لا يمكن scale horizontally        |
+| B7-02 | Twig.js `cache: false` — أداء                           | تدهور عند زيادة الثيمات           |
+| B7-03 | `AsyncLocalStorage` كـ Context Carrier                  | صعوبة اختبار filters بشكل معزول   |
+| B7-04 | `themeSettingsJson` كـ Blob JSON                        | صعوبة الاستعلام والـ migration    |
+| B7-05 | `SeederService` يُولّد بيانات عشوائية                   | لا reproducibility في الاختبارات  |
 | B7-06 | `SynchronizationService` يحذف قبل المزامنة بلا rollback | خطر فقدان بيانات عند فشل المزامنة |
 
 ---
@@ -332,26 +332,26 @@ this.dataDir = path.join(process.cwd(), 'temp_twilight_ext', 'data');
 
 ### إحصائيات
 
-| الفئة | العدد | الخطورة |
-|-------|-------|---------|
-| B1: أخطاء تشغيلية | 10 | متوسطة-عالية |
-| B2: Dead Code | 10 | منخفضة-متوسطة |
-| B3: Orphaned Modules | 6 | منخفضة |
-| B4: Duplication | 4 | منخفضة |
-| B5: تعارضات معمارية | 5 | عالية |
-| B6: نواقص تصميمية | 7 | متوسطة-عالية |
-| B7: مخاطر مستقبلية | 6 | متوسطة |
-| **المجموع** | **48** | |
+| الفئة                | العدد  | الخطورة       |
+| -------------------- | ------ | ------------- |
+| B1: أخطاء تشغيلية    | 10     | متوسطة-عالية  |
+| B2: Dead Code        | 10     | منخفضة-متوسطة |
+| B3: Orphaned Modules | 6      | منخفضة        |
+| B4: Duplication      | 4      | منخفضة        |
+| B5: تعارضات معمارية  | 5      | عالية         |
+| B6: نواقص تصميمية    | 7      | متوسطة-عالية  |
+| B7: مخاطر مستقبلية   | 6      | متوسطة        |
+| **المجموع**          | **48** |               |
 
 ### أعلى 5 مشكلات بالأولوية
 
-| الترتيب | المشكلة | التأثير |
-|---------|---------|---------|
-| 1 | **B1-01**: `componentStates` دائماً فارغ | ميزة كاملة معطّلة |
-| 2 | **B5-01**: مصدران للحقيقة لـ Page Compositions | تعارض بيانات محتمل |
-| 3 | **B5-02**: `ContentManager` متجاوَز | معمارية غير متسقة |
-| 4 | **B1-07**: `SchemaService` يعتمد على مسار خارجي | ميزة schema mapping معطّلة |
-| 5 | **B7-06**: `SynchronizationService` بلا rollback | خطر فقدان بيانات |
+| الترتيب | المشكلة                                          | التأثير                    |
+| ------- | ------------------------------------------------ | -------------------------- |
+| 1       | **B1-01**: `componentStates` دائماً فارغ         | ميزة كاملة معطّلة          |
+| 2       | **B5-01**: مصدران للحقيقة لـ Page Compositions   | تعارض بيانات محتمل         |
+| 3       | **B5-02**: `ContentManager` متجاوَز              | معمارية غير متسقة          |
+| 4       | **B1-07**: `SchemaService` يعتمد على مسار خارجي  | ميزة schema mapping معطّلة |
+| 5       | **B7-06**: `SynchronizationService` بلا rollback | خطر فقدان بيانات           |
 
 ### الكيانات الميتة (Dead Infrastructure)
 

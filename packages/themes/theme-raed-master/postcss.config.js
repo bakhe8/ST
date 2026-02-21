@@ -1,11 +1,11 @@
 // postcss.config.js
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    'tailwindcss/nesting': 'postcss-nesting',
+    "postcss-import": {},
+    "tailwindcss/nesting": "postcss-nesting",
     tailwindcss: {},
-    'postcss-preset-env': {
-      features: { 'nesting-rules': true },
+    "postcss-preset-env": {
+      features: { "nesting-rules": true },
     },
-  }
-}
+  },
+};

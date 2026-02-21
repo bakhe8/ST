@@ -1,22 +1,24 @@
 export default function toolTip() {
-  const tooltipToggleClick = document.querySelectorAll('.tooltip-toggle--clickable'),
-    tooltipToggleHover = document.querySelectorAll('.tooltip-toggle--hover'),
-    closeTooltip = document.querySelectorAll('.close-tooltip');
+  const tooltipToggleClick = document.querySelectorAll(
+      ".tooltip-toggle--clickable",
+    ),
+    tooltipToggleHover = document.querySelectorAll(".tooltip-toggle--hover"),
+    closeTooltip = document.querySelectorAll(".close-tooltip");
 
   const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
   const showTooltip = (element) => {
-    element.classList.add('visible');
+    element.classList.add("visible");
   };
 
   const hideTooltip = (element) => {
-    element.classList.remove('visible');
+    element.classList.remove("visible");
   };
 
   // Show the tooltip if the type is clickable
   if (tooltipToggleClick.length) {
     tooltipToggleClick.forEach((element) => {
-      element.addEventListener('click', (e) => {
+      element.addEventListener("click", (e) => {
         e.stopPropagation();
         showTooltip(element);
       });
@@ -27,16 +29,16 @@ export default function toolTip() {
   if (tooltipToggleHover.length) {
     tooltipToggleHover.forEach((element) => {
       if (isTouchDevice) {
-        element.addEventListener('click', (e) => {
+        element.addEventListener("click", (e) => {
           e.stopPropagation();
           showTooltip(element);
         });
       } else {
-        element.addEventListener('mouseenter', () => {
+        element.addEventListener("mouseenter", () => {
           showTooltip(element);
         });
 
-        element.addEventListener('mouseleave', () => {
+        element.addEventListener("mouseleave", () => {
           hideTooltip(element);
         });
       }
@@ -45,8 +47,8 @@ export default function toolTip() {
 
   // Hide the tooltip when the close button is clicked
   if (closeTooltip.length) {
-    closeTooltip.forEach(element => {
-      element.addEventListener('click', (e) => {
+    closeTooltip.forEach((element) => {
+      element.addEventListener("click", (e) => {
         e.stopPropagation();
         hideTooltip(element.parentElement.parentElement);
       });
@@ -54,7 +56,7 @@ export default function toolTip() {
   }
 
   // Hide the tooltip on window click
-  window.addEventListener('click', () => {
+  window.addEventListener("click", () => {
     tooltipToggleClick.forEach((element) => {
       hideTooltip(element);
     });

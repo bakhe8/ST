@@ -1,49 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>معاينة المتجر - Store Preview</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { background: #f8fafc; color: #222; font-family: Tahoma, Arial, sans-serif; margin: 0; padding: 0; }
-    .header { background: #3b82f6; color: #fff; padding: 24px 0; text-align: center; font-size: 2rem; font-weight: bold; }
-    .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px #0001; padding: 32px; }
-    .product { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-    .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
-    .product-info { flex: 1; }
-    .product-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; }
-    .product-price { color: #3b82f6; font-weight: bold; }
-    .footer { text-align: center; color: #64748b; margin-top: 40px; font-size: 0.95rem; }
-  </style>
-</head>
-<body>
-  <div class="header">معاينة المتجر (وهمية)</div>
-  <div class="container">
-    <div class="product">
-      <img src="/images/products/bag.jpg" alt="حقيبة">
-      <div class="product-info">
-        <div class="product-title">حقيبة يد جلدية</div>
-        <div class="product-price">120 ر.س</div>
-        <div>منتج تجريبي - قسم الإكسسوارات</div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>معاينة المتجر - Store Preview</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        background: #f8fafc;
+        color: #222;
+        font-family: Tahoma, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .header {
+        background: #3b82f6;
+        color: #fff;
+        padding: 24px 0;
+        text-align: center;
+        font-size: 2rem;
+        font-weight: bold;
+      }
+      .container {
+        max-width: 700px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 16px #0001;
+        padding: 32px;
+      }
+      .product {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .product img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #eee;
+      }
+      .product-info {
+        flex: 1;
+      }
+      .product-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .product-price {
+        color: #3b82f6;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        color: #64748b;
+        margin-top: 40px;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">معاينة المتجر (وهمية)</div>
+    <div class="container">
+      <div class="product">
+        <img src="/images/products/bag.jpg" alt="حقيبة" />
+        <div class="product-info">
+          <div class="product-title">حقيبة يد جلدية</div>
+          <div class="product-price">120 ر.س</div>
+          <div>منتج تجريبي - قسم الإكسسوارات</div>
+        </div>
+      </div>
+      <div class="product">
+        <img src="/images/products/laptop.jpg" alt="لابتوب" />
+        <div class="product-info">
+          <div class="product-title">حاسوب محمول</div>
+          <div class="product-price">3200 ر.س</div>
+          <div>منتج تجريبي - قسم الإلكترونيات</div>
+        </div>
+      </div>
+      <div class="product">
+        <img src="/images/products/shirt.jpg" alt="قميص" />
+        <div class="product-info">
+          <div class="product-title">قميص قطني</div>
+          <div class="product-price">80 ر.س</div>
+          <div>منتج تجريبي - قسم الملابس</div>
+        </div>
       </div>
     </div>
-    <div class="product">
-      <img src="/images/products/laptop.jpg" alt="لابتوب">
-      <div class="product-info">
-        <div class="product-title">حاسوب محمول</div>
-        <div class="product-price">3200 ر.س</div>
-        <div>منتج تجريبي - قسم الإلكترونيات</div>
-      </div>
-    </div>
-    <div class="product">
-      <img src="/images/products/shirt.jpg" alt="قميص">
-      <div class="product-info">
-        <div class="product-title">قميص قطني</div>
-        <div class="product-price">80 ر.س</div>
-        <div>منتج تجريبي - قسم الملابس</div>
-      </div>
-    </div>
-  </div>
-  <div class="footer">هذه الصفحة للمعاينة فقط ولا تمثل المتجر الحقيقي.</div>
-</body>
+    <div class="footer">هذه الصفحة للمعاينة فقط ولا تمثل المتجر الحقيقي.</div>
+  </body>
 </html>

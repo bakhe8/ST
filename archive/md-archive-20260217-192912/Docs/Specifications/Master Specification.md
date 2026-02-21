@@ -1,6 +1,5 @@
 📘 Master Specification
-Virtual Store–Driven Theme Development System
-0. الهدف من هذا المستند
+Virtual Store–Driven Theme Development System 0. الهدف من هذا المستند
 
 هذا المستند يعرّف النظام كاملًا من حيث:
 
@@ -53,7 +52,7 @@ Virtual Store–Driven Theme Development System
 النظام يوفّر بيئة تشغيل واقعية للمعاينة فقط
 
 3. المفاهيم الأساسية (Key Concepts)
-3.1 Theme
+   3.1 Theme
 
 مجموعة ملفات (Twig / Assets / Config)
 
@@ -104,22 +103,22 @@ Virtual Store–Driven Theme Development System
 متجر متعدد اللغات
 
 4. البنية المعمارية (Architecture)
-Theme Files
-     │
-     ▼
-Virtual Store
-     │
-     ▼
-Runtime Context Builder
-     │
-     ▼
-Preview Runtime
-     │
-     ▼
-Validation & Export
+   Theme Files
+   │
+   ▼
+   Virtual Store
+   │
+   ▼
+   Runtime Context Builder
+   │
+   ▼
+   Preview Runtime
+   │
+   ▼
+   Validation & Export
 
 5. الطبقات بالتفصيل
-5.1 Theme Files Layer
+   5.1 Theme Files Layer
 
 الوصف
 تمثّل الثيم كما هو مكتوب.
@@ -251,7 +250,7 @@ Live Preview
 الواجهة لا تنفّذ منطق، بل تعدّل حالة المتجر فقط.
 
 7. طبقة البيانات (Data Layer)
-يُخزَّن
+   يُخزَّن
 
 Virtual Stores
 
@@ -286,7 +285,7 @@ Validation Results
 بدون تغيير معماري.
 
 9. التحكم المزدوج (Dual Control)
-عبر الواجهة
+   عبر الواجهة
 
 إعدادات
 

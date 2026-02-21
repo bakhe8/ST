@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const parseArgs = () => {
     const args = process.argv.slice(2);
     const out = {};
     for (let i = 0; i < args.length; i += 1) {
-        const token = String(args[i] || '');
-        if (!token.startsWith('--')) continue;
+        const token = String(args[i] || "");
+        if (!token.startsWith("--")) continue;
         const key = token.slice(2);
-        const value = args[i + 1] && !String(args[i + 1]).startsWith('--') ? args[i + 1] : 'true';
+        const value =
+            args[i + 1] && !String(args[i + 1]).startsWith("--")
+                ? args[i + 1]
+                : "true";
         out[key] = value;
-        if (value !== 'true') i += 1;
+        if (value !== "true") i += 1;
     }
     return out;
 };
@@ -29,13 +32,13 @@ const nowIso = () => new Date().toISOString();
 
 const timestampToken = () => {
     const iso = nowIso();
-    return iso.replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-');
+    return iso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-");
 };
 
 const readJsonFile = (filePath) => {
     if (!filePath || !fs.existsSync(filePath)) return null;
     try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return JSON.parse(fs.readFileSync(filePath, "utf8"));
     } catch {
         return null;
     }
@@ -47,7 +50,7 @@ const runCommand = (label, command, cwd, env) => {
         cwd,
         env: { ...process.env, ...env },
         shell: true,
-        stdio: 'inherit'
+        stdio: "inherit",
     });
     const exitCode = Number(result.status ?? 1);
     return { label, command, exitCode, ok: exitCode === 0 };
@@ -64,29 +67,37 @@ const computeRatio = (summary) => {
 const run = () => {
     const args = parseArgs();
     const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-    const repoRoot = path.resolve(scriptDir, '../..');
-    const docsDir = path.resolve(repoRoot, String(args.outputDir || 'Docs/VTDR'));
+    const repoRoot = path.resolve(scriptDir, "../..");
+    const docsDir = path.resolve(
+        repoRoot,
+        String(args.outputDir || "Docs/VTDR"),
+    );
 
     const minCoreRouteSuccessRatio = asNumber(args.minCoreRouteSuccessRatio, 1);
-    const minBrowserRouteSuccessRatio = asNumber(args.minBrowserRouteSuccessRatio, 1);
+    const minBrowserRouteSuccessRatio = asNumber(
+        args.minBrowserRouteSuccessRatio,
+        1,
+    );
     const maxCriticalConsoleErrors = asNumber(args.maxCriticalConsoleErrors, 0);
     const maxPageErrors = asNumber(args.maxPageErrors, 0);
 
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vtdr-parity-baseline-'));
-    const contractMetricsFile = path.join(tempDir, 'contract-metrics.json');
-    const browserMetricsFile = path.join(tempDir, 'browser-metrics.json');
+    const tempDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "vtdr-parity-baseline-"),
+    );
+    const contractMetricsFile = path.join(tempDir, "contract-metrics.json");
+    const browserMetricsFile = path.join(tempDir, "browser-metrics.json");
 
     const contractRun = runCommand(
-        'contract-gate',
-        'npm run test --workspace=@vtdr/api -- --run src/integration/theme-runtime-contract.integration.test.ts',
+        "contract-gate",
+        "npm run test --workspace=@vtdr/api -- --run src/integration/theme-runtime-contract.integration.test.ts",
         repoRoot,
-        { VTDR_PARITY_CONTRACT_METRICS_FILE: contractMetricsFile }
+        { VTDR_PARITY_CONTRACT_METRICS_FILE: contractMetricsFile },
     );
     const browserRun = runCommand(
-        'browser-gate',
-        'npm run test:e2e:preview',
+        "browser-gate",
+        "npm run test:e2e:preview",
         repoRoot,
-        { VTDR_PARITY_BROWSER_METRICS_FILE: browserMetricsFile }
+        { VTDR_PARITY_BROWSER_METRICS_FILE: browserMetricsFile },
     );
 
     const contractMetrics = readJsonFile(contractMetricsFile);
@@ -97,34 +108,36 @@ const run = () => {
 
     const coreRouteSuccessRatio = computeRatio(contractSummary);
     const browserRouteSuccessRatio = computeRatio(browserSummary);
-    const criticalConsoleErrors = Number(browserSummary?.criticalConsoleErrors || 0);
+    const criticalConsoleErrors = Number(
+        browserSummary?.criticalConsoleErrors || 0,
+    );
     const pageErrors = Number(browserSummary?.pageErrors || 0);
 
     const checks = [
         {
-            key: 'contract-core-route-success-ratio',
+            key: "contract-core-route-success-ratio",
             expected: `>= ${minCoreRouteSuccessRatio}`,
             actual: coreRouteSuccessRatio,
-            pass: coreRouteSuccessRatio >= minCoreRouteSuccessRatio
+            pass: coreRouteSuccessRatio >= minCoreRouteSuccessRatio,
         },
         {
-            key: 'browser-route-success-ratio',
+            key: "browser-route-success-ratio",
             expected: `>= ${minBrowserRouteSuccessRatio}`,
             actual: browserRouteSuccessRatio,
-            pass: browserRouteSuccessRatio >= minBrowserRouteSuccessRatio
+            pass: browserRouteSuccessRatio >= minBrowserRouteSuccessRatio,
         },
         {
-            key: 'critical-console-errors',
+            key: "critical-console-errors",
             expected: `<= ${maxCriticalConsoleErrors}`,
             actual: criticalConsoleErrors,
-            pass: criticalConsoleErrors <= maxCriticalConsoleErrors
+            pass: criticalConsoleErrors <= maxCriticalConsoleErrors,
         },
         {
-            key: 'page-errors',
+            key: "page-errors",
             expected: `<= ${maxPageErrors}`,
             actual: pageErrors,
-            pass: pageErrors <= maxPageErrors
-        }
+            pass: pageErrors <= maxPageErrors,
+        },
     ];
 
     const overallPass =
@@ -140,21 +153,24 @@ const run = () => {
             minCoreRouteSuccessRatio,
             minBrowserRouteSuccessRatio,
             maxCriticalConsoleErrors,
-            maxPageErrors
+            maxPageErrors,
         },
         runs: [contractRun, browserRun],
         checks,
         overallPass,
         contract: contractMetrics,
-        browser: browserMetrics
+        browser: browserMetrics,
     };
 
     fs.mkdirSync(docsDir, { recursive: true });
     const timestamp = timestampToken();
-    const latestPath = path.join(docsDir, 'PARITY-BASELINE.latest.json');
-    const versionedPath = path.join(docsDir, `PARITY-BASELINE.${timestamp}.json`);
-    fs.writeFileSync(latestPath, JSON.stringify(report, null, 2), 'utf8');
-    fs.writeFileSync(versionedPath, JSON.stringify(report, null, 2), 'utf8');
+    const latestPath = path.join(docsDir, "PARITY-BASELINE.latest.json");
+    const versionedPath = path.join(
+        docsDir,
+        `PARITY-BASELINE.${timestamp}.json`,
+    );
+    fs.writeFileSync(latestPath, JSON.stringify(report, null, 2), "utf8");
+    fs.writeFileSync(versionedPath, JSON.stringify(report, null, 2), "utf8");
 
     try {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -162,10 +178,14 @@ const run = () => {
         // Ignore temp cleanup failures.
     }
 
-    console.log(`[parity-baseline] Report (latest): ${path.relative(repoRoot, latestPath)}`);
-    console.log(`[parity-baseline] Report (versioned): ${path.relative(repoRoot, versionedPath)}`);
     console.log(
-        `[parity-baseline] Result: ${overallPass ? 'PASS' : 'FAIL'} | contract=${coreRouteSuccessRatio.toFixed(4)} | browser=${browserRouteSuccessRatio.toFixed(4)} | console=${criticalConsoleErrors} | pageErrors=${pageErrors}`
+        `[parity-baseline] Report (latest): ${path.relative(repoRoot, latestPath)}`,
+    );
+    console.log(
+        `[parity-baseline] Report (versioned): ${path.relative(repoRoot, versionedPath)}`,
+    );
+    console.log(
+        `[parity-baseline] Result: ${overallPass ? "PASS" : "FAIL"} | contract=${coreRouteSuccessRatio.toFixed(4)} | browser=${browserRouteSuccessRatio.toFixed(4)} | console=${criticalConsoleErrors} | pageErrors=${pageErrors}`,
     );
 
     if (!overallPass) {

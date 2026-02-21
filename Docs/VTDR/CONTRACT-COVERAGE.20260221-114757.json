@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-02-21T11:47:57.491Z",
+  "registry": "Docs/VTDR_Docs/SALLA_CONTRACT_COVERAGE_REGISTRY.json",
+  "strictPassEvidence": true,
+  "totals": {
+    "requiredCoverageIds": 67,
+    "contracts": 67
+  },
+  "statusCounts": {
+    "PARTIAL": 50,
+    "PASS": 17
+  },
+  "errors": [],
+  "warnings": [],
+  "pass": true
+}

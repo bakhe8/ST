@@ -8,6 +8,7 @@ These images are provided **solely as a cognitive and inspirational reference**.
 They are NOT documentation, NOT specifications, and NOT a source of truth.
 
 Their role is to help an experienced engineer or AI agent intuitively sense:
+
 - Possible operational philosophy
 - Interaction intent
 - High-level system thinking
@@ -56,6 +57,7 @@ All conclusions drawn from images must be treated as **hypotheses**, never facts
 > They do NOT originate from the images as facts.
 
 ### 1. Separation Between Configuration and Live Preview
+
 **Hypothesis:**  
 The system appears to favor a clear separation between configuration and live preview contexts.
 
@@ -68,6 +70,7 @@ Unify preview/host handling under a single explicit contract.
 ---
 
 ### 2. Strict Multi-Store Context Isolation
+
 **Hypothesis:**  
 A strong intention toward strict store context isolation exists.
 
@@ -80,6 +83,7 @@ Decide explicitly between full store injection or full storeId-based resolution.
 ---
 
 ### 3. Schema-Driven Configuration Over Hardcoded Logic
+
 **Hypothesis:**  
 Theme and configuration management is intended to be schema-driven.
 
@@ -92,6 +96,7 @@ Introduce a dedicated, independent theme configuration storage layer.
 ---
 
 ### 4. Explicit Operational Actions Model
+
 **Hypothesis:**  
 The system philosophy seems aligned with explicit operations such as clone, promote, inherit, sync, and seed.
 
@@ -104,6 +109,7 @@ Standardize response envelopes across operational APIs.
 ---
 
 ### 5. Full Lifecycle Assumption for Domain Entities
+
 **Hypothesis:**  
 Entities like products, categories, and pages are assumed to have full lifecycle management.
 
@@ -116,6 +122,7 @@ Either complete the API lifecycle or temporarily constrain the UI to read-only.
 ---
 
 ### 6. Event-Driven Expansion Intent
+
 **Hypothesis:**  
 The architecture suggests an intention toward event-driven extensibility.
 
@@ -128,6 +135,7 @@ Either complete the missing contracts or explicitly disable unsupported intercep
 ---
 
 ### 7. Partial Failure Tolerance With Fallbacks
+
 **Hypothesis:**  
 The system tolerates partial failures via graceful fallbacks.
 
@@ -140,6 +148,7 @@ Add monitoring and assertive logging around critical fallback paths.
 ---
 
 ### 8. Incomplete Transition From Scenario-First to Store-First
+
 **Hypothesis:**  
 The system is moving toward a store-first model.
 
@@ -154,6 +163,7 @@ Complete legacy cleanup and time-box backward compatibility.
 ## Critical Constraint
 
 If any hypothesis in this document conflicts with:
+
 - Actual runtime behavior
 - Existing tests
 - Explicit system goals

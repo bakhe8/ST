@@ -25,7 +25,7 @@ Virtual Store–Driven Theme Development System
 النظام يربط الاثنين لإنتاج حالة عرض حقيقية.
 
 3. المتجر الافتراضي (Virtual Store)
-تعريف
+   تعريف
 
 كيان تشغيلي داخل النظام يمثل الدور الذي يلعبه المتجر الحقيقي في التحكم في الثيم.
 
@@ -74,14 +74,12 @@ Virtual Store–Driven Theme Development System
 الطريقتان تعملان معًا على نفس حالة التشغيل دون تعارض.
 
 5. معادلة التشغيل المعتمدة
-Theme Files (Code)
-        +
-Virtual Store (Settings + Content)
-        ↓
-Runtime Context
-        ↓
-Live Preview
-
+   Theme Files (Code) +
+   Virtual Store (Settings + Content)
+   ↓
+   Runtime Context
+   ↓
+   Live Preview
 
 الكود يحدد الإمكانيات
 

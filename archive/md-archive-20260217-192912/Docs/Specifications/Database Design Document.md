@@ -2,7 +2,8 @@ Database Design Document
 VTDR – Virtual Theme Development Runtime
 DB Engine: SQLite
 الهدف: تخزين “State + Data + Scenarios + Snapshots” (الثيمات كملفات على القرص)
-1) مبادئ التخزين
+
+1. مبادئ التخزين
 
 ملفات الثيم (templates/assets) تبقى على File System
 
@@ -22,7 +23,7 @@ DB Engine: SQLite
 
 سجل الأحداث (Audit)
 
-2) ERD مختصر نصيًا
+2. ERD مختصر نصيًا
 
 Theme (1) ── (N) ThemeVersion
 
@@ -40,8 +41,8 @@ StoreState (1) ── (N) ComponentState
 
 ThemeVersion (1) ── (N) ComponentRegistryItem (اختياري للتسريع)
 
-3) الجداول الأساسية
-3.1 themes
+3. الجداول الأساسية
+   3.1 themes
 
 يمثل الثيم ككيان عام.
 
@@ -147,8 +148,8 @@ idx_scenarios_store_id
 
 idx_scenarios_active (store_id, is_active)
 
-4) طبقة الحالة (State)
-4.1 store_state
+4. طبقة الحالة (State)
+   4.1 store_state
 
 الحالة العامة المرتبطة بالسيناريو (Theme/Version/Page/Viewport…).
 
@@ -226,8 +227,8 @@ Indexes
 
 idx_page_composition_scenario_page
 
-5) طبقة البيانات (DATA_SCHEMA_SPEC)
-5.1 data_entities
+5. طبقة البيانات (DATA_SCHEMA_SPEC)
+   5.1 data_entities
 
 تخزين كل بيانات المحتوى (Products/Categories/Brands/Media/Reviews/…)
 بنموذج موحد مرن.
@@ -330,8 +331,8 @@ Indexes
 
 idx_bindings_scenario_component (scenario_id, component_path)
 
-6) Snapshots / Versions داخل النظام
-6.1 snapshots
+6. Snapshots / Versions داخل النظام
+   6.1 snapshots
 
 لقطات من حالة السيناريو (للاسترجاع والمقارنة).
 
@@ -362,8 +363,8 @@ Indexes
 
 idx_snapshots_scenario_created
 
-7) Preview Cache (اختياري لكنه عملي)
-7.1 preview_cache
+7. Preview Cache (اختياري لكنه عملي)
+   7.1 preview_cache
 
 تخزين ناتج render للصفحات لتسريع المعاينة.
 
@@ -387,8 +388,8 @@ Indexes
 
 idx_preview_cache_lookup (scenario_id, page, viewport, context_hash)
 
-8) Audit / Events
-8.1 runtime_events
+8. Audit / Events
+   8.1 runtime_events
 
 سجل تغييرات المستخدم/النظام.
 
@@ -410,7 +411,7 @@ Indexes
 
 idx_events_scenario_time (scenario_id, created_at)
 
-9) ملاحظات تنفيذية مختصرة (ملزمة)
+9. ملاحظات تنفيذية مختصرة (ملزمة)
 
 كل حقول JSON تُخزن كـ TEXT في SQLite
 
@@ -422,7 +423,7 @@ contract_json في theme_versions
 
 settings_json + component_state + data_bindings + data_entities
 
-10) الحد الأدنى للتشغيل MVP (أقل مجموعة جداول)
+10. الحد الأدنى للتشغيل MVP (أقل مجموعة جداول)
 
 لو أردت MVP سريع جدًا، يكفي:
 

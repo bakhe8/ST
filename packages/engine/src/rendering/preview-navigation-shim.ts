@@ -1,17 +1,21 @@
 interface PreviewNavigationShimOptions {
-    previewBasePath: string;
-    viewport?: string;
-    refresh?: string;
-    storeId?: string;
+  previewBasePath: string;
+  viewport?: string;
+  refresh?: string;
+  storeId?: string;
 }
 
-export function buildPreviewNavigationShimScript(options: PreviewNavigationShimOptions): string {
-    const previewBaseLiteral = JSON.stringify(String(options.previewBasePath || ''));
-    const viewportLiteral = JSON.stringify(String(options.viewport || ''));
-    const refreshLiteral = JSON.stringify(String(options.refresh || ''));
-    const storeIdLiteral = JSON.stringify(String(options.storeId || ''));
+export function buildPreviewNavigationShimScript(
+  options: PreviewNavigationShimOptions,
+): string {
+  const previewBaseLiteral = JSON.stringify(
+    String(options.previewBasePath || ""),
+  );
+  const viewportLiteral = JSON.stringify(String(options.viewport || ""));
+  const refreshLiteral = JSON.stringify(String(options.refresh || ""));
+  const storeIdLiteral = JSON.stringify(String(options.storeId || ""));
 
-    return `
+  return `
             <script>
             (function () {
                 var previewBaseFallback = ${previewBaseLiteral};

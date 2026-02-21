@@ -24,8 +24,11 @@ class AddToCartToast extends HTMLElement {
   init() {
     salla.lang.onLoaded(() => {
       salla.lang.addBulk({
-        "pages.cart.added_to_cart": { ar: "تمت الإضافة إلى سلة التسوق", en: "Added to Cart" },
-        "pages.cart.view_cart": { ar: "عرض السلة", en: "View Cart" }
+        "pages.cart.added_to_cart": {
+          ar: "تمت الإضافة إلى سلة التسوق",
+          en: "Added to Cart",
+        },
+        "pages.cart.view_cart": { ar: "عرض السلة", en: "View Cart" },
       });
       this.successMessage = salla.lang.get("pages.cart.added_to_cart");
       this.viewCartText = salla.lang.get("pages.cart.view_cart");
@@ -51,7 +54,9 @@ class AddToCartToast extends HTMLElement {
       const cartResponse = await salla.cart.api.details(null, ["options"]);
       if (!cartResponse?.data?.cart?.items) return;
 
-      const cartItem = cartResponse.data.cart.items.find(item => item.id === cartItemId);
+      const cartItem = cartResponse.data.cart.items.find(
+        (item) => item.id === cartItemId,
+      );
       if (!cartItem) return;
 
       this.open({
@@ -64,7 +69,7 @@ class AddToCartToast extends HTMLElement {
         isOnSale: cartItem.is_on_sale,
         quantity: cartItem.quantity,
         url: cartItem.url,
-        options: this.extractOptions(cartItem.options)
+        options: this.extractOptions(cartItem.options),
       });
     } catch (error) {
       salla.log("Error processing product added event:", error);
@@ -78,14 +83,15 @@ class AddToCartToast extends HTMLElement {
       if (option.type === "splitter") return result;
 
       if (option.details?.length) {
-        const selected = option.type === "multiple-options"
-          ? option.details.filter(d => d.is_selected)
-          : [option.details.find(d => d.is_selected)];
+        const selected =
+          option.type === "multiple-options"
+            ? option.details.filter((d) => d.is_selected)
+            : [option.details.find((d) => d.is_selected)];
 
         if (selected[0]) {
           result.push({
             name: option.name,
-            value: selected.map(d => d.name).join(", ")
+            value: selected.map((d) => d.name).join(", "),
           });
         }
       } else if (option.value) {
@@ -135,7 +141,9 @@ class AddToCartToast extends HTMLElement {
       this.remainingTime = Math.max(0, this.remainingTime - updateInterval);
       this.progressPercent = (this.remainingTime / this.duration) * 100;
 
-      const progressBar = this.querySelector(".s-add-product-toast__progress-bar");
+      const progressBar = this.querySelector(
+        ".s-add-product-toast__progress-bar",
+      );
       if (progressBar) progressBar.style.width = `${this.progressPercent}%`;
 
       if (this.remainingTime <= 0) this.close();
@@ -148,7 +156,6 @@ class AddToCartToast extends HTMLElement {
       this.progressInterval = null;
     }
   }
-
 
   escapeHTML(str = "") {
     return String(str)
@@ -192,19 +199,28 @@ class AddToCartToast extends HTMLElement {
         </a>
         <div class="s-add-product-toast__details">
           <a href="${this.product.url}" class="s-add-product-toast__name">${this.escapeHTML(this.product.name)}</a>
-          ${visibleOptions.length ? `
+          ${
+            visibleOptions.length
+              ? `
             <div class="s-add-product-toast__options">
-              ${visibleOptions.map(opt => 
-                opt.hideValue ? `<span>${opt.name}</span>` : `<span>${opt.name}: ${opt.value}</span>`
-              ).join("")}
+              ${visibleOptions
+                .map((opt) =>
+                  opt.hideValue
+                    ? `<span>${opt.name}</span>`
+                    : `<span>${opt.name}: ${opt.value}</span>`,
+                )
+                .join("")}
               ${showMoreButton ? `<a href="${this.cartUrl}" class="s-add-product-toast__show-more">${this.showMoreText}</a>` : ""}
             </div>
-          ` : ""}
+          `
+              : ""
+          }
         </div>
         <div class="s-add-product-toast__price">
-          ${this.product.hasDiscount || this.product.isOnSale
-            ? `<div class="s-add-product-toast__price-sale">${price}</div><div class="s-add-product-toast__price-original">${originalPrice}</div>`
-            : `<div>${price}</div>`
+          ${
+            this.product.hasDiscount || this.product.isOnSale
+              ? `<div class="s-add-product-toast__price-sale">${price}</div><div class="s-add-product-toast__price-original">${originalPrice}</div>`
+              : `<div>${price}</div>`
           }
         </div>
       </div>
@@ -220,7 +236,10 @@ class AddToCartToast extends HTMLElement {
       </div>
     `;
 
-    this.querySelector(".s-add-product-toast__close").addEventListener("click", () => this.close());
+    this.querySelector(".s-add-product-toast__close").addEventListener(
+      "click",
+      () => this.close(),
+    );
     this.querySelector("#toast-submit").addEventListener("click", () => {
       salla.cart.submit();
       this.close();

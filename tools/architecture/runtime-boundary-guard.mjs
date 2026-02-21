@@ -1,41 +1,42 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '../..');
+const rootDir = path.resolve(__dirname, "../..");
 
-const ROUTE_ROOT = 'apps/api/src/routes';
+const ROUTE_ROOT = "apps/api/src/routes";
 const TARGET_FILES = [
-    'apps/api/src/index.ts',
-    'apps/ui/src/pages/StorePreview.tsx',
-    'apps/ui/src/components/PageComponentsEditor.tsx'
+    "apps/api/src/index.ts",
+    "apps/ui/src/pages/StorePreview.tsx",
+    "apps/ui/src/components/PageComponentsEditor.tsx",
 ];
 
 const ROUTE_RULES = [
     {
-        id: 'no-theme-hardcode-in-routes',
+        id: "no-theme-hardcode-in-routes",
         pattern: /\btheme-raed-master\b/gi,
-        message: 'لا يُسمح بربط المسارات بثيم محدد داخل طبقة routes.'
+        message: "لا يُسمح بربط المسارات بثيم محدد داخل طبقة routes.",
     },
     {
-        id: 'no-themes-fs-coupling-in-routes',
+        id: "no-themes-fs-coupling-in-routes",
         pattern: /packages\/themes|twilight\.json/gi,
-        message: 'لا يُسمح بقراءة ملفات الثيم مباشرة داخل routes. استخدم engine/services.'
-    }
+        message:
+            "لا يُسمح بقراءة ملفات الثيم مباشرة داخل routes. استخدم engine/services.",
+    },
 ];
 
 const UI_RULES = [
     {
-        id: 'no-theme-hardcode-in-ui-preview',
+        id: "no-theme-hardcode-in-ui-preview",
         pattern: /\btheme-raed-master\b/gi,
-        message: 'لا يُسمح بـ hardcode لثيم محدد في طبقة UI preview/editor.'
-    }
+        message: "لا يُسمح بـ hardcode لثيم محدد في طبقة UI preview/editor.",
+    },
 ];
 
 function readFile(relPath) {
-    return fs.readFileSync(path.join(rootDir, relPath), 'utf8');
+    return fs.readFileSync(path.join(rootDir, relPath), "utf8");
 }
 
 function collectRouteFiles(dirRel) {
@@ -52,7 +53,7 @@ function collectRouteFiles(dirRel) {
                 continue;
             }
             if (!/\.(ts|tsx|js|mjs)$/i.test(entry.name)) continue;
-            files.push(path.relative(rootDir, abs).replace(/\\/g, '/'));
+            files.push(path.relative(rootDir, abs).replace(/\\/g, "/"));
         }
     };
 
@@ -62,7 +63,7 @@ function collectRouteFiles(dirRel) {
 
 function lineAndColumn(text, offset) {
     const before = text.slice(0, offset);
-    const lines = before.split('\n');
+    const lines = before.split("\n");
     const line = lines.length;
     const column = lines[lines.length - 1].length + 1;
     return { line, column };
@@ -81,7 +82,7 @@ function evaluateRules(relPath, content, rules) {
                 relPath,
                 line: location.line,
                 column: location.column,
-                snippet: match[0]
+                snippet: match[0],
             });
         }
     }
@@ -91,7 +92,7 @@ function evaluateRules(relPath, content, rules) {
 function run() {
     const routeFiles = collectRouteFiles(ROUTE_ROOT);
     const targetFiles = [...routeFiles, ...TARGET_FILES].filter((relPath) =>
-        fs.existsSync(path.join(rootDir, relPath))
+        fs.existsSync(path.join(rootDir, relPath)),
     );
 
     const violations = [];
@@ -103,14 +104,18 @@ function run() {
     }
 
     if (!violations.length) {
-        console.log('[RUNTIME-GUARD] Passed: no forbidden runtime coupling detected.');
+        console.log(
+            "[RUNTIME-GUARD] Passed: no forbidden runtime coupling detected.",
+        );
         process.exit(0);
     }
 
-    console.error('[RUNTIME-GUARD] Failed: runtime boundary violations detected.');
+    console.error(
+        "[RUNTIME-GUARD] Failed: runtime boundary violations detected.",
+    );
     for (const entry of violations) {
         console.error(
-            `  - [${entry.ruleId}] ${entry.relPath}:${entry.line}:${entry.column} :: ${entry.message} :: "${entry.snippet}"`
+            `  - [${entry.ruleId}] ${entry.relPath}:${entry.line}:${entry.column} :: ${entry.message} :: "${entry.snippet}"`,
         );
     }
     process.exit(1);

@@ -114,14 +114,12 @@
 
 كيف ينسجم هذا كله بدون تضارب؟
 المعادلة الصحيحة:
-Theme Files (Code)
-        +
+Theme Files (Code) +
 Virtual Store (Settings + Content)
-        ↓
+↓
 Runtime Context
-        ↓
+↓
 Preview
-
 
 الكود يحدد ما يمكن عرضه
 

@@ -6,6 +6,6 @@ export const API_BASE_URL =
 
 export function apiUrl(path: string) {
   // Ensure no double slashes
-  if (path.startsWith('/')) path = path.slice(1);
+  if (path.startsWith("/")) path = path.slice(1);
   return `${API_BASE_URL}/${path}`;
 }

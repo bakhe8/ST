@@ -6,114 +6,114 @@
 export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        Store: {
-            id: string;
-            name: string;
-            url?: string;
-            logo?: string;
-            description?: string;
-            currency?: string;
-            contacts?: {
-                mobile?: string;
-                email?: string;
-                whatsapp?: string;
-            };
-            social?: {
-                [key: string]: string;
-            };
-        };
-        Brand: {
-            id?: string;
-            name?: string;
-            url?: string;
-            logo?: string;
-            description?: string;
-        };
-        ProductImage: {
-            id?: string;
-            url?: string;
-            alt?: string;
-            is_default?: boolean;
-        };
-        ProductOption: {
-            id?: string;
-            name?: string;
-            /** @enum {string} */
-            type?: "select" | "radio" | "image" | "text" | "date";
-            values?: components["schemas"]["ProductOptionValue"][];
-        };
-        ProductOptionValue: {
-            id?: string;
-            name?: string;
-            price?: number;
-            is_default?: boolean;
-            color?: string;
-        };
-        Comment: {
-            id?: string;
-            stars?: number;
-            content?: string;
-            created_at?: string;
-            customer?: {
-                name?: string;
-                avatar?: string;
-            };
-        };
-        ProductTag: {
-            id?: string;
-            name?: string;
-            url?: string;
-        };
-        Product: {
-            id: string;
-            name: string;
-            sku?: string;
-            /** @enum {string} */
-            type?: "product" | "service" | "digital";
-            price?: {
-                amount?: number;
-                currency?: string;
-            };
-            regular_price?: {
-                amount?: number;
-                currency?: string;
-            };
-            sale_price?: {
-                amount?: number;
-                currency?: string;
-            };
-            description?: string;
-            short_description?: string;
-            url?: string;
-            images?: components["schemas"]["ProductImage"][];
-            options?: components["schemas"]["ProductOption"][];
-            tags?: components["schemas"]["ProductTag"][];
-            rating?: {
-                stars?: number;
-                count?: number;
-            };
-            comments?: components["schemas"]["Comment"][];
-            brand?: components["schemas"]["Brand"];
-            categories?: components["schemas"]["Category"][];
-            is_available?: boolean;
-            is_on_sale?: boolean;
-        };
-        Category: {
-            id?: string;
-            name?: string;
-            url?: string;
-            image?: string;
-            description?: string;
-            parent_id?: string | null;
-            children?: components["schemas"]["Category"][];
-        };
+  schemas: {
+    Store: {
+      id: string;
+      name: string;
+      url?: string;
+      logo?: string;
+      description?: string;
+      currency?: string;
+      contacts?: {
+        mobile?: string;
+        email?: string;
+        whatsapp?: string;
+      };
+      social?: {
+        [key: string]: string;
+      };
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    Brand: {
+      id?: string;
+      name?: string;
+      url?: string;
+      logo?: string;
+      description?: string;
+    };
+    ProductImage: {
+      id?: string;
+      url?: string;
+      alt?: string;
+      is_default?: boolean;
+    };
+    ProductOption: {
+      id?: string;
+      name?: string;
+      /** @enum {string} */
+      type?: "select" | "radio" | "image" | "text" | "date";
+      values?: components["schemas"]["ProductOptionValue"][];
+    };
+    ProductOptionValue: {
+      id?: string;
+      name?: string;
+      price?: number;
+      is_default?: boolean;
+      color?: string;
+    };
+    Comment: {
+      id?: string;
+      stars?: number;
+      content?: string;
+      created_at?: string;
+      customer?: {
+        name?: string;
+        avatar?: string;
+      };
+    };
+    ProductTag: {
+      id?: string;
+      name?: string;
+      url?: string;
+    };
+    Product: {
+      id: string;
+      name: string;
+      sku?: string;
+      /** @enum {string} */
+      type?: "product" | "service" | "digital";
+      price?: {
+        amount?: number;
+        currency?: string;
+      };
+      regular_price?: {
+        amount?: number;
+        currency?: string;
+      };
+      sale_price?: {
+        amount?: number;
+        currency?: string;
+      };
+      description?: string;
+      short_description?: string;
+      url?: string;
+      images?: components["schemas"]["ProductImage"][];
+      options?: components["schemas"]["ProductOption"][];
+      tags?: components["schemas"]["ProductTag"][];
+      rating?: {
+        stars?: number;
+        count?: number;
+      };
+      comments?: components["schemas"]["Comment"][];
+      brand?: components["schemas"]["Brand"];
+      categories?: components["schemas"]["Category"][];
+      is_available?: boolean;
+      is_on_sale?: boolean;
+    };
+    Category: {
+      id?: string;
+      name?: string;
+      url?: string;
+      image?: string;
+      description?: string;
+      parent_id?: string | null;
+      children?: components["schemas"]["Category"][];
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

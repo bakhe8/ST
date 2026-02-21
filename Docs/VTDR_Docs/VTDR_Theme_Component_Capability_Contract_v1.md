@@ -31,23 +31,23 @@
 أي ثيم يريد دعم التحرير من شاشة المكونات يجب أن يحتوي مكونات بمسارات تبدأ بهذه الـprefixes:
 
 | الصفحة في لوحة VTDR | Prefix المطلوب في `component.path` |
-|---|---|
-| الرئيسية | `home.*` |
-| قائمة المنتجات | `product.*` |
-| صفحة منتج مفرد | `product.single.*` أو `product.*` |
-| صفحة التصنيف | `category.*` |
-| السلة | `cart.*` |
-| الملف الشخصي | `customer.profile.*` |
-| طلبات العميل | `customer.orders.*` |
-| المفضلة | `customer.wishlist.*` |
-| الإشعارات | `customer.notifications.*` |
-| قائمة المدونة | `blog.*` |
-| مقالة مفردة | `blog.single.*` أو `blog.*` |
-| قائمة الماركات | `brands.*` |
-| ماركة مفردة | `brands.single.*` أو `brands.*` |
-| صفحة الشكر | `thank-you.*` |
-| صفحة هبوط | `landing-page.*` |
-| صفحة ثابتة | `page-single.*` |
+| ------------------- | ---------------------------------- |
+| الرئيسية            | `home.*`                           |
+| قائمة المنتجات      | `product.*`                        |
+| صفحة منتج مفرد      | `product.single.*` أو `product.*`  |
+| صفحة التصنيف        | `category.*`                       |
+| السلة               | `cart.*`                           |
+| الملف الشخصي        | `customer.profile.*`               |
+| طلبات العميل        | `customer.orders.*`                |
+| المفضلة             | `customer.wishlist.*`              |
+| الإشعارات           | `customer.notifications.*`         |
+| قائمة المدونة       | `blog.*`                           |
+| مقالة مفردة         | `blog.single.*` أو `blog.*`        |
+| قائمة الماركات      | `brands.*`                         |
+| ماركة مفردة         | `brands.single.*` أو `brands.*`    |
+| صفحة الشكر          | `thank-you.*`                      |
+| صفحة هبوط           | `landing-page.*`                   |
+| صفحة ثابتة          | `page-single.*`                    |
 
 ## 5) هل يجب إضافتها يدويًا لكل ثيم؟
 

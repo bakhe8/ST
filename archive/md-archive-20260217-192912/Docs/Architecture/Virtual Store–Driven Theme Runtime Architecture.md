@@ -1,6 +1,6 @@
 Virtual Store–Driven Theme Runtime Architecture
 
-1) المنظور العام (System View)
+1. المنظور العام (System View)
 
 النظام عبارة عن بيئة تشغيل للثيمات تتمحور حول متجر افتراضي، وتربط بين:
 
@@ -13,21 +13,21 @@ Virtual Store–Driven Theme Runtime Architecture
 طبقة معاينة وتشغيل
 
 Theme Files
-     │
-     ▼
+│
+▼
 Virtual Store
-     │
-     ▼
+│
+▼
 Runtime Context Builder
-     │
-     ▼
+│
+▼
 Preview & Operations
-     │
-     ▼
+│
+▼
 Validation & Export
 
-2) الطبقات الأساسية (Core Layers)
-2.1 Theme Files Layer
+2. الطبقات الأساسية (Core Layers)
+   2.1 Theme Files Layer
 
 الدور
 
@@ -141,8 +141,8 @@ Validation Reports
 
 Exportable Theme Package
 
-3) طبقة الواجهة (UI Layer)
-الدور
+3. طبقة الواجهة (UI Layer)
+   الدور
 
 إدارة المتجر الافتراضي
 
@@ -169,8 +169,8 @@ Results & Status Panel
 الواجهة تدير الاختيارات
 ولا تتدخل في منطق الثيم أو السياق
 
-4) طبقة البيانات (Data Layer)
-4.1 ما يُخزَّن
+4. طبقة البيانات (Data Layer)
+   4.1 ما يُخزَّن
 
 Virtual Stores
 
@@ -192,7 +192,7 @@ Export Records
 
 الأصول
 
-5) التحكم المزدوج (Dual Control Model)
+5. التحكم المزدوج (Dual Control Model)
 
 النظام يدعم مسارين متوازيين:
 
@@ -220,7 +220,7 @@ Export Records
 
 يلتقيان في Runtime Context Builder
 
-6) التدفق التشغيلي الكامل (End-to-End Flow)
+6. التدفق التشغيلي الكامل (End-to-End Flow)
 
 تحميل الثيم من Theme Files
 
@@ -240,7 +240,7 @@ Export Records
 
 تصدير الثيم
 
-7) الخصائص المعمارية للنظام
+7. الخصائص المعمارية للنظام
 
 Version-Aware (الإصدار جزء من الثيم)
 
@@ -254,7 +254,7 @@ UI-Friendly
 
 Non-Opinionated (لا يفرض أسلوب عمل)
 
-8) العلاقة مع منصة سلة
+8. العلاقة مع منصة سلة
 
 النظام:
 
@@ -266,7 +266,7 @@ Non-Opinionated (لا يفرض أسلوب عمل)
 
 ولا يحاكيها داخليًا
 
-9) الخلاصة المعمارية النهائية
+9. الخلاصة المعمارية النهائية
 
 الثيم يعرّف الإمكانيات
 المتجر الافتراضي يقرر الاختيارات

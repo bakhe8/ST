@@ -25,11 +25,11 @@ graph TD
 
 ### Core Libraries
 
-| Library | Purpose | Dependency Rule |
-| :--- | :--- | :--- |
-| **@vtdr/contracts** | Definitions and Interfaces | Zero dependencies. |
-| **@vtdr/data** | Persistence (Prisma/SQLite) | Depends on contracts. |
-| **@vtdr/engine** | Pure Simulation Logic | Depends ONLY on contracts. |
+| Library             | Purpose                     | Dependency Rule            |
+| :------------------ | :-------------------------- | :------------------------- |
+| **@vtdr/contracts** | Definitions and Interfaces  | Zero dependencies.         |
+| **@vtdr/data**      | Persistence (Prisma/SQLite) | Depends on contracts.      |
+| **@vtdr/engine**    | Pure Simulation Logic       | Depends ONLY on contracts. |
 
 ---
 

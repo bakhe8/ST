@@ -16,8 +16,11 @@
  * };
  *
  */
-import {applyPolyfills, defineCustomElements as SallaWebComponents} from '@salla.sa/twilight-components/loader';
+import {
+  applyPolyfills,
+  defineCustomElements as SallaWebComponents,
+} from "@salla.sa/twilight-components/loader";
 
 applyPolyfills().then(() => {
-    SallaWebComponents(window);
+  SallaWebComponents(window);
 });

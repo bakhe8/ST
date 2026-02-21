@@ -37,16 +37,15 @@ Virtual Commerce Data Schema for Theme Development Runtime
 البيانات قابلة للتبديل حسب الـ Profile / Scenario
 
 3. التقسيم العام (High-Level Structure)
-DataSchema {
-  store
-  catalogs
-  products
-  collections
-  content
-  users
-  interactions
-}
-
+   DataSchema {
+   store
+   catalogs
+   products
+   collections
+   content
+   users
+   interactions
+   }
 
 كل قسم مستقل منطقيًا، لكنه قابل للربط.
 
@@ -55,26 +54,25 @@ DataSchema {
 يمثل هوية المتجر وسياقه العام.
 
 Store {
-  id: string
-  name: string
-  locale: string
-  currency: string
-  branding: {
-    logo
-    colors
-    fonts
-  }
+id: string
+name: string
+locale: string
+currency: string
+branding: {
+logo
+colors
+fonts
+}
 }
 
 5. Catalogs (التصنيفات والبنية التجارية)
-Catalog {
-  id: string
-  type: "category" | "brand" | "tag"
-  title
-  parentId?
-  metadata?
-}
-
+   Catalog {
+   id: string
+   type: "category" | "brand" | "tag"
+   title
+   parentId?
+   metadata?
+   }
 
 يدعم:
 
@@ -89,23 +87,22 @@ Catalog {
 المنتج كائن مرن، وليس قالبًا ثابتًا.
 
 Product {
-  id: string
-  title
-  description
-  price
-  media: Media[]
-  attributes: Attribute[]
-  variants: Variant[]
-  relations: ProductRelation[]
+id: string
+title
+description
+price
+media: Media[]
+attributes: Attribute[]
+variants: Variant[]
+relations: ProductRelation[]
 }
 
 6.1 Attributes (مواصفات ديناميكية)
 Attribute {
-  key: string
-  type: "text" | "number" | "boolean" | "list" | "table"
-  value: any
+key: string
+type: "text" | "number" | "boolean" | "list" | "table"
+value: any
 }
-
 
 مثال:
 منتج يحتوي جدول مواصفات
@@ -114,10 +111,10 @@ Attribute {
 
 6.2 Variants
 Variant {
-  id
-  options: Record<string, string>
-  priceDelta?
-  media?
+id
+options: Record<string, string>
+priceDelta?
+media?
 }
 
 7. Collections (تجميعات العرض)
@@ -125,12 +122,11 @@ Variant {
 تمثل ما تختاره أنت من الواجهة لعرضه داخل ثيم معين.
 
 Collection {
-  id: string
-  source: "manual" | "rule"
-  items: Product[]
-  rules?
+id: string
+source: "manual" | "rule"
+items: Product[]
+rules?
 }
-
 
 تُستخدم في:
 
@@ -145,12 +141,11 @@ Collection {
 يمثل كل ما هو غير منتج.
 
 ContentItem {
-  id
-  type: "text" | "image" | "video" | "testimonial"
-  data
-  context?
+id
+type: "text" | "image" | "video" | "testimonial"
+data
+context?
 }
-
 
 أمثلة:
 
@@ -163,12 +158,11 @@ ContentItem {
 صور تعريفية
 
 9. Users (شخصيات افتراضية)
-User {
-  id
-  name
-  role: "visitor" | "customer"
-}
-
+   User {
+   id
+   name
+   role: "visitor" | "customer"
+   }
 
 تُستخدم لمحاكاة:
 
@@ -179,13 +173,12 @@ User {
 التفاعلات
 
 10. Interactions (التفاعل والسلوك)
-Interaction {
-  type: "review" | "rating" | "wishlist" | "cart"
-  userId
-  targetId
-  payload
-}
-
+    Interaction {
+    type: "review" | "rating" | "wishlist" | "cart"
+    userId
+    targetId
+    payload
+    }
 
 يمثل:
 
@@ -200,14 +193,13 @@ Interaction {
 الـ Scenario هو تجميعة مرجعية تربط كل ما سبق.
 
 DataScenario {
-  id: string
-  store
-  products
-  collections
-  content
-  interactions
+id: string
+store
+products
+collections
+content
+interactions
 }
-
 
 🎯 هذا هو ما يختاره المطوّر من الواجهة
 

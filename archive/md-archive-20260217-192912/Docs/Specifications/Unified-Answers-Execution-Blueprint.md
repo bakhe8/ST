@@ -61,17 +61,22 @@ Virtual Store–Driven Theme Runtime
 ## 5) حل التعارضات بين الوثائق
 
 ### التعارض 1: Theme-driven vs Store-driven
+
 **الحسم:** Store-driven هو المعتمد، والثيم Source of Capabilities فقط.
 
 ### التعارض 2: هل النظام محرر ثيمات أم Runtime Engine؟
+
 **الحسم:** Runtime Engine أولًا. أي محرر/واجهة مجرد أداة تحكم بالحالة.
 
 ### التعارض 3: Profile/Scenario أم Composition Engine؟
+
 **الحسم:**
+
 - Composition Engine = اللب المعماري
 - Scenario = مدخل تشغيلي (preset state) وليس الكيان المركزي للنظام
 
 ### التعارض 4: أسماء متغيرة للنظام
+
 **الحسم:** اعتماد اسم واحد في الكود والوثائق: `Virtual Store–Driven Theme Runtime (VTDR)`.
 
 ---
@@ -79,9 +84,11 @@ Virtual Store–Driven Theme Runtime
 ## 6) نموذج MVP الحقيقي (أول نسخة قابلة للتشغيل)
 
 ### MVP Goal
+
 إثبات أن النظام يستطيع تشغيل ثيم حقيقي وإخراج معاينة متطابقة وتقرير جاهزية.
 
 ### MVP Features (5 فقط)
+
 1. **Theme Loader**: تحميل ثيم + إصدار من File System
 2. **Virtual Store State**: حالة متجر واحدة + صفحة واحدة (`home`)
 3. **Context Builder v1**: دمج قدرات الثيم مع الحالة
@@ -89,6 +96,7 @@ Virtual Store–Driven Theme Runtime
 5. **Validation v1 + Export v1**: فحص أساسي وتصدير حزمة الثيم
 
 ### ليس ضمن MVP
+
 - Multi-page advanced composer
 - سياسات كومبوننت متقدمة
 - سيناريوهات كثيرة
@@ -99,21 +107,25 @@ Virtual Store–Driven Theme Runtime
 ## 7) خطة تنفيذ 30 يوم (عملية)
 
 ### الأسبوع 1 — Foundation
+
 - تثبيت العقود (contracts) في `packages/contracts`
 - بناء Theme Discovery + Version read
 - تعريف Runtime State الأساسي
 
 ### الأسبوع 2 — Runtime Core
+
 - بناء Context Builder v1
 - ربط Data entities الأساسية
 - API أولي لـ `/runtime/state` و `/preview/render`
 
 ### الأسبوع 3 — Preview + Dual Control
+
 - Live preview مع file watch
 - مزامنة تغييرات UI state + code changes
 - Snapshot بسيط
 
 ### الأسبوع 4 — Validation + Export + Hardening
+
 - قواعد validation الأساسية
 - Export package متوافق
 - تجربة end-to-end على ثيم حقيقي
@@ -147,6 +159,7 @@ Virtual Store–Driven Theme Runtime
 ## 10) قاعدة العمل اليومية (ضد التشتت)
 
 قبل أي مهمة جديدة، اسأل:
+
 - هل تخدم MVP الخماسي؟
 - هل تقرّبنا من Definition of Done؟
 - هل تضيف قدرة runtime حقيقية أم مجرد وثائق إضافية؟

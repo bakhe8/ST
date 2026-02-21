@@ -9,9 +9,9 @@ Preview & Rendering Layer
 تقع طبقة المعاينة بعد Composition Engine وقبل التصدير، وتعمل كجسر بين المنطق التشغيلي والعرض البصري.
 
 Composition Engine
-      ↓
+↓
 Preview Layer
-      ↓
+↓
 Theme Renderer
 
 المسؤوليات الأساسية

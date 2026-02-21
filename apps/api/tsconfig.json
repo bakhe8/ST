@@ -5,43 +5,17 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@vtdr/engine": [
-        "../../packages/engine/index.ts"
-      ],
-      "babel__core": [
-        "./src/type-hijack.d.ts"
-      ],
-      "babel__generator": [
-        "./src/type-hijack.d.ts"
-      ],
-      "babel__template": [
-        "./src/type-hijack.d.ts"
-      ],
-      "babel__traverse": [
-        "./src/type-hijack.d.ts"
-      ],
-      "connect": [
-        "./src/type-hijack.d.ts"
-      ],
-      "prop-types": [
-        "./src/type-hijack.d.ts"
-      ]
+      "@vtdr/engine": ["../../packages/engine/index.ts"],
+      "babel__core": ["./src/type-hijack.d.ts"],
+      "babel__generator": ["./src/type-hijack.d.ts"],
+      "babel__template": ["./src/type-hijack.d.ts"],
+      "babel__traverse": ["./src/type-hijack.d.ts"],
+      "connect": ["./src/type-hijack.d.ts"],
+      "prop-types": ["./src/type-hijack.d.ts"]
     },
-    "types": [
-      "node",
-      "express",
-      "cors",
-      "dotenv",
-      "twig"
-    ],
+    "types": ["node", "express", "cors", "dotenv", "twig"],
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*",
-    "../../packages/engine/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*", "../../packages/engine/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -55,16 +55,16 @@
   - `GET products|products/:id|categories|categories/:id|static-pages|menus/:type|theme/settings`
   - `PUT theme/settings`
   - `POST auth/login`
-  (`apps/api/src/routes/simulator.routes.ts:13` إلى `apps/api/src/routes/simulator.routes.ts:56`)
+    (`apps/api/src/routes/simulator.routes.ts:13` إلى `apps/api/src/routes/simulator.routes.ts:56`)
 - Stores:
   - `GET|POST /api/stores`
   - `GET|POST|PATCH|DELETE /api/stores/:id...`
   - نفس الراوتر مركّب أيضًا على `/api/v1/stores`
-  (`apps/api/src/index.ts:141`, `apps/api/src/index.ts:142`, `apps/api/src/routes/store.routes.ts:15`)
+    (`apps/api/src/index.ts:141`, `apps/api/src/index.ts:142`, `apps/api/src/routes/store.routes.ts:15`)
 - Runtime Renderer:
   - `GET /preview/:storeId/:themeId/:version`
   - `POST /render`
-  (`apps/api/src/routes/runtime.routes.ts:13`, `apps/api/src/routes/runtime.routes.ts:39`)
+    (`apps/api/src/routes/runtime.routes.ts:13`, `apps/api/src/routes/runtime.routes.ts:39`)
 
 #### ج) نقاط دخول مسارات الواجهة
 
@@ -80,20 +80,20 @@
 
 ### 1.4 خريطة المكونات (المسؤوليات والاعتمادات)
 
-| المكوّن | المسؤولية | يعتمد على | يستدعيه |
-|---|---|---|---|
-| `apps/api/src/index.ts` | تركيب النظام (DI + routes) | Engine + Data + Middleware | أمر تشغيل API |
-| `context.middleware` | حل والتحقق من سياق المتجر | `ContextResolver` | `/api/v1/*` و`/` runtime |
-| `ContextResolver` | استخراج `storeId` من header/query/path والتحقق | `StoreLogic` | Middleware |
-| `store.routes` | CRUD وتشغيل seed/sync/promote/inherit | `StoreFactory`, `StoreLogic`, providers | API Router |
-| `simulator.routes` | محاكاة API لنماذج Salla | `SimulatorService` | `/api/v1` |
-| `runtime.routes` | معاينة ورندر الثيم | `CompositionEngine`, `RendererService` | `/preview` |
-| `CompositionEngine` | بناء `RuntimeContext` من Store+Theme+Data | `StoreRepo`, `ThemeRegistry`, `StoreLogic` | runtime routes |
-| `RendererService` | تنفيذ Twig + hooks + bridge | Theme files + `SchemaService` | runtime routes |
-| `SimulatorService` | واجهات products/categories/pages/theme-settings | `StoreLogic`, `SchemaService`, theme provider | simulator routes |
-| `StoreFactory` | إنشاء/نسخ/حذف متجر + auto seed/sync | repos + providers | store routes |
-| `StoreLogic` | تحديث إعدادات/branding وقراءة entities | `StoreRepo`, `DataEntityRepo` | عدة خدمات |
-| `Prisma*Repository` | تنفيذ DAL على SQLite | Prisma client | engine/api services |
+| المكوّن                 | المسؤولية                                       | يعتمد على                                     | يستدعيه                  |
+| ----------------------- | ----------------------------------------------- | --------------------------------------------- | ------------------------ |
+| `apps/api/src/index.ts` | تركيب النظام (DI + routes)                      | Engine + Data + Middleware                    | أمر تشغيل API            |
+| `context.middleware`    | حل والتحقق من سياق المتجر                       | `ContextResolver`                             | `/api/v1/*` و`/` runtime |
+| `ContextResolver`       | استخراج `storeId` من header/query/path والتحقق  | `StoreLogic`                                  | Middleware               |
+| `store.routes`          | CRUD وتشغيل seed/sync/promote/inherit           | `StoreFactory`, `StoreLogic`, providers       | API Router               |
+| `simulator.routes`      | محاكاة API لنماذج Salla                         | `SimulatorService`                            | `/api/v1`                |
+| `runtime.routes`        | معاينة ورندر الثيم                              | `CompositionEngine`, `RendererService`        | `/preview`               |
+| `CompositionEngine`     | بناء `RuntimeContext` من Store+Theme+Data       | `StoreRepo`, `ThemeRegistry`, `StoreLogic`    | runtime routes           |
+| `RendererService`       | تنفيذ Twig + hooks + bridge                     | Theme files + `SchemaService`                 | runtime routes           |
+| `SimulatorService`      | واجهات products/categories/pages/theme-settings | `StoreLogic`, `SchemaService`, theme provider | simulator routes         |
+| `StoreFactory`          | إنشاء/نسخ/حذف متجر + auto seed/sync             | repos + providers                             | store routes             |
+| `StoreLogic`            | تحديث إعدادات/branding وقراءة entities          | `StoreRepo`, `DataEntityRepo`                 | عدة خدمات                |
+| `Prisma*Repository`     | تنفيذ DAL على SQLite                            | Prisma client                                 | engine/api services      |
 
 ### 1.5 تدفق البيانات (رسومات نصية)
 
@@ -494,6 +494,3 @@
 ## ملاحظة تنفيذية
 
 تم تنفيذ التحليل بدون أي تعديل على الكود التشغيلي. التغييرات الوحيدة هي مخرجات تدقيق توثيقية داخل مجلد `Docs`.
-
-
-

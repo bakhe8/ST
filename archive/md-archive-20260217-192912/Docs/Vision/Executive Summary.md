@@ -119,7 +119,7 @@ Theme Runtime Interpretation & Simulation System
 
 تمكين المستخدم من تشغيل، معاينة، اختبار، والتحقق من ثيمات سلة اعتمادًا على ملفاتها وإصداراتها، عبر مسار عمل واحد متسق وقابل للتكرار.
 
-1) نقطة الدخول (Entry Point)
+1. نقطة الدخول (Entry Point)
 
 عند فتح الواجهة:
 
@@ -133,7 +133,7 @@ Theme Runtime Interpretation & Simulation System
 
 حالة التشغيل الحالية (جاهز، قيد المعالجة، نتائج متاحة).
 
-2) اختيار الثيم والإصدار
+2. اختيار الثيم والإصدار
 
 يختار المستخدم ثيمًا.
 
@@ -143,7 +143,7 @@ Theme Runtime Interpretation & Simulation System
 
 هذه الخطوة تحدد سياق العمل الكامل لاحقًا.
 
-3) لوحة التشغيل (Runtime Workspace)
+3. لوحة التشغيل (Runtime Workspace)
 
 بعد اختيار الإصدار، تنتقل الواجهة إلى مساحة عمل موحّدة تتكوّن من:
 
@@ -169,7 +169,7 @@ Theme Runtime Interpretation & Simulation System
 
 تحديد سيناريو التشغيل المراد معاينته.
 
-4) بناء التركيب (Composition Build)
+4. بناء التركيب (Composition Build)
 
 عند أي تغيير في:
 
@@ -187,7 +187,7 @@ Theme Runtime Interpretation & Simulation System
 
 استلام Context محدث.
 
-5) المعاينة الحية (Live Preview)
+5. المعاينة الحية (Live Preview)
 
 يتم تمرير Context إلى طبقة المعاينة.
 
@@ -203,7 +203,7 @@ Theme Runtime Interpretation & Simulation System
 
 تظهر اختلاف السلوك حسب الإصدار
 
-6) تشغيل السيناريوهات (Simulation Control)
+6. تشغيل السيناريوهات (Simulation Control)
 
 من الواجهة يمكن:
 
@@ -219,7 +219,7 @@ Theme Runtime Interpretation & Simulation System
 
 يُعاد عرضه فورًا
 
-7) لوحة النتائج (Results Panel)
+7. لوحة النتائج (Results Panel)
 
 تعرض الواجهة:
 
@@ -237,7 +237,7 @@ Theme Runtime Interpretation & Simulation System
 
 وبالتركيب الحالي
 
-8) إدارة اللقطات (Snapshots)
+8. إدارة اللقطات (Snapshots)
 
 يمكن للمستخدم:
 
@@ -257,7 +257,7 @@ Theme Runtime Interpretation & Simulation System
 
 Context كامل
 
-9) الجاهزية والتصدير
+9. الجاهزية والتصدير
 
 عند اكتمال التشغيل:
 
@@ -267,7 +267,7 @@ Context كامل
 
 تُظهر ناتج التصدير المرتبط بهذا الإصدار.
 
-10) التنقل والاستمرارية
+10. التنقل والاستمرارية
 
 الواجهة تحفظ حالة العمل.
 

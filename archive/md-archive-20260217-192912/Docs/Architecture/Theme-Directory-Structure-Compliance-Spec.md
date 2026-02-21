@@ -18,6 +18,7 @@
 ## 2) البنية المرجعية القياسية (Typical)
 
 من الجذر:
+
 - `src/`
   - `assets/`
     - `images/`
@@ -54,16 +55,19 @@
 ## 3) قواعد التوافق في VTDR
 
 ### PASS
+
 - وجود `src/views/layouts/master.twig`
 - وجود `src/views/pages/index.twig`
 - وجود `src/assets/js` و`src/assets/styles`
 - وجود `src/locales` على الأقل
 
 ### WARNING
+
 - غياب أحد ملفات الصفحات الثانوية (مثل loyalty/blog...) مع بقاء المسار الأساسي سليمًا.
 - وجود بنية بديلة منطقية مع mapping واضح في runtime.
 
 ### FAIL
+
 - غياب `src` أو `views` أو `master.twig`
 - غياب نقطة دخول الصفحة الرئيسية
 - غياب بنية الأصول اللازمة للتشغيل (js/styles)

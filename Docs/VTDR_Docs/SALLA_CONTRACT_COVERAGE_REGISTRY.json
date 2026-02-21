@@ -1,0 +1,568 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-02-21",
+  "sourceOfTruth": [
+    "https://docs.salla.dev/422558m0",
+    "https://docs.salla.dev/16603963e0",
+    "https://docs.salla.dev/5394196e0",
+    "https://salla.partners/themes",
+    "https://salla.dev/tutorial/arabic-showcase-your-work-with-development-stores/",
+    "https://help.salla.sa/article/544057905"
+  ],
+  "defaults": {
+    "sourceUrl": "https://docs.salla.dev/422558m0",
+    "status": "PARTIAL",
+    "milestone": "S-10",
+    "implementationRefs": [
+      "apps/api/src/routes/runtime.routes.ts",
+      "apps/api/src/routes/simulator.routes.ts",
+      "packages/engine/src/providers/simulator.service.ts",
+      "packages/engine/src/rendering/renderer-service.ts"
+    ],
+    "testRefs": [
+      "apps/api/src/integration/theme-runtime-contract.integration.test.ts",
+      "apps/ui/e2e/preview-parity.spec.ts"
+    ]
+  },
+  "requiredCoverageIds": [
+    "theme.lifecycle.create",
+    "theme.lifecycle.develop",
+    "theme.lifecycle.setup",
+    "theme.lifecycle.publish",
+    "theme.review.overview",
+    "theme.review.main-requirements",
+    "theme.review.process",
+    "theme.review.ui-ux",
+    "theme.review.technical",
+    "theme.review.metadata",
+    "theme.review.pre-launch",
+    "theme.structure.directory",
+    "theme.structure.twilight-json",
+    "theme.twig.basic-syntax",
+    "theme.twig.twilight-flavoured",
+    "runtime.layouts.overview",
+    "runtime.layouts.master-layout",
+    "runtime.global-variables",
+    "runtime.css-variables",
+    "runtime.salla-icons",
+    "runtime.custom-fonts",
+    "runtime.hooks",
+    "runtime.localizations",
+    "page.home",
+    "page.products.listing",
+    "page.products.single",
+    "page.customer.profile",
+    "page.customer.orders-list",
+    "page.customer.order-details",
+    "page.customer.wishlist",
+    "page.customer.notifications",
+    "page.blog.listing",
+    "page.blog.single",
+    "page.brands.listing",
+    "page.brands.single",
+    "page.common.cart",
+    "page.common.loyalty",
+    "page.common.thank-you",
+    "page.common.single-page",
+    "page.common.landing-page",
+    "component.home.overview",
+    "component.home.youtube",
+    "component.home.fixed-banner",
+    "component.home.testimonials",
+    "component.home.parallax-background",
+    "component.home.photos-slider",
+    "component.home.store-features",
+    "component.home.square-photos",
+    "component.home.fixed-products",
+    "component.home.products-slider",
+    "component.home.featured-products-style-1",
+    "component.home.featured-products-style-2",
+    "component.home.featured-products-style-3",
+    "component.home.brands",
+    "component.home.enhanced-square-banners",
+    "component.home.main-links",
+    "component.home.enhanced-slider",
+    "component.home.slider-products-with-headers",
+    "component.home.latest-products",
+    "component.home.vertical-menu-with-slider",
+    "component.product.essentials",
+    "component.product.options",
+    "component.common.overview",
+    "component.common.header",
+    "component.common.footer",
+    "component.common.comments",
+    "theme.change-log"
+  ],
+  "contracts": [
+    {
+      "id": "theme.lifecycle.create",
+      "group": "theme-lifecycle",
+      "title": "Create a theme",
+      "milestone": "S-08"
+    },
+    {
+      "id": "theme.lifecycle.develop",
+      "group": "theme-lifecycle",
+      "title": "Develop a theme",
+      "milestone": "S-08"
+    },
+    {
+      "id": "theme.lifecycle.setup",
+      "group": "theme-lifecycle",
+      "title": "Setup a theme",
+      "milestone": "S-08"
+    },
+    {
+      "id": "theme.lifecycle.publish",
+      "group": "theme-lifecycle",
+      "title": "Publish a theme",
+      "milestone": "S-08"
+    },
+    {
+      "id": "theme.review.overview",
+      "group": "theme-review",
+      "title": "Requirements & Review Overview",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.review.main-requirements",
+      "group": "theme-review",
+      "title": "Main Requirements",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.review.process",
+      "group": "theme-review",
+      "title": "Review Process",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.review.ui-ux",
+      "group": "theme-review",
+      "title": "UI / UX Review",
+      "status": "PASS",
+      "milestone": "S-09",
+      "implementationRefs": [
+        "packages/engine/src/validators/salla-validator.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/validators/salla-validator.ui-ux-review.test.ts"
+      ]
+    },
+    {
+      "id": "theme.review.technical",
+      "group": "theme-review",
+      "title": "Technical Review",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.review.metadata",
+      "group": "theme-review",
+      "title": "Metadata Review",
+      "status": "PASS",
+      "milestone": "S-09",
+      "implementationRefs": [
+        "packages/engine/src/validators/salla-validator.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/validators/salla-validator.metadata-review.test.ts"
+      ]
+    },
+    {
+      "id": "theme.review.pre-launch",
+      "group": "theme-review",
+      "title": "Pre-Launch Review",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.structure.directory",
+      "group": "theme-structure",
+      "title": "Files and folders structure",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.structure.twilight-json",
+      "group": "theme-structure",
+      "title": "twilight.json",
+      "milestone": "S-09"
+    },
+    {
+      "id": "theme.twig.basic-syntax",
+      "group": "twig-runtime",
+      "title": "Twig basic syntax",
+      "status": "PASS",
+      "milestone": "S-11"
+    },
+    {
+      "id": "theme.twig.twilight-flavoured",
+      "group": "twig-runtime",
+      "title": "Twilight flavoured twig",
+      "status": "PASS",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.layouts.overview",
+      "group": "theme-architecture",
+      "title": "Layouts overview",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.layouts.master-layout",
+      "group": "theme-architecture",
+      "title": "Master layout",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.global-variables",
+      "group": "theme-architecture",
+      "title": "Global variables",
+      "sourceUrl": "https://docs.salla.dev/421938m0",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.css-variables",
+      "group": "theme-architecture",
+      "title": "CSS variables",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.salla-icons",
+      "group": "theme-architecture",
+      "title": "Salla icons",
+      "status": "PASS",
+      "milestone": "S-11",
+      "testRefs": [
+        "packages/engine/src/rendering/renderer-service.cdn-filter.test.ts"
+      ]
+    },
+    {
+      "id": "runtime.custom-fonts",
+      "group": "theme-architecture",
+      "title": "Custom fonts",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.hooks",
+      "group": "theme-architecture",
+      "title": "Hooks",
+      "milestone": "S-11"
+    },
+    {
+      "id": "runtime.localizations",
+      "group": "theme-architecture",
+      "title": "Localizations",
+      "milestone": "S-11"
+    },
+    {
+      "id": "page.home",
+      "group": "storefront-pages",
+      "title": "Home page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.products.listing",
+      "group": "storefront-pages",
+      "title": "Products listing page",
+      "status": "PASS",
+      "milestone": "S-10",
+      "implementationRefs": [
+        "packages/engine/src/providers/simulator.service.ts",
+        "packages/engine/src/rendering/preview-context-service.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.listing-source-resolution.test.ts",
+        "packages/engine/src/rendering/preview-context-service.test.ts"
+      ]
+    },
+    {
+      "id": "page.products.single",
+      "group": "storefront-pages",
+      "title": "Single product page",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.customer.profile",
+      "group": "storefront-pages",
+      "title": "Customer profile page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.customer.orders-list",
+      "group": "storefront-pages",
+      "title": "Customer orders list page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.customer.order-details",
+      "group": "storefront-pages",
+      "title": "Customer order details page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.customer.wishlist",
+      "group": "storefront-pages",
+      "title": "Customer wishlist page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.customer.notifications",
+      "group": "storefront-pages",
+      "title": "Customer notifications page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.blog.listing",
+      "group": "storefront-pages",
+      "title": "Blog listing page",
+      "status": "PASS",
+      "milestone": "S-10",
+      "implementationRefs": [
+        "packages/engine/src/providers/simulator.service.ts",
+        "packages/engine/src/rendering/preview-context-service.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.listing-source-resolution.test.ts",
+        "packages/engine/src/rendering/preview-context-service.test.ts"
+      ]
+    },
+    {
+      "id": "page.blog.single",
+      "group": "storefront-pages",
+      "title": "Single blog page",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.brands.listing",
+      "group": "storefront-pages",
+      "title": "Brands listing page",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.brands.single",
+      "group": "storefront-pages",
+      "title": "Single brand page",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.common.cart",
+      "group": "storefront-pages",
+      "title": "Cart page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.common.loyalty",
+      "group": "storefront-pages",
+      "title": "Loyalty page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.common.thank-you",
+      "group": "storefront-pages",
+      "title": "Thank you page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.common.single-page",
+      "group": "storefront-pages",
+      "title": "Single page",
+      "milestone": "S-10"
+    },
+    {
+      "id": "page.common.landing-page",
+      "group": "storefront-pages",
+      "title": "Landing page",
+      "status": "PASS",
+      "milestone": "S-10"
+    },
+    {
+      "id": "component.home.overview",
+      "group": "home-components",
+      "title": "Home components overview",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.youtube",
+      "group": "home-components",
+      "title": "YouTube component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.fixed-banner",
+      "group": "home-components",
+      "title": "Fixed banner component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.testimonials",
+      "group": "home-components",
+      "title": "Testimonials component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.parallax-background",
+      "group": "home-components",
+      "title": "Parallax background component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.photos-slider",
+      "group": "home-components",
+      "title": "Photos slider component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.store-features",
+      "group": "home-components",
+      "title": "Store features component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.square-photos",
+      "group": "home-components",
+      "title": "Square photos component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.fixed-products",
+      "group": "home-components",
+      "title": "Fixed products component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.products-slider",
+      "group": "home-components",
+      "title": "Products slider component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.featured-products-style-1",
+      "group": "home-components",
+      "title": "Featured products style 1",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.featured-products-style-2",
+      "group": "home-components",
+      "title": "Featured products style 2",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.featured-products-style-3",
+      "group": "home-components",
+      "title": "Featured products style 3",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.brands",
+      "group": "home-components",
+      "title": "Brands component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.enhanced-square-banners",
+      "group": "home-components",
+      "title": "Enhanced square banners",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.main-links",
+      "group": "home-components",
+      "title": "Main links component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.enhanced-slider",
+      "group": "home-components",
+      "title": "Enhanced slider component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.slider-products-with-headers",
+      "group": "home-components",
+      "title": "Slider products with headers",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.latest-products",
+      "group": "home-components",
+      "title": "Latest products component",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.home.vertical-menu-with-slider",
+      "group": "home-components",
+      "title": "Vertical menu with slider",
+      "milestone": "S-12"
+    },
+    {
+      "id": "component.product.essentials",
+      "group": "product-components",
+      "title": "Product essentials",
+      "sourceUrl": "https://docs.salla.dev/16603963e0",
+      "milestone": "S-13"
+    },
+    {
+      "id": "component.product.options",
+      "group": "product-components",
+      "title": "Product options",
+      "sourceUrl": "https://docs.salla.dev/5394196e0",
+      "status": "PASS",
+      "milestone": "S-13",
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.product-offer-parity.test.ts"
+      ]
+    },
+    {
+      "id": "component.common.overview",
+      "group": "common-components",
+      "title": "Common components overview",
+      "milestone": "S-13"
+    },
+    {
+      "id": "component.common.header",
+      "group": "common-components",
+      "title": "Header components",
+      "milestone": "S-13"
+    },
+    {
+      "id": "component.common.footer",
+      "group": "common-components",
+      "title": "Footer components",
+      "milestone": "S-13"
+    },
+    {
+      "id": "component.common.comments",
+      "group": "common-components",
+      "title": "Comments component",
+      "sourceUrl": "https://docs.salla.dev/16603963e0",
+      "milestone": "S-13",
+      "testRefs": [
+        "packages/engine/src/providers/simulator.service.reviews-contract.test.ts"
+      ]
+    },
+    {
+      "id": "theme.change-log",
+      "group": "theme-lifecycle",
+      "title": "Change log",
+      "status": "PASS",
+      "milestone": "S-09",
+      "implementationRefs": [
+        "packages/engine/src/rendering/theme-loader.ts",
+        "packages/engine/src/providers/theme-management-orchestrator.ts",
+        "apps/api/src/routes/theme.routes.ts"
+      ],
+      "testRefs": [
+        "packages/engine/src/providers/theme-management-orchestrator.test.ts"
+      ]
+    }
+  ]
+}

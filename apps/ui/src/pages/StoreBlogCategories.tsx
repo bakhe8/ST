@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { apiUrl } from '../services/api';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { apiUrl } from "../services/api";
 
 interface BlogCategory {
   id: string;
@@ -13,11 +13,11 @@ interface BlogCategory {
 }
 
 const emptyCategory: Partial<BlogCategory> = {
-  name: '',
-  slug: '',
-  url: '',
-  description: '',
-  order: 0
+  name: "",
+  slug: "",
+  url: "",
+  description: "",
+  order: 0,
 };
 
 const StoreBlogCategories: React.FC = () => {
@@ -26,13 +26,14 @@ const StoreBlogCategories: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [newItem, setNewItem] = useState<Partial<BlogCategory>>(emptyCategory);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editItem, setEditItem] = useState<Partial<BlogCategory>>(emptyCategory);
+  const [editItem, setEditItem] =
+    useState<Partial<BlogCategory>>(emptyCategory);
 
-  const headers = { 'X-VTDR-Store-Id': storeId || '' };
+  const headers = { "X-VTDR-Store-Id": storeId || "" };
 
   const fetchItems = () => {
     setLoading(true);
-    fetch(apiUrl('v1/blog/categories'), { headers })
+    fetch(apiUrl("v1/blog/categories"), { headers })
       .then((res) => res.json())
       .then((json) => {
         if (json?.success) {
@@ -48,10 +49,10 @@ const StoreBlogCategories: React.FC = () => {
 
   const handleAdd = () => {
     if (!newItem.name?.trim()) return;
-    fetch(apiUrl('v1/blog/categories'), {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(newItem)
+    fetch(apiUrl("v1/blog/categories"), {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(newItem),
     }).then(() => {
       setNewItem(emptyCategory);
       fetchItems();
@@ -60,9 +61,9 @@ const StoreBlogCategories: React.FC = () => {
 
   const handleSaveEdit = (id: string) => {
     fetch(apiUrl(`v1/blog/categories/${id}`), {
-      method: 'PUT',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(editItem)
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(editItem),
     }).then(() => {
       setEditId(null);
       setEditItem(emptyCategory);
@@ -72,50 +73,113 @@ const StoreBlogCategories: React.FC = () => {
 
   const handleDelete = (id: string) => {
     fetch(apiUrl(`v1/blog/categories/${id}`), {
-      method: 'DELETE',
-      headers
+      method: "DELETE",
+      headers,
     }).then(() => fetchItems());
   };
 
   return (
-    <div style={{ maxWidth: 980, margin: '40px auto', background: '#1e293b', padding: 24, borderRadius: 12, color: 'white' }}>
+    <div
+      style={{
+        maxWidth: 980,
+        margin: "40px auto",
+        background: "#1e293b",
+        padding: 24,
+        borderRadius: 12,
+        color: "white",
+      }}
+    >
       <h2 style={{ marginBottom: 16 }}>إدارة تصنيفات المدونة</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr 1fr auto', gap: 8, marginBottom: 18 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "2fr 1fr 2fr 2fr 1fr auto",
+          gap: 8,
+          marginBottom: 18,
+        }}
+      >
         <input
           placeholder="الاسم"
-          value={newItem.name || ''}
-          onChange={(e) => setNewItem((prev) => ({ ...prev, name: e.target.value }))}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+          value={newItem.name || ""}
+          onChange={(e) =>
+            setNewItem((prev) => ({ ...prev, name: e.target.value }))
+          }
+          style={{
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "white",
+          }}
         />
         <input
           placeholder="slug"
-          value={newItem.slug || ''}
-          onChange={(e) => setNewItem((prev) => ({ ...prev, slug: e.target.value }))}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+          value={newItem.slug || ""}
+          onChange={(e) =>
+            setNewItem((prev) => ({ ...prev, slug: e.target.value }))
+          }
+          style={{
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "white",
+          }}
         />
         <input
           placeholder="الرابط"
-          value={newItem.url || ''}
-          onChange={(e) => setNewItem((prev) => ({ ...prev, url: e.target.value }))}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+          value={newItem.url || ""}
+          onChange={(e) =>
+            setNewItem((prev) => ({ ...prev, url: e.target.value }))
+          }
+          style={{
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "white",
+          }}
         />
         <input
           placeholder="الوصف"
-          value={newItem.description || ''}
-          onChange={(e) => setNewItem((prev) => ({ ...prev, description: e.target.value }))}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+          value={newItem.description || ""}
+          onChange={(e) =>
+            setNewItem((prev) => ({ ...prev, description: e.target.value }))
+          }
+          style={{
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "white",
+          }}
         />
         <input
           type="number"
           placeholder="ترتيب"
           value={newItem.order ?? 0}
-          onChange={(e) => setNewItem((prev) => ({ ...prev, order: Number(e.target.value) }))}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+          onChange={(e) =>
+            setNewItem((prev) => ({ ...prev, order: Number(e.target.value) }))
+          }
+          style={{
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "white",
+          }}
         />
         <button
           onClick={handleAdd}
-          style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 600 }}
+          style={{
+            background: "#3b82f6",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 14px",
+            fontWeight: 600,
+          }}
         >
           إضافة
         </button>
@@ -124,9 +188,14 @@ const StoreBlogCategories: React.FC = () => {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)' }}>
+            <tr
+              style={{
+                textAlign: "left",
+                background: "rgba(255,255,255,0.05)",
+              }}
+            >
               <th style={{ padding: 10 }}>الاسم</th>
               <th style={{ padding: 10 }}>slug</th>
               <th style={{ padding: 10 }}>الرابط</th>
@@ -137,13 +206,25 @@ const StoreBlogCategories: React.FC = () => {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid #334155' }}>
+              <tr key={item.id} style={{ borderBottom: "1px solid #334155" }}>
                 <td style={{ padding: 10 }}>
                   {editId === item.id ? (
                     <input
-                      value={editItem.name || ''}
-                      onChange={(e) => setEditItem((prev) => ({ ...prev, name: e.target.value }))}
-                      style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                      value={editItem.name || ""}
+                      onChange={(e) =>
+                        setEditItem((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: 6,
+                        borderRadius: 6,
+                        border: "1px solid #334155",
+                        background: "#0f172a",
+                        color: "white",
+                      }}
                     />
                   ) : (
                     item.name
@@ -152,9 +233,21 @@ const StoreBlogCategories: React.FC = () => {
                 <td style={{ padding: 10 }}>
                   {editId === item.id ? (
                     <input
-                      value={editItem.slug || ''}
-                      onChange={(e) => setEditItem((prev) => ({ ...prev, slug: e.target.value }))}
-                      style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                      value={editItem.slug || ""}
+                      onChange={(e) =>
+                        setEditItem((prev) => ({
+                          ...prev,
+                          slug: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: 6,
+                        borderRadius: 6,
+                        border: "1px solid #334155",
+                        background: "#0f172a",
+                        color: "white",
+                      }}
                     />
                   ) : (
                     item.slug
@@ -163,23 +256,47 @@ const StoreBlogCategories: React.FC = () => {
                 <td style={{ padding: 10 }}>
                   {editId === item.id ? (
                     <input
-                      value={editItem.url || ''}
-                      onChange={(e) => setEditItem((prev) => ({ ...prev, url: e.target.value }))}
-                      style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                      value={editItem.url || ""}
+                      onChange={(e) =>
+                        setEditItem((prev) => ({
+                          ...prev,
+                          url: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: 6,
+                        borderRadius: 6,
+                        border: "1px solid #334155",
+                        background: "#0f172a",
+                        color: "white",
+                      }}
                     />
                   ) : (
-                    item.url || '-'
+                    item.url || "-"
                   )}
                 </td>
                 <td style={{ padding: 10 }}>
                   {editId === item.id ? (
                     <input
-                      value={editItem.description || ''}
-                      onChange={(e) => setEditItem((prev) => ({ ...prev, description: e.target.value }))}
-                      style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                      value={editItem.description || ""}
+                      onChange={(e) =>
+                        setEditItem((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: 6,
+                        borderRadius: 6,
+                        border: "1px solid #334155",
+                        background: "#0f172a",
+                        color: "white",
+                      }}
                     />
                   ) : (
-                    item.description || '-'
+                    item.description || "-"
                   )}
                 </td>
                 <td style={{ padding: 10 }}>
@@ -187,25 +304,50 @@ const StoreBlogCategories: React.FC = () => {
                     <input
                       type="number"
                       value={editItem.order ?? 0}
-                      onChange={(e) => setEditItem((prev) => ({ ...prev, order: Number(e.target.value) }))}
-                      style={{ width: 90, padding: 6, borderRadius: 6, border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                      onChange={(e) =>
+                        setEditItem((prev) => ({
+                          ...prev,
+                          order: Number(e.target.value),
+                        }))
+                      }
+                      style={{
+                        width: 90,
+                        padding: 6,
+                        borderRadius: 6,
+                        border: "1px solid #334155",
+                        background: "#0f172a",
+                        color: "white",
+                      }}
                     />
                   ) : (
-                    item.order ?? 0
+                    (item.order ?? 0)
                   )}
                 </td>
-                <td style={{ padding: 10, whiteSpace: 'nowrap' }}>
+                <td style={{ padding: 10, whiteSpace: "nowrap" }}>
                   {editId === item.id ? (
                     <>
                       <button
                         onClick={() => handleSaveEdit(item.id)}
-                        style={{ marginInlineEnd: 8, background: '#22c55e', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px' }}
+                        style={{
+                          marginInlineEnd: 8,
+                          background: "#22c55e",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                        }}
                       >
                         حفظ
                       </button>
                       <button
                         onClick={() => setEditId(null)}
-                        style={{ background: '#64748b', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px' }}
+                        style={{
+                          background: "#64748b",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                        }}
                       >
                         إلغاء
                       </button>
@@ -217,13 +359,26 @@ const StoreBlogCategories: React.FC = () => {
                           setEditId(item.id);
                           setEditItem(item);
                         }}
-                        style={{ marginInlineEnd: 8, background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px' }}
+                        style={{
+                          marginInlineEnd: 8,
+                          background: "#3b82f6",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                        }}
                       >
                         تعديل
                       </button>
                       <button
                         onClick={() => handleDelete(item.id)}
-                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px' }}
+                        style={{
+                          background: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                        }}
                       >
                         حذف
                       </button>
@@ -240,4 +395,3 @@ const StoreBlogCategories: React.FC = () => {
 };
 
 export default StoreBlogCategories;
-

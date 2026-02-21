@@ -10,11 +10,11 @@
 
 VTDR ليس واحداً من الثلاثة، بل هو **الثلاثة معاً في آنٍ واحد**:
 
-| الطبقة | الوظيفة الفعلية |
-|--------|----------------|
-| **Runtime Platform** | يُشغّل ثيمات Twig ويُنتج HTML حقيقياً قابلاً للعرض في المتصفح |
-| **Development Environment** | يوفر UI لإدارة بيانات المتجر الافتراضي وإعدادات الثيم |
-| **Simulator** | يُحاكي Salla API بالكامل (products/cart/orders/menus/...) بدون الاتصال بالمتجر الحقيقي |
+| الطبقة                      | الوظيفة الفعلية                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| **Runtime Platform**        | يُشغّل ثيمات Twig ويُنتج HTML حقيقياً قابلاً للعرض في المتصفح                          |
+| **Development Environment** | يوفر UI لإدارة بيانات المتجر الافتراضي وإعدادات الثيم                                  |
+| **Simulator**               | يُحاكي Salla API بالكامل (products/cart/orders/menus/...) بدون الاتصال بالمتجر الحقيقي |
 
 ### أين يبدأ Runtime؟
 
@@ -51,27 +51,27 @@ Runtime يبدأ عند استدعاء `GET /preview/:storeId/:themeId/:version`
 
 ### A. نقاط دخول HTTP (API)
 
-| المسار | الطريقة | الوظيفة | المُعالج |
-|--------|---------|---------|---------|
-| `GET /api/health` | GET | فحص حالة النظام | مباشر في index.ts |
-| `GET /api/debug/test` | GET | اختبار الاتصال | مباشر في index.ts |
-| `GET /api/system/*` | GET | معلومات النظام | `system.routes.ts` |
-| `GET /api/themes` | GET | قائمة الثيمات | `theme.routes.ts` |
-| `POST /api/themes/discover` | POST | اكتشاف ثيمات محلية | `theme.routes.ts` |
-| `POST /api/themes/register` | POST | تسجيل ثيم | `theme.routes.ts` |
-| `POST /api/themes/sync` | POST | مزامنة جميع الثيمات | `theme.routes.ts` |
-| `GET /api/stores` | GET | قائمة المتاجر | `store.routes.ts` |
-| `POST /api/stores` | POST | إنشاء متجر جديد | `store.routes.ts` |
-| `GET /api/stores/:id` | GET | بيانات متجر | `store.routes.ts` |
-| `PATCH /api/stores/:id` | PATCH | تحديث متجر | `store.routes.ts` |
-| `DELETE /api/stores/:id` | DELETE | حذف متجر | `store.routes.ts` |
-| `POST /api/stores/:id/clone` | POST | استنساخ متجر | `store.routes.ts` |
-| `POST /api/stores/:id/promote` | POST | ترقية إلى master | `store.routes.ts` |
-| `POST /api/stores/:id/inherit` | POST | ربط بمتجر أب | `store.routes.ts` |
-| `PATCH /api/stores/:id/settings` | PATCH | تحديث إعدادات | `store.routes.ts` |
-| `POST /api/stores/:id/seed` | POST | بذر بيانات demo | `store.routes.ts` |
-| `POST /api/stores/:id/sync` | POST | مزامنة من سلة حقيقي | `store.routes.ts` |
-| `DELETE /api/stores/:id/data` | DELETE | مسح بيانات المتجر | `store.routes.ts` |
+| المسار                           | الطريقة | الوظيفة             | المُعالج           |
+| -------------------------------- | ------- | ------------------- | ------------------ |
+| `GET /api/health`                | GET     | فحص حالة النظام     | مباشر في index.ts  |
+| `GET /api/debug/test`            | GET     | اختبار الاتصال      | مباشر في index.ts  |
+| `GET /api/system/*`              | GET     | معلومات النظام      | `system.routes.ts` |
+| `GET /api/themes`                | GET     | قائمة الثيمات       | `theme.routes.ts`  |
+| `POST /api/themes/discover`      | POST    | اكتشاف ثيمات محلية  | `theme.routes.ts`  |
+| `POST /api/themes/register`      | POST    | تسجيل ثيم           | `theme.routes.ts`  |
+| `POST /api/themes/sync`          | POST    | مزامنة جميع الثيمات | `theme.routes.ts`  |
+| `GET /api/stores`                | GET     | قائمة المتاجر       | `store.routes.ts`  |
+| `POST /api/stores`               | POST    | إنشاء متجر جديد     | `store.routes.ts`  |
+| `GET /api/stores/:id`            | GET     | بيانات متجر         | `store.routes.ts`  |
+| `PATCH /api/stores/:id`          | PATCH   | تحديث متجر          | `store.routes.ts`  |
+| `DELETE /api/stores/:id`         | DELETE  | حذف متجر            | `store.routes.ts`  |
+| `POST /api/stores/:id/clone`     | POST    | استنساخ متجر        | `store.routes.ts`  |
+| `POST /api/stores/:id/promote`   | POST    | ترقية إلى master    | `store.routes.ts`  |
+| `POST /api/stores/:id/inherit`   | POST    | ربط بمتجر أب        | `store.routes.ts`  |
+| `PATCH /api/stores/:id/settings` | PATCH   | تحديث إعدادات       | `store.routes.ts`  |
+| `POST /api/stores/:id/seed`      | POST    | بذر بيانات demo     | `store.routes.ts`  |
+| `POST /api/stores/:id/sync`      | POST    | مزامنة من سلة حقيقي | `store.routes.ts`  |
+| `DELETE /api/stores/:id/data`    | DELETE  | مسح بيانات المتجر   | `store.routes.ts`  |
 
 ### B. نقاط دخول Simulator (تحت `/api/v1/`)
 
@@ -92,42 +92,42 @@ Runtime يبدأ عند استدعاء `GET /preview/:storeId/:themeId/:version`
 
 ### C. نقاط دخول Rendering
 
-| المسار | الوظيفة |
-|--------|---------|
-| `GET /preview/:storeId/:themeId/:version?page=&viewport=` | رندر HTML كامل للمعاينة |
-| `POST /render` | إرجاع RuntimeContext كـ JSON |
-| `GET /themes/*` | خدمة ملفات الثيم الساكنة |
+| المسار                                                    | الوظيفة                      |
+| --------------------------------------------------------- | ---------------------------- |
+| `GET /preview/:storeId/:themeId/:version?page=&viewport=` | رندر HTML كامل للمعاينة      |
+| `POST /render`                                            | إرجاع RuntimeContext كـ JSON |
+| `GET /themes/*`                                           | خدمة ملفات الثيم الساكنة     |
 
 ### D. نقاط دخول UI (React)
 
-| المسار | الصفحة |
-|--------|--------|
-| `/` | SystemHome - قائمة المتاجر |
-| `/store/:storeId` | StoreDashboard |
-| `/store/:storeId/products` | StoreProducts |
-| `/store/:storeId/products/:productId/edit` | EditProduct |
-| `/store/:storeId/brands` | StoreBrands |
-| `/store/:storeId/offers` | StoreOffers |
-| `/store/:storeId/reviews` | StoreReviews |
-| `/store/:storeId/questions` | StoreQuestions |
-| `/store/:storeId/categories` | StoreCategories |
-| `/store/:storeId/static-pages` | StoreStaticPages |
-| `/store/:storeId/menus` | StoreMenus |
-| `/store/:storeId/blog/categories` | StoreBlogCategories |
-| `/store/:storeId/blog/articles` | StoreBlogArticles |
-| `/store/:storeId/settings` | StoreSettingsPanel |
-| `/store/:storeId/theme` | ThemeSettingsPanel |
-| `/store/:storeId/preview` | StorePreview |
+| المسار                                     | الصفحة                     |
+| ------------------------------------------ | -------------------------- |
+| `/`                                        | SystemHome - قائمة المتاجر |
+| `/store/:storeId`                          | StoreDashboard             |
+| `/store/:storeId/products`                 | StoreProducts              |
+| `/store/:storeId/products/:productId/edit` | EditProduct                |
+| `/store/:storeId/brands`                   | StoreBrands                |
+| `/store/:storeId/offers`                   | StoreOffers                |
+| `/store/:storeId/reviews`                  | StoreReviews               |
+| `/store/:storeId/questions`                | StoreQuestions             |
+| `/store/:storeId/categories`               | StoreCategories            |
+| `/store/:storeId/static-pages`             | StoreStaticPages           |
+| `/store/:storeId/menus`                    | StoreMenus                 |
+| `/store/:storeId/blog/categories`          | StoreBlogCategories        |
+| `/store/:storeId/blog/articles`            | StoreBlogArticles          |
+| `/store/:storeId/settings`                 | StoreSettingsPanel         |
+| `/store/:storeId/theme`                    | ThemeSettingsPanel         |
+| `/store/:storeId/preview`                  | StorePreview               |
 
 ### E. نقاط دخول CLI/Scripts
 
-| الأمر | الوظيفة |
-|-------|---------|
+| الأمر                       | الوظيفة               |
+| --------------------------- | --------------------- |
 | `npm run data:harden:check` | فحص صحة بيانات المتجر |
-| `npm run data:harden` | تصحيح بيانات المتجر |
-| `npm run docs:sync` | مزامنة الوثائق |
-| `npm run docs:drift` | فحص انحراف الوثائق |
-| `npm run studio` | Prisma Studio |
+| `npm run data:harden`       | تصحيح بيانات المتجر   |
+| `npm run docs:sync`         | مزامنة الوثائق        |
+| `npm run docs:drift`        | فحص انحراف الوثائق    |
+| `npm run studio`            | Prisma Studio         |
 
 ---
 
@@ -227,15 +227,15 @@ Runtime يبدأ عند استدعاء `GET /preview/:storeId/:themeId/:version`
 
 ### مصادر الحقيقة
 
-| الكيان | مصدر الحقيقة الفعلي |
-|--------|---------------------|
-| Store metadata | جدول `Store` في SQLite |
-| DataEntities (products/brands/...) | جدول `DataEntity` (payloadJson) |
-| Theme files | نظام الملفات (`packages/themes/`) |
-| Theme registration | جدول `Theme` + `ThemeVersion` |
-| Page compositions | `themeSettingsJson` في `Store` (JSON مُضمّن) |
-| Component states | جدول `ComponentState` |
-| Salla API schema | `temp_twilight_ext/data/` (خارج monorepo) |
+| الكيان                             | مصدر الحقيقة الفعلي                          |
+| ---------------------------------- | -------------------------------------------- |
+| Store metadata                     | جدول `Store` في SQLite                       |
+| DataEntities (products/brands/...) | جدول `DataEntity` (payloadJson)              |
+| Theme files                        | نظام الملفات (`packages/themes/`)            |
+| Theme registration                 | جدول `Theme` + `ThemeVersion`                |
+| Page compositions                  | `themeSettingsJson` في `Store` (JSON مُضمّن) |
+| Component states                   | جدول `ComponentState`                        |
+| Salla API schema                   | `temp_twilight_ext/data/` (خارج monorepo)    |
 
 ---
 
@@ -395,31 +395,31 @@ storeLogic.getDataEntities(storeId, type)
 
 ### ما يتطابق فعلاً
 
-| العنصر | مستوى التطابق |
-|--------|--------------|
-| هيكل RuntimeContext | عالٍ - يُطابق Salla Twig context |
-| Twig filters الأساسية | متوسط - مُنفّذة يدوياً |
-| هيكل API responses | عالٍ - يُطابق Salla API v1 format |
-| بنية twilight.json | عالٍ - يُقرأ ويُفسَّر بنفس الطريقة |
-| هيكل theme folders | عالٍ - `src/views/pages/`, `src/locales/`, `public/` |
+| العنصر                | مستوى التطابق                                        |
+| --------------------- | ---------------------------------------------------- |
+| هيكل RuntimeContext   | عالٍ - يُطابق Salla Twig context                     |
+| Twig filters الأساسية | متوسط - مُنفّذة يدوياً                               |
+| هيكل API responses    | عالٍ - يُطابق Salla API v1 format                    |
+| بنية twilight.json    | عالٍ - يُقرأ ويُفسَّر بنفس الطريقة                   |
+| هيكل theme folders    | عالٍ - `src/views/pages/`, `src/locales/`, `public/` |
 
 ### ما هو تقريب أو مختلف
 
-| العنصر | الانحراف |
-|--------|---------|
-| `store.url` | مثبّت على localhost بدلاً من domain حقيقي |
-| `store.logo/avatar` | مثبّت على Salla CDN logo |
-| `store.api` | مثبّت على localhost:3001 |
-| الصور | كلها placeholder.png |
-| Cart | في memory فقط، يُفقد عند restart |
+| العنصر               | الانحراف                                                         |
+| -------------------- | ---------------------------------------------------------------- | --------------------------- |
+| `store.url`          | مثبّت على localhost بدلاً من domain حقيقي                        |
+| `store.logo/avatar`  | مثبّت على Salla CDN logo                                         |
+| `store.api`          | مثبّت على localhost:3001                                         |
+| الصور                | كلها placeholder.png                                             |
+| Cart                 | في memory فقط، يُفقد عند restart                                 |
 | Salla SDK JavaScript | غير مُنفَّذ - يُضاف فقط `window.vtdr_context = { bridge: true }` |
-| Authentication | mock فقط - لا يوجد JWT حقيقي |
-| Payment | غير موجود |
-| Webhooks | يُرسل HTTP لكن لا يوجد verification |
-| `|time_ago` filter | يُعيد دائماً `منذ وقت قصير` |
-| `old()` function | يُعيد دائماً `''` |
-| `link()` function | يُعيد `/${val}` فقط |
-| SchemaService | يعتمد على `temp_twilight_ext/data/` خارج monorepo |
+| Authentication       | mock فقط - لا يوجد JWT حقيقي                                     |
+| Payment              | غير موجود                                                        |
+| Webhooks             | يُرسل HTTP لكن لا يوجد verification                              |
+| `                    | time_ago` filter                                                 | يُعيد دائماً `منذ وقت قصير` |
+| `old()` function     | يُعيد دائماً `''`                                                |
+| `link()` function    | يُعيد `/${val}` فقط                                              |
+| SchemaService        | يعتمد على `temp_twilight_ext/data/` خارج monorepo                |
 
 ---
 
@@ -483,69 +483,69 @@ storeLogic.getDataEntities(storeId, type)
 
 ## ملحق: Coverage Matrix
 
-| الملف | حُفص؟ | ملاحظة |
-|-------|--------|--------|
-| `apps/api/src/index.ts` | ✅ | كامل |
-| `apps/api/src/routes/runtime.routes.ts` | ✅ | كامل |
-| `apps/api/src/routes/simulator.routes.ts` | ✅ | كامل |
-| `apps/api/src/routes/store.routes.ts` | ✅ | كامل |
-| `apps/api/src/routes/theme.routes.ts` | ✅ | كامل |
-| `apps/api/src/routes/system.routes.ts` | ⚠️ | بنية فقط |
-| `apps/api/src/middlewares/context.middleware.ts` | ⚠️ | بنية فقط |
-| `apps/api/src/services/context-resolver.ts` | ⚠️ | بنية فقط |
-| `apps/api/src/providers/local-theme-file-provider.ts` | ⚠️ | بنية فقط |
-| `apps/api/src/utils/bootstrap.ts` | ⚠️ | بنية فقط |
-| `apps/api/src/utils/api-response.ts` | ⚠️ | بنية فقط |
-| `apps/api/audit-db.ts` | ⚠️ | لم يُفحص |
-| `apps/api/check-store.ts` | ⚠️ | لم يُفحص |
-| `apps/ui/src/App.tsx` | ✅ | كامل |
-| `apps/ui/src/pages/*.tsx` (15 ملف) | ⚠️ | بنية فقط |
-| `apps/ui/src/components/*.tsx` | ⚠️ | لم تُفحص |
-| `apps/ui/src/layouts/*.tsx` | ⚠️ | لم تُفحص |
-| `apps/ui/src/services/*.ts` | ⚠️ | لم تُفحص |
-| `packages/engine/src/core/composition-engine.ts` | ✅ | كامل |
-| `packages/engine/src/core/store-logic.ts` | ✅ | كامل |
-| `packages/engine/src/core/store-factory.ts` | ✅ | كامل |
-| `packages/engine/src/core/schema-service.ts` | ✅ | كامل |
-| `packages/engine/src/core/content-manager.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/core/localization-service.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/core/store-logic.test.ts` | ⚠️ | لم يُفحص |
-| `packages/engine/src/rendering/renderer-service.ts` | ✅ | كامل (875 سطر) |
-| `packages/engine/src/rendering/theme-loader.ts` | ✅ | كامل |
-| `packages/engine/src/rendering/theme-registry.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/providers/simulator.service.ts` | ✅ | كامل (1755 سطر) |
-| `packages/engine/src/providers/seeder-service.ts` | ✅ | كامل |
-| `packages/engine/src/providers/synchronization-service.ts` | ✅ | كامل |
-| `packages/engine/src/infra/file-system.interface.ts` | ✅ | كامل |
-| `packages/engine/src/infra/local-file-system.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/infra/theme-file-provider.interface.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/webhooks/hook-service.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/webhooks/webhook-service.ts` | ⚠️ | بنية فقط |
-| `packages/engine/src/validators/salla-validator.ts` | ⚠️ | لم يُفحص |
-| `packages/engine/index.ts` | ✅ | كامل |
-| `packages/engine/seed-store.js` | ⚠️ | لم يُفحص |
-| `packages/contracts/runtime.ts` | ✅ | كامل |
-| `packages/contracts/dal.contract.ts` | ✅ | كامل |
-| `packages/contracts/theme.ts` | ⚠️ | بنية فقط |
-| `packages/contracts/component.ts` | ⚠️ | بنية فقط |
-| `packages/contracts/content.ts` | ⚠️ | بنية فقط |
-| `packages/contracts/index.ts` | ✅ | كامل |
-| `packages/contracts/src/schemas.ts` | ✅ | كامل |
-| `packages/contracts/src/salla.generated.ts` | ⚠️ | بنية فقط |
-| `packages/contracts/src/schemas.test.ts` | ⚠️ | لم يُفحص |
-| `packages/contracts/salla.openapi.json` | ⚠️ | لم يُفحص |
-| `packages/data/prisma/schema.prisma` | ✅ | كامل |
-| `packages/data/src/prisma-repository.ts` | ⚠️ | بنية فقط |
-| `packages/data/src/index.ts` | ⚠️ | بنية فقط |
-| `packages/themes/theme-raed-master/` | ⚠️ | بنية فقط |
-| `tools/data-hardening/` | ⚠️ | لم يُفحص |
-| `tools/doc-drift/` | ⚠️ | لم يُفحص |
-| `archive/` | ⚠️ | لم يُفحص |
-| `Docs/` | ⚠️ | لم يُفحص |
-| `turbo.json` | ✅ | كامل |
-| `package.json` | ✅ | كامل |
-| `tsconfig.base.json` | ⚠️ | بنية فقط |
-| `.env` | ⚠️ | بنية فقط |
-| `vitest.config.ts` | ⚠️ | بنية فقط |
-| `ARCHITECTURE.md` | ⚠️ | لم يُفحص |
-| `INSTRUCTIONS_RESTRUCTURE_PLAN.md` | ⚠️ | لم يُفحص |
+| الملف                                                        | حُفص؟ | ملاحظة          |
+| ------------------------------------------------------------ | ----- | --------------- |
+| `apps/api/src/index.ts`                                      | ✅    | كامل            |
+| `apps/api/src/routes/runtime.routes.ts`                      | ✅    | كامل            |
+| `apps/api/src/routes/simulator.routes.ts`                    | ✅    | كامل            |
+| `apps/api/src/routes/store.routes.ts`                        | ✅    | كامل            |
+| `apps/api/src/routes/theme.routes.ts`                        | ✅    | كامل            |
+| `apps/api/src/routes/system.routes.ts`                       | ⚠️    | بنية فقط        |
+| `apps/api/src/middlewares/context.middleware.ts`             | ⚠️    | بنية فقط        |
+| `apps/api/src/services/context-resolver.ts`                  | ⚠️    | بنية فقط        |
+| `apps/api/src/providers/local-theme-file-provider.ts`        | ⚠️    | بنية فقط        |
+| `apps/api/src/utils/bootstrap.ts`                            | ⚠️    | بنية فقط        |
+| `apps/api/src/utils/api-response.ts`                         | ⚠️    | بنية فقط        |
+| `apps/api/audit-db.ts`                                       | ⚠️    | لم يُفحص        |
+| `apps/api/check-store.ts`                                    | ⚠️    | لم يُفحص        |
+| `apps/ui/src/App.tsx`                                        | ✅    | كامل            |
+| `apps/ui/src/pages/*.tsx` (15 ملف)                           | ⚠️    | بنية فقط        |
+| `apps/ui/src/components/*.tsx`                               | ⚠️    | لم تُفحص        |
+| `apps/ui/src/layouts/*.tsx`                                  | ⚠️    | لم تُفحص        |
+| `apps/ui/src/services/*.ts`                                  | ⚠️    | لم تُفحص        |
+| `packages/engine/src/core/composition-engine.ts`             | ✅    | كامل            |
+| `packages/engine/src/core/store-logic.ts`                    | ✅    | كامل            |
+| `packages/engine/src/core/store-factory.ts`                  | ✅    | كامل            |
+| `packages/engine/src/core/schema-service.ts`                 | ✅    | كامل            |
+| `packages/engine/src/core/content-manager.ts`                | ⚠️    | بنية فقط        |
+| `packages/engine/src/core/localization-service.ts`           | ⚠️    | بنية فقط        |
+| `packages/engine/src/core/store-logic.test.ts`               | ⚠️    | لم يُفحص        |
+| `packages/engine/src/rendering/renderer-service.ts`          | ✅    | كامل (875 سطر)  |
+| `packages/engine/src/rendering/theme-loader.ts`              | ✅    | كامل            |
+| `packages/engine/src/rendering/theme-registry.ts`            | ⚠️    | بنية فقط        |
+| `packages/engine/src/providers/simulator.service.ts`         | ✅    | كامل (1755 سطر) |
+| `packages/engine/src/providers/seeder-service.ts`            | ✅    | كامل            |
+| `packages/engine/src/providers/synchronization-service.ts`   | ✅    | كامل            |
+| `packages/engine/src/infra/file-system.interface.ts`         | ✅    | كامل            |
+| `packages/engine/src/infra/local-file-system.ts`             | ⚠️    | بنية فقط        |
+| `packages/engine/src/infra/theme-file-provider.interface.ts` | ⚠️    | بنية فقط        |
+| `packages/engine/src/webhooks/hook-service.ts`               | ⚠️    | بنية فقط        |
+| `packages/engine/src/webhooks/webhook-service.ts`            | ⚠️    | بنية فقط        |
+| `packages/engine/src/validators/salla-validator.ts`          | ⚠️    | لم يُفحص        |
+| `packages/engine/index.ts`                                   | ✅    | كامل            |
+| `packages/engine/seed-store.js`                              | ⚠️    | لم يُفحص        |
+| `packages/contracts/runtime.ts`                              | ✅    | كامل            |
+| `packages/contracts/dal.contract.ts`                         | ✅    | كامل            |
+| `packages/contracts/theme.ts`                                | ⚠️    | بنية فقط        |
+| `packages/contracts/component.ts`                            | ⚠️    | بنية فقط        |
+| `packages/contracts/content.ts`                              | ⚠️    | بنية فقط        |
+| `packages/contracts/index.ts`                                | ✅    | كامل            |
+| `packages/contracts/src/schemas.ts`                          | ✅    | كامل            |
+| `packages/contracts/src/salla.generated.ts`                  | ⚠️    | بنية فقط        |
+| `packages/contracts/src/schemas.test.ts`                     | ⚠️    | لم يُفحص        |
+| `packages/contracts/salla.openapi.json`                      | ⚠️    | لم يُفحص        |
+| `packages/data/prisma/schema.prisma`                         | ✅    | كامل            |
+| `packages/data/src/prisma-repository.ts`                     | ⚠️    | بنية فقط        |
+| `packages/data/src/index.ts`                                 | ⚠️    | بنية فقط        |
+| `packages/themes/theme-raed-master/`                         | ⚠️    | بنية فقط        |
+| `tools/data-hardening/`                                      | ⚠️    | لم يُفحص        |
+| `tools/doc-drift/`                                           | ⚠️    | لم يُفحص        |
+| `archive/`                                                   | ⚠️    | لم يُفحص        |
+| `Docs/`                                                      | ⚠️    | لم يُفحص        |
+| `turbo.json`                                                 | ✅    | كامل            |
+| `package.json`                                               | ✅    | كامل            |
+| `tsconfig.base.json`                                         | ⚠️    | بنية فقط        |
+| `.env`                                                       | ⚠️    | بنية فقط        |
+| `vitest.config.ts`                                           | ⚠️    | بنية فقط        |
+| `ARCHITECTURE.md`                                            | ⚠️    | لم يُفحص        |
+| `INSTRUCTIONS_RESTRUCTURE_PLAN.md`                           | ⚠️    | لم يُفحص        |

@@ -1,6 +1,6 @@
 body.mm-ocd-opened,
 body.modal-is-open,
-body.fancybox-open{
+body.fancybox-open {
   overflow: hidden;
 
   #tidio-chat,
@@ -8,7 +8,7 @@ body.fancybox-open{
   [class$="__feedback"],
   #fb-root,
   .fb_reset,
-  #chat-widget-container{
+  #chat-widget-container {
     display: none !important;
   }
 }
@@ -23,8 +23,8 @@ body.fancybox-open{
   }
 }
 
-@media(max-width: 1024px) {
-  body.dropdown--is-opened{
+@media (max-width: 1024px) {
+  body.dropdown--is-opened {
     overflow: hidden;
 
     #tidio-chat,
@@ -32,7 +32,7 @@ body.fancybox-open{
     [class$="__feedback"],
     #fb-root,
     .fb_reset,
-    #chat-widget-container{
+    #chat-widget-container {
       display: none !important;
     }
   }
@@ -80,13 +80,12 @@ iframe.tawk-widget {
   bottom: 20px;
 }
 
-
-.is-sticky-product-bar{ 
-  &.product-single{
+.is-sticky-product-bar {
+  &.product-single {
     [id^="gb-widget"],
     iframe.tawk-widget,
     #fb-root .fb_dialog iframe[data-testid="bubble_iframe"],
-    iframe.tawk-widget{
+    iframe.tawk-widget {
       bottom: 70px !important;
     }
   }

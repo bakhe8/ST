@@ -9,6 +9,7 @@
 ## 1) المسارات الرسمية التي يجب اعتمادها
 
 ### Twilight (Themes)
+
 - Create a theme: https://docs.salla.dev/421877m0
 - Develop a theme: https://docs.salla.dev/421878m0
 - Setup a theme: https://docs.salla.dev/421879m0
@@ -20,6 +21,7 @@
 - Theme Metadata Review: https://docs.salla.dev/421889m0
 
 ### Theme Structure & Contracts
+
 - Themes directory structure: https://docs.salla.dev/421918m0
 - twilight.json: https://docs.salla.dev/421921m0
 - Twig basic syntax: https://docs.salla.dev/421928m0
@@ -28,6 +30,7 @@
 - Global variables: https://docs.salla.dev/421938m0
 
 ### Salla CLI
+
 - CLI overview: https://docs.salla.dev/429774m0
 - CLI usage: https://docs.salla.dev/422761m0
 - CLI authorization: https://docs.salla.dev/422762m0
@@ -37,6 +40,7 @@
 - Theme publish: https://docs.salla.dev/422968m0
 
 ### Twilight JS SDK / Web Components
+
 - Twilight JS SDK overview: https://docs.salla.dev/422610m0
 - Web Components overview: https://docs.salla.dev/422688m0
 - Web Components usage: https://docs.salla.dev/422689m0
@@ -76,6 +80,7 @@
 ## 5) ربطها مع وثيقتك الموحّدة
 
 هذه الوثيقة تُستخدم كطبقة “مرجعية رسمية” مكملة لـ:
+
 - [Unified-Answers-Execution-Blueprint.md](Unified-Answers-Execution-Blueprint.md)
 - [Image-Spec-Comparison-Matrix.md](Image-Spec-Comparison-Matrix.md)
 - [Salla-Theme-Blog-Practices.md](Salla-Theme-Blog-Practices.md) (إرشادي)

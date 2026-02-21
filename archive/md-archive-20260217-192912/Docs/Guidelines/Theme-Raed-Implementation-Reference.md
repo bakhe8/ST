@@ -27,21 +27,25 @@
 ## 2) أنماط معمارية مهمة يجب نقلها إلى VTDR
 
 ### A) Event lifecycle واضح
+
 - نمط جاهزية الثيم عبر حدث جاهز عام ثم تشغيل المكونات.
 - توصية VTDR:
   - توحيد دورة تشغيل: boot -> context-ready -> preview-ready
 
 ### B) تقسيم مدخلات JS حسب الصفحة
+
 - وجود مداخل build متعددة (home/product/checkout/...)
 - توصية VTDR:
   - Context Builder يحدد page-intent ويصدر payload خاص بكل صفحة
 
 ### C) توثيق المتغيرات داخل ملفات Twig
+
 - كثير من الصفحات تبدأ بعقد Variables موثقة.
 - توصية VTDR:
   - استخراج schema متغيرات الصفحة آليًا لإنتاج Validation أوضح
 
 ### D) اعتماد hooks
+
 - وجود نقاط hook متعددة في layout/page
 - توصية VTDR:
   - محرك المعاينة يجب يحترم نقاط hook ولا يكسرها
@@ -51,11 +55,13 @@
 ## 3) نقاط حرجة مرتبطة بـ twilight.json
 
 من خلال README و CHANGELOG:
+
 1. features + components محور أساسي في تعريف الثيم.
 2. تم دعم خصائص مثل default data و preview images في الإصدارات الحديثة.
 3. هناك اعتماد واضح على الإعدادات (theme.settings.get) في runtime.
 
 توصية VTDR:
+
 - فحص إلزامي لـ:
   - وجود twilight.json
   - صلاحية بنية features/components/settings
@@ -91,6 +97,7 @@ Theme Raed مفيد جدًا كمرجع تشغيل حقيقي لـ Twilight،
 لكنه مرجع تطبيقي وليس عقدًا رسميًا أعلى من docs.salla.dev.
 
 قاعدة الحسم:
+
 - المتطلبات الرسمية: من docs.salla.dev
 - الأنماط العملية الواقعية: من Theme Raed
 - التنفيذ في VTDR: يدمج الاثنين معًا دون نسخ الثيم.

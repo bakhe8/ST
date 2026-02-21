@@ -2,7 +2,7 @@
 .dropdown__trigger {
   @apply rounded-full overflow-hidden w-10 h-10 font-medium focus:ring-offset-transparent;
 
-  &.filter{
+  &.filter {
     @apply rounded-none w-auto h-auto overflow-visible;
   }
 }
@@ -15,9 +15,9 @@
 .dropdown-toggler {
   @apply inline-flex items-center lg:h-full w-10 mx-0 text-gray-500;
 
-  &.cat-filter{
+  &.cat-filter {
     @apply static w-auto;
-    
+
     .dropdown__trigger {
       @apply rounded-none w-auto h-auto overflow-visible;
     }
@@ -40,7 +40,7 @@
       left: 0 !important;
       @apply fixed bottom-0 top-auto w-full opacity-0 translate-y-10 origin-center duration-300 rounded-b-none;
 
-      .menu-item{
+      .menu-item {
         @apply rtl:pl-2.5 ltr:pr-2.5;
       }
     }

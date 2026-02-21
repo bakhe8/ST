@@ -16,7 +16,9 @@ VTDR يجب أن يبني Runtime Context بحيث يحافظ على هذه ال
 ## 2) المتغيرات الأساسية الحرجة
 
 ## `store` (Store)
+
 أمثلة أساسية مذكورة رسميًا:
+
 - `store.id`
 - `store.name`
 - `store.username`
@@ -31,7 +33,9 @@ VTDR يجب أن يبني Runtime Context بحيث يحافظ على هذه ال
 - `store.settings`
 
 ## `theme` (Theme)
+
 أمثلة أساسية مذكورة رسميًا:
+
 - `theme.id`
 - `theme.name`
 - `theme.mode` (`live` أو `preview`)
@@ -47,15 +51,18 @@ VTDR يجب أن يبني Runtime Context بحيث يحافظ على هذه ال
 ## 3) قواعد توافق VTDR
 
 ### PASS
+
 - توفر جميع الحقول الأساسية المطلوبة في `store` و`theme`.
 - احترام `theme.mode` كسياق تشغيل (`preview` داخل VTDR).
 - `theme.settings` متوافق مع `twilight.json`.
 
 ### WARNING
+
 - حقل اختياري مفقود مع fallback صالح في القالب.
 - `theme.components` غير متاح خارج الصفحة التي تتطلبه.
 
 ### FAIL
+
 - فقدان حقل مطلوب بدون fallback (`store.api`, `store.url`, ...).
 - نوع بيانات غير متوافق مع المتوقع (مثلاً object بدل string).
 - سياق page يعتمد على `theme.components` دون وجوده في الصفحة المناسبة.
@@ -75,6 +82,7 @@ VTDR يجب أن يبني Runtime Context بحيث يحافظ على هذه ال
 ## 5) أثر مباشر على الفحص قبل التصدير
 
 قبل Export:
+
 - [ ] وجود حقول `store` الأساسية
 - [ ] وجود حقول `theme` الأساسية
 - [ ] اتساق `theme.settings` مع مفاتيح `twilight.json`

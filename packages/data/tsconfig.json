@@ -1,19 +1,13 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "allowJs": true,
-        "resolveJsonModule": true,
-        "typeRoots": [
-            "../../node_modules/@types"
-        ],
-        "skipLibCheck": true
-    },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "src/generated-client"
-    ]
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["../../node_modules/@types"],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/generated-client"]
 }

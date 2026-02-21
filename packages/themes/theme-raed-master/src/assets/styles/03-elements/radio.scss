@@ -51,7 +51,7 @@
     }
 
     &:disabled + label {
-      opacity: .45;
+      opacity: 0.45;
     }
   }
 
@@ -85,9 +85,10 @@
 
     input[type="radio"] {
       + label {
-        transition: transform 0.2s, color 0.3s;
+        transition:
+          transform 0.2s,
+          color 0.3s;
         filter: grayscale(1);
-
 
         &:hover {
           filter: grayscale(0);

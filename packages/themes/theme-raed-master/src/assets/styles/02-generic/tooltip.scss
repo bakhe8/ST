@@ -38,7 +38,7 @@
         background-color: var(--color-primary);
       }
     }
-    
+
     [dir="rtl"] .icon-trigger.mobile-shifted & {
       transform: translate(53px, -73px);
       @media (max-width: 991px) {
@@ -76,7 +76,7 @@
       @media (max-width: 991px) {
         transform: translate(70px, -80px);
       }
-    } 
+    }
     [dir="ltr"] .icon-trigger.mobile-shifted.visible & {
       @media (max-width: 991px) {
         transform: translate(-70px, -80px);

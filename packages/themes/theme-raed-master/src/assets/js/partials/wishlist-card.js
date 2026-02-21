@@ -1,20 +1,18 @@
-
 class WishlistCard extends HTMLElement {
-
-    connectedCallback() {
-
-        if (!this.product) {
-            return salla.logger.warn('custom-wishlist-card:: product does not exist!');
-        }
-        salla.onReady(() => this.render())
-
+  connectedCallback() {
+    if (!this.product) {
+      return salla.logger.warn(
+        "custom-wishlist-card:: product does not exist!",
+      );
     }
+    salla.onReady(() => this.render());
+  }
 
-    render() {
-        this.setAttribute('id', `wishlist-product-${this.product.id}`)
-        this.classList.add('product-entry', 'product-entry--wishlist')
+  render() {
+    this.setAttribute("id", `wishlist-product-${this.product.id}`);
+    this.classList.add("product-entry", "product-entry--wishlist");
 
-        this.innerHTML = `
+    this.innerHTML = `
         <div class="flex items-center mb-4 sm:mb-0">
           <a href="${this.product.url}" class="product-entry__image">
             <img class="object-cover w-full h-full" src="${this.product.image.url}" loading="lazy" alt="${this.product.image.alt}" />
@@ -24,14 +22,18 @@ class WishlistCard extends HTMLElement {
               <a href="${this.product.url}">${this.product.name}</a>
             </h3>
             <div class="w-full center-between">
-              ${this.product.is_on_sale ? `
+              ${
+                this.product.is_on_sale
+                  ? `
                 <div class="space-x-1 rtl:space-x-reverse">
                   <h4 class="inline-block text-sm font-bold text-red-400">${salla.money(this.product.sale_price)}</h4>
                   <span class="text-sm text-gray-500 line-through">${salla.money(this.product.regular_price)}</span>
                 </div>
-              ` : `
+              `
+                  : `
                 <h4 class="text-sm font-bold">${salla.money(this.product.price)}</h4>
-              `}
+              `
+              }
             </div>
           </div>
         </div>
@@ -42,9 +44,8 @@ class WishlistCard extends HTMLElement {
             <i class="sicon-cancel"></i>
           </salla-button>
         </div>
-  `
-
-    }
+  `;
+  }
 }
 
-customElements.define('custom-wishlist-card', WishlistCard);
+customElements.define("custom-wishlist-card", WishlistCard);

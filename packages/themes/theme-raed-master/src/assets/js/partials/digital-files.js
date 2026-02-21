@@ -32,7 +32,7 @@ class DigitalFilesSettings extends HTMLElement {
                         <div class="flex items-center gap-3">
                             <i class="sicon-page"></i>
                             <div class="text-gray-600 text-sm">${trans(
-                              "pages.products.number_of_files"
+                              "pages.products.number_of_files",
                             )}</div>
                         </div>
                         <div class="text-gray-900">${
@@ -43,7 +43,7 @@ class DigitalFilesSettings extends HTMLElement {
                         <div class="flex items-center gap-3">
                             <i class="sicon-file-archive"></i>
                             <div class="text-gray-600 text-sm">${trans(
-                              "pages.products.file_formats"
+                              "pages.products.file_formats",
                             )}</div>
                         </div>
                         <div class="text-gray-900 text-sm">${formats}</div>
@@ -52,7 +52,7 @@ class DigitalFilesSettings extends HTMLElement {
                         <div class="flex items-center gap-3">
                             <i class="sicon-calendar"></i>
                             <div class="text-gray-600 text-sm">${trans(
-                              "pages.products.file_expiration_period"
+                              "pages.products.file_expiration_period",
                             )}</div>
                         </div>
                         <div class="text-gray-900 text-sm">${
@@ -76,7 +76,7 @@ class DigitalFilesSettings extends HTMLElement {
             <div class="flex items-center gap-3">
                 <i class="sicon-rotate"></i>
                 <div class="text-gray-600 text-sm">${trans(
-                  "pages.products.free_access_to_new_files"
+                  "pages.products.free_access_to_new_files",
                 )}</div>
             </div>
             <div class="text-gray-900 text-sm">

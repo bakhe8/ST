@@ -5,11 +5,13 @@ Cleanup pass: 2026-02-17 (Docs scope reduction)
 Schema source: `packages/data/prisma/schema.prisma`
 
 ## 1) Database Engine
+
 - Provider: SQLite
 - ORM: Prisma
 - Runtime URL: `DATABASE_URL` from root `.env`
 
 ## 2) Design Principle
+
 - Store-First tenancy:
   - `Store` is the anchor entity.
   - Runtime content/state records are keyed by `storeId`.
@@ -20,6 +22,7 @@ Schema source: `packages/data/prisma/schema.prisma`
 ## 3) Core Entity Map
 
 ### Theme Domain
+
 - `Theme`
   - metadata + identity for installed themes.
 - `ThemeVersion`
@@ -27,12 +30,14 @@ Schema source: `packages/data/prisma/schema.prisma`
   - unique key: `[themeId, version]`.
 
 ### Store Domain
+
 - `Store`
   - store identity, active theme/version, view state, settings json fields.
 - `StoreState`
   - runtime projection of active theme/page/viewport/settings.
 
 ### Runtime Composition Domain
+
 - `ComponentState`
   - per-component settings/visibility.
   - unique key: `[storeId, componentPath, instanceOrder]`.
@@ -43,6 +48,7 @@ Schema source: `packages/data/prisma/schema.prisma`
   - binding rules between components and data sources.
 
 ### Runtime Content Domain
+
 - `DataEntity`
   - flexible typed content payload for simulator resources.
   - unique key: `[storeId, entityType, entityKey]`.
@@ -55,28 +61,35 @@ Schema source: `packages/data/prisma/schema.prisma`
   - saved runtime snapshots by store.
 
 ## 4) Relationship Characteristics
+
 - Most child entities have mandatory `storeId` foreign key to `Store`.
 - Theme linkage is explicit from `Store` to `Theme` and `ThemeVersion`.
 - Cascade semantics are handled by repository/application flow (not fully delegated to DB constraints).
 
 ## 5) Write Path Responsibilities
+
 - API routes orchestrate intent.
 - Engine (`StoreLogic`/`SimulatorService`) applies runtime rules.
 - Prisma repositories perform DB mutation.
 
 ## 6) Runtime Integrity Rules
+
 1. No cross-store mutation without explicit `storeId`.
 2. Theme settings write path must target `themeSettingsJson`.
 3. Data entity writes should preserve entity identity (`id`/`entityKey`).
 
 ## 7) Schema Drift Governance
+
 - Canonical schema fingerprint and model list:
   - `Docs/VTDR/DATA-SCHEMA.snapshot.json`
 - Schema drift is checked by:
+
 ```powershell
 npm run docs:drift
 ```
+
 - Snapshot refresh command:
+
 ```powershell
 npm run docs:sync
 ```

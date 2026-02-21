@@ -6,39 +6,47 @@ Scope: Code-first assessment (source of truth is runtime code, not documentation
 ## 1) Executive Summary by Folder
 
 ### `apps`
+
 - `apps/api`: Main Express backend and orchestration layer. Boots services, wires routes, applies context middleware, and exposes runtime preview endpoints (`apps/api/src/index.ts:63`, `apps/api/src/index.ts:136`, `apps/api/src/index.ts:152`).
 - `apps/ui`: React/Vite management interface with store routes for dashboard, products, categories, static pages, settings, theme settings, and preview (`apps/ui/src/App.tsx:26`, `apps/ui/src/App.tsx:34`).
 - Current status: Buildable and structured, but with material API/UI contract gaps.
 
 ### `packages`
+
 - `packages/contracts`: System contracts/types. Modern runtime uses Store-First in `packages/contracts/runtime.ts:122`, but legacy scenario artifacts still exist in `packages/contracts/runtime.contract.d.ts:17`.
 - `packages/data`: Prisma schema + repositories. Effective schema is Store-First (`packages/data/prisma/schema.prisma:43`). Legacy scenario schemas still exist in parallel files (`packages/data/prisma/schema.dev.prisma:51`).
 - `packages/engine`: Core runtime logic (composition, rendering, simulation, store operations). Context build in `packages/engine/src/core/composition-engine.ts:30`, store logic in `packages/engine/src/core/store-logic.ts:4`, simulator surface in `packages/engine/src/providers/simulator.service.ts:5`.
 - `packages/themes`: Real theme implementation (`theme-raed-master`) with `twilight.json`, Twig templates, and assets. Real settings exist (example: `header_is_sticky`) in `packages/themes/theme-raed-master/twilight.json:89`.
 
 ### `Docs`
+
 - Current docs are largely generic rewritten templates and do not faithfully represent runtime behavior (examples: `Docs/DEV.md:1`, `Docs/Vision/Vision.md:1`).
 
 ### `archive`
+
 - Contains archived old markdown docs snapshot (`archive/md-archive-20260217-192912`) for historical reference only.
 
 ### `stores`
+
 - Empty at this time.
 
 ## 2) Contradictions/Conflicts + Resolution Decision
 
 ### Conflict 1: Context middleware vs route expectations
+
 - Fact: Middleware sets only `req.storeId` (`apps/api/src/middlewares/context.middleware.ts:35`).
 - Fact: Runtime/store routes rely on `req.store` (`apps/api/src/routes/runtime.routes.ts:19`, `apps/api/src/routes/store.routes.ts:29`).
 - Decision: Normalize context injection by attaching full store object in middleware, or standardize all routes to resolve store explicitly from `req.storeId`.
 
 ### Conflict 2: Preview URL in UI vs dev proxy setup
+
 - Fact: UI base defaults to `window.location.origin/api` (`apps/ui/src/services/api.ts:5`).
 - Fact: Preview page strips `/api` and opens `/preview/...` (`apps/ui/src/pages/StorePreview.tsx:17`, `apps/ui/src/pages/StorePreview.tsx:18`).
 - Fact: Vite proxy forwards only `/api` (`apps/ui/vite.config.ts:11`).
 - Decision: Add proxy for `/preview` or route preview through `/api` consistently.
 
 ### Conflict 3: UI performs CRUD where API exposes mostly GET
+
 - UI calls write operations:
   - Categories: `PUT/DELETE/POST` (`apps/ui/src/pages/StoreCategories.tsx:48`, `apps/ui/src/pages/StoreCategories.tsx:63`, `apps/ui/src/pages/StoreCategories.tsx:72`)
   - Static pages: `POST/PUT/DELETE` (`apps/ui/src/pages/StoreStaticPages.tsx:40`, `apps/ui/src/pages/StoreStaticPages.tsx:57`, `apps/ui/src/pages/StoreStaticPages.tsx:69`)
@@ -47,28 +55,33 @@ Scope: Code-first assessment (source of truth is runtime code, not documentation
 - Decision: Either implement missing CRUD endpoints or make UI read-only until backend parity is complete.
 
 ### Conflict 4: Theme settings save path mismatches schema constraints
+
 - Fact: Theme settings UI sends flat keys from `twilight.json` (`apps/ui/src/components/ThemeSettingsPanel.tsx:74`).
 - Fact: Backend saves theme settings via branding update (`packages/engine/src/providers/simulator.service.ts:144`).
 - Fact: `BrandingSchema` is strict and expects branding structure, not arbitrary theme setting keys (`packages/contracts/src/schemas.ts:6`, `packages/contracts/src/schemas.ts:20`).
 - Decision: Separate `themeSettingsJson` from `brandingJson` in persistence model and API flow.
 
 ### Conflict 5: Store update response envelope mismatch
+
 - Fact: UI expects `result.success` (`apps/ui/src/components/StoreSettingsPanel.tsx:57`).
 - Fact: `PATCH /stores/:id` returns raw store object, not envelope (`apps/api/src/routes/store.routes.ts:42`).
 - Decision: Standardize response envelope across all API endpoints (`{ success, data, error }`).
 
 ### Conflict 6: Legacy Scenario leftovers vs Store-First target
+
 - Fact: Legacy scenario type still appears (`packages/contracts/runtime.contract.d.ts:17`).
 - Fact: UI has dead scenario endpoint call (`apps/ui/src/components/PageComponentsEditor.tsx:140`).
 - Fact: SDK bridge still uses scenario header (`apps/api/public/sdk-bridge.js:23`) while renderer injects `storeId` (`packages/engine/src/rendering/renderer-service.ts:477`).
 - Decision: Remove or isolate all Scenario legacy references behind explicit compatibility boundary with sunset plan.
 
 ### Conflict 7: SDK bridge calls non-existing cart endpoints
+
 - Fact: Bridge calls `/api/v1/cart*` (`apps/api/public/sdk-bridge.js:40`, `apps/api/public/sdk-bridge.js:50`).
 - Fact: No cart routes are registered in active API routes list (`apps/api/src/routes/simulator.routes.ts:13` to `apps/api/src/routes/simulator.routes.ts:56`).
 - Decision: Implement cart endpoints or disable those bridge hooks until implemented.
 
 ### Conflict 8: Docs directly contradict code operations
+
 - Fact: Docs use incorrect command `pm run dev` (`Docs/DEV.md:8`), while actual root script is `npm run dev` (`package.json:10`).
 - Fact: Architecture doc still references scenario isolation language despite Store-First runtime (`ARCHITECTURE.md:17`).
 - Decision: Treat code + tests as source of truth, then regenerate docs from verified implementation.
@@ -76,32 +89,38 @@ Scope: Code-first assessment (source of truth is runtime code, not documentation
 ## 3) Practical Execution Roadmap (Current State -> Final Target)
 
 ### Phase A (2-4 days): Contract Stabilization (Critical)
+
 - Fix context flow (`req.store` vs `req.storeId`) across middleware and dependent routes.
 - Fix preview URL/proxy consistency so preview works reliably in dev.
 - Standardize API response envelopes.
 - Exit criteria: Store settings + preview work end-to-end from UI.
 
 ### Phase B (4-7 days): CRUD Parity Closure
+
 - Decide formal target per resource: full CRUD or read-only.
 - Implement missing API operations or remove/disable UI write paths temporarily.
 - Exit criteria: No UI operation triggers contract-level 404/unsupported behavior.
 
 ### Phase C (3-5 days): Legacy Scenario Cleanup
+
 - Remove stale Scenario references from active frontend/backend paths.
 - Keep only explicit compatibility layer if needed (with deprecation date).
 - Exit criteria: Runtime path is fully Store-First without mixed concepts.
 
 ### Phase D (3-5 days): Theme Settings Persistence Model
+
 - Introduce dedicated `themeSettingsJson` (or equivalent table).
 - Keep `brandingJson` strictly for branding semantics.
 - Exit criteria: `twilight.json` settings persist and round-trip without schema rejection.
 
 ### Phase E (3-6 days): Testing and Quality Gate
+
 - Add integration tests for critical API endpoints and context resolution.
 - Add UI->API contract tests for active screens.
 - Exit criteria: `npm run test` executes real assertions (not placeholder echoes).
 
 ### Phase F (2-4 days): Documentation Rebuild from Code
+
 - Recreate docs from implemented behavior with direct file-level references.
 - Add drift checks in CI: route/schema changes require linked docs updates.
 - Exit criteria: Docs become reliable roadmap aligned to runtime truth.
@@ -115,6 +134,7 @@ Scope: Code-first assessment (source of truth is runtime code, not documentation
 ## 5) Immediate Next Action (Recommended)
 
 Start Phase A immediately:
+
 1. Fix context injection and dependent routes.
 2. Fix preview routing/proxy flow.
 3. Normalize API response envelope.
@@ -125,7 +145,7 @@ Start Phase A immediately:
 
 سأعطيك “تنفيذ Phase A” لكن بصيغة منع التغيير نفسه من أن يصبح مصدر الخطر: يعني نحوّل التغيير إلى شيء مُقيَّد ومُختبَر ومُقاس بدل ما يكون قفزة عشوائية.
 
-1) لماذا التغيير عندكم خطر الآن؟ (تشخيص سببي)
+1. لماذا التغيير عندكم خطر الآن؟ (تشخيص سببي)
 
 الخطر ليس “وجود Bugs”؛ الخطر هو أن النظام يسمح بهذه الأنواع من الانحراف بدون إنذار:
 
@@ -141,7 +161,7 @@ Envelope غير موحّد: UI تتوقع {success} و API ترجع كائن raw
 
 هذه النقاط تجعل التغيير خطر لأنه لا توجد “بوابات جودة” على الحدود.
 
-2) قاعدة ذهبية: “لا تغيير بلا بوابة”
+2. قاعدة ذهبية: “لا تغيير بلا بوابة”
 
 لو تبغى تمنع التغيير نفسه من أن يصبح مصدر خطر، لازم تفرض 4 بوابات (Gates) لا تتخطى:
 
@@ -187,8 +207,8 @@ Gate D — Drift Gate (منع الانحراف)
 
 وأن docs الأساسية (DEV/ARCHITECTURE) متزامنة مع scripts/routes (حتى لو minimal)
 
-3) تنفيذ Phase A “بالحد الأدنى الذي يمنع الخطر”
-(1) حسم مسألة Context مرة واحدة
+3. تنفيذ Phase A “بالحد الأدنى الذي يمنع الخطر”
+   (1) حسم مسألة Context مرة واحدة
 
 قرار واحد فقط ثم تنظيف كامل:
 
@@ -247,7 +267,7 @@ Preview يعمل في dev و prod بنفس المسار
 
 لا يوجد route يعتمد على req.store بدون ضمان middleware
 
-4) “قرار parity” لتفادي Phase B يتحول لفوضى
+4. “قرار parity” لتفادي Phase B يتحول لفوضى
 
 عندك Conflict 3 (UI CRUD vs API GET). هذا لو تركته “معلّق” سيخلي كل تغيير UI خطر.
 
@@ -259,7 +279,7 @@ Implement minimal CRUD: بس للمسارات التي UI يستخدمها فع�
 
 الأسوأ: تبقى UI ترسل PUT/POST/DELETE و API ما عنده… هذا يولد “سلوك كاذب” للمستخدم ويُفسد الثقة.
 
-5) كيف تمنع “Legacy Scenario” من العودة كقنبلة؟
+5. كيف تمنع “Legacy Scenario” من العودة كقنبلة؟
 
 أنت قررت Sunset plan — ممتاز. اجعله قابل للتنفيذ:
 
@@ -273,7 +293,7 @@ packages/compat/scenario/
 
 هذا يمنع التغيير من “إعادة إدخال المفهوم” من باب خلفي.
 
-6) أقوى “Immediate Next Action” بصيغة Task List
+6. أقوى “Immediate Next Action” بصيغة Task List
 
 إذا تبغى تبدأ الآن بدون كلام زيادة، هذا ترتيب التنفيذ الذي يعطي أعلى تقليل للمخاطر لكل ساعة عمل:
 

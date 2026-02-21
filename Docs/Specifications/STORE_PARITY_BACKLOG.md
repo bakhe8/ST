@@ -5,14 +5,17 @@ Owner: VTDR Core Team
 Scope: Close the gap between current virtual stores and practical Salla-like store behavior for theme development.
 
 ## Goal
+
 Raise VTDR store realism so theme design/customization decisions are based on realistic store capabilities, data, and state transitions.
 
 ## Prioritization Model
+
 - `P0`: Mandatory for MVP parity.
 - `P1`: High impact after P0 closure.
 - `P2`: Nice-to-have / optimization after functional parity.
 
 ## P0 (Must Have)
+
 1. Product domain parity:
    - Unified product shape across API/UI/Preview.
    - Support `images`, `main_image`, `options`, `variants`, `category_ids`.
@@ -30,6 +33,7 @@ Raise VTDR store realism so theme design/customization decisions are based on re
    - For each closed P0 slice: `Schema -> API -> UI -> Preview`.
 
 ## P1 (After P0)
+
 1. Checkout simulation depth:
    - shipping zones, taxes, payment methods, coupon effects.
 2. Content domains:
@@ -41,12 +45,15 @@ Raise VTDR store realism so theme design/customization decisions are based on re
    - stronger conflict handling and partial sync reporting.
 
 ## P2 (Later)
+
 1. Advanced observability dashboards.
 2. Full RBAC matrix.
 3. Performance profiling and large-store stress scenarios.
 
 ## Execution Method (Vertical Slices)
+
 Each slice is closed only when all are done:
+
 1. Data model + normalization.
 2. API endpoints and contracts.
 3. UI authoring flow.
@@ -54,9 +61,11 @@ Each slice is closed only when all are done:
 5. Integration tests.
 
 ## Current Active Slice
+
 `Slice-07: Inventory + Merchandising Visual Parity`
 
 ### Slice-07 Scope
+
 - Inventory semantics:
   - دعم حالات `in_stock / low_stock / out_of_stock / backorder` داخل payload المنتج.
   - إضافة حقول `track_quantity / allow_backorder / low_stock_threshold / available_quantity / reserved_quantity`.
@@ -74,6 +83,7 @@ Each slice is closed only when all are done:
   - توسيع اختبار التكامل ليثبت سلوك `low-stock/backorder` وحدود السلة مع backorder.
 
 ### Slice-07 Progress Notes
+
 - `SimulatorService` أصبح يحسب `inventory_status` بشكل حتمي ويربطه بقواعد السلة والتوفر.
 - `resolveProductCartLimit` يدعم الآن backorder بشكل صريح عند نفاد الكمية مع `allow_backorder=true`.
 - `GET /api/v1/products` يدعم الآن:
@@ -86,12 +96,14 @@ Each slice is closed only when all are done:
 - اختبار التكامل `supports inventory stock filters/sorting and enforces cart stock limits` يغطي الحالات الجديدة ويمر بنجاح.
 
 ### Slice-07 Exit Criteria (Current Target)
+
 1. كل حالة مخزون (`in/low/out/backorder`) قابلة للتوليد والفلترة عبر API بشكل ثابت.
 2. قواعد السلة تتعامل مع backorder بشكل مقصود دون كسر حدود `max_quantity`.
 3. شاشة إدارة المنتجات تُمكّن إدارة حقول المخزون المتقدمة والـmerchandising الجديدة.
 4. اختبارات التكامل تبقى خضراء تحت `npm run validate`.
 
 ### Slice-01 Scope
+
 - Product shape unification:
   - `category_ids` + resolved `categories`
   - `main_image`/`thumbnail` derivation from `images`
@@ -106,14 +118,17 @@ Each slice is closed only when all are done:
   - remove dependency on external placeholder host.
 
 ### Slice-01 Status
+
 - Closed: implemented and validated by integration tests (`apps/api/src/integration/api.integration.test.ts`) on 2026-02-18.
 
 ### Slice-01 Closure Notes
+
 - Product payload now normalizes legacy/external placeholder URLs (`via.placeholder.com`) to local runtime placeholder.
 - Category delete now cleans product category references and reparents child categories to root.
 - Integration test covers category/product round-trip, category deletion side-effects, and preview continuity.
 
 ### Slice-01 Exit Criteria
+
 1. Product edit/save round-trip preserves categories/options/variants correctly.
 2. Product list filtering by category works for both seeded and synced data.
 3. Category tree renders correctly from root and nested nodes.
@@ -121,15 +136,18 @@ Each slice is closed only when all are done:
 5. Integration tests remain green.
 
 ## Slice-02 Scope
+
 - Theme settings persistence must merge updates instead of replacing stored values.
 - Page components editor must load/save real `page_compositions` for the selected store.
 - Preview must consume `themeSettingsJson` and page composition overrides for home components.
 - Store UI should expose page components editing flow as a first-class screen.
 
 ### Slice-02 Status
+
 - Closed: visual data sources and page composition rendering implemented in code and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-02 Progress Notes
+
 - `theme/components` now returns real selectable options for `products/categories/brands` based on store data.
 - Page components editor supports multi-select for `items` fields and saves IDs into `page_compositions`.
 - Renderer resolves selected IDs to full entities before Twig render (brands/categories/products), with visual fallback content when no explicit selection exists.
@@ -147,6 +165,7 @@ Each slice is closed only when all are done:
 - `variable-list` controls now use one unified editor control (top-level + collection sub-fields), preserving source-aware behavior, static/custom URL handling, and the existing modal picker workflow.
 
 ## Slice-03 Scope
+
 - Blog domain parity:
   - `blog/categories` CRUD APIs with normalized payload shape (`id/name/title/slug/url/order`).
   - `blog/articles` CRUD APIs with normalized payload shape (`title/slug/summary/url/image/category_id`).
@@ -160,9 +179,11 @@ Each slice is closed only when all are done:
   - integration coverage for blog CRUD and variable-list propagation.
 
 ### Slice-03 Status
+
 - Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-03 Progress Notes
+
 - Added simulator routes under `/api/v1/blog/categories*` and `/api/v1/blog/articles*`.
 - Added simulator-service normalization for blog category/article payloads, including URL/slug defaults and category resolution.
 - Extended seeding to generate realistic blog categories and articles per store.
@@ -174,6 +195,7 @@ Each slice is closed only when all are done:
   - population of `variable-list` options for `blog_articles/blog_categories`.
 
 ## Slice-04 Scope
+
 - Brands domain parity:
   - `brands` CRUD APIs with normalized payload (`id/name/title/slug/url/logo/banner/order`).
   - Dashboard management screen for brands.
@@ -186,9 +208,11 @@ Each slice is closed only when all are done:
   - integration coverage for brand CRUD + offer CRUD + brand option propagation into `theme/components`.
 
 ### Slice-04 Status
+
 - Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-04 Progress Notes
+
 - Added simulator routes under:
   - `/api/v1/brands*`
   - `/api/v1/offers*`
@@ -203,6 +227,7 @@ Each slice is closed only when all are done:
   - immediate propagation of brand updates/deletion into `theme/components` selectable options.
 
 ## Slice-05 Scope
+
 - Navigation menu parity:
   - Replace static mock menu payload with store-scoped persisted menus (`header/footer`).
   - Keep menu shape compatible with theme runtime (`title/url/order/children/products/image/attrs/link_attrs`).
@@ -217,9 +242,11 @@ Each slice is closed only when all are done:
   - integration coverage for menu read/write and nested structure persistence.
 
 ### Slice-05 Status
+
 - Closed: first end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-05 Progress Notes
+
 - `SimulatorService.getMenus` now reads store-scoped `menu` entities and falls back to generated defaults based on available categories/pages.
 - Added `SimulatorService.updateMenus` to persist normalized menu payload per type (`header` / `footer`).
 - Added API endpoint:
@@ -234,6 +261,7 @@ Each slice is closed only when all are done:
   - menu nested write/read round-trip for header/footer.
 
 ## Slice-06 Scope
+
 - Reviews parity:
   - `reviews` CRUD APIs with normalized payload shape (`title/content/stars/customer_name/is_published/is_verified/product_id`).
   - Dashboard management screen for product reviews.
@@ -249,9 +277,11 @@ Each slice is closed only when all are done:
   - integration coverage for review/question CRUD and feedback metric propagation into products.
 
 ### Slice-06 Status
+
 - Closed: end-to-end implementation shipped and validated by integration pipeline (`npm run validate`) on 2026-02-18.
 
 ### Slice-06 Progress Notes
+
 - Added simulator routes under:
   - `/api/v1/reviews*`
   - `/api/v1/questions*`
@@ -272,6 +302,7 @@ Each slice is closed only when all are done:
   - product feedback metric recomputation and propagation.
 
 ### Slice-06 Exit Criteria
+
 1. Review create/update/delete updates product rating/comments deterministically.
 2. Question create/update/delete updates product questions/questions_count deterministically.
 3. Review/question CRUD is available via dedicated dashboard screens.
